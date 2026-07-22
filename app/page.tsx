@@ -15,6 +15,15 @@ type Claim = {
   status: ClaimStatus;
 };
 
+type AnalysisSource = "idle" | "loading" | "solar" | "sample";
+
+type AnalysisResponse = {
+  source: "solar" | "sample";
+  model: string | null;
+  claims: Claim[];
+  notice: string;
+};
+
 const steps = ["시작", "경험", "역량 확인", "격차·행동", "GapProof"];
 
 const initialClaims: Claim[] = [
@@ -24,8 +33,8 @@ const initialClaims: Claim[] = [
     quote:
       "항공물류 전공에서 배운 흐름을 바탕으로 AI가 상담의 반복 정리를 줄일 수 있다고 판단했다.",
     source: "학교·프로젝트",
-    tier: 1,
-    confidence: "높음",
+    tier: 0,
+    confidence: "확인 필요",
     question: "문제를 확인한 사용자나 상담사가 있었나요?",
     status: "pending",
   },
@@ -34,8 +43,8 @@ const initialClaims: Claim[] = [
     skill: "AI API 기반 서비스 프로토타이핑",
     quote: "Solar API를 연결해 한국어 상담 MVP인 MindHub를 만들었다.",
     source: "프로젝트 링크",
-    tier: 1,
-    confidence: "높음",
+    tier: 0,
+    confidence: "확인 필요",
     question: "직접 구현한 범위와 작동 링크를 추가해 주세요.",
     status: "pending",
   },
@@ -92,6 +101,9 @@ export default function Home() {
     "항공물류를 전공했고, 집에서 AI 수학과 웹을 공부했습니다. Solar API를 연결해 한국어 상담 MVP인 MindHub를 만들었습니다.",
   );
   const [claims, setClaims] = useState(initialClaims);
+  const [analysisSource, setAnalysisSource] = useState<AnalysisSource>("idle");
+  const [analysisModel, setAnalysisModel] = useState<string | null>(null);
+  const [analysisNotice, setAnalysisNotice] = useState("");
   const [selectedAction, setSelectedAction] = useState("project");
   const [notice, setNotice] = useState("");
 
@@ -112,11 +124,44 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const analyzeExperience = async () => {
+    if (experience.trim().length < 20 || analysisSource === "loading") return;
+    setAnalysisSource("loading");
+    setAnalysisNotice("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ experience: experience.trim() }),
+      });
+      const data = (await response.json()) as AnalysisResponse & { message?: string };
+      if (!response.ok || !Array.isArray(data.claims) || !data.claims.length) {
+        throw new Error(data.message || "분석 결과를 만들지 못했습니다.");
+      }
+      setClaims(data.claims.map((claim) => ({ ...claim, status: "pending" })));
+      setAnalysisSource(data.source);
+      setAnalysisModel(data.model);
+      setAnalysisNotice(data.notice);
+      moveTo(2);
+    } catch {
+      setClaims(initialClaims);
+      setAnalysisSource("sample");
+      setAnalysisModel(null);
+      setAnalysisNotice("연결 오류로 준비된 샘플 결과를 표시합니다.");
+      moveTo(2);
+    }
+  };
+
   const resetDemo = () => {
     setStep(0);
     setStoreConsent(false);
     setAggregateConsent(false);
     setClaims(initialClaims);
+    setAnalysisSource("idle");
+    setAnalysisModel(null);
+    setAnalysisNotice("");
     setSelectedAction("project");
     setNotice("샘플 기록과 파생 결과를 화면에서 삭제했습니다.");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -130,7 +175,7 @@ export default function Home() {
           <span>GapProof</span>
         </a>
         <div className="top-actions">
-          <span className="sample-badge"><i /> Solar 샘플 데모</span>
+          <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> {analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span>
           <button className="text-button" onClick={resetDemo}>기록 삭제</button>
         </div>
       </header>
@@ -167,7 +212,7 @@ export default function Home() {
           <aside className="consent-card">
             <div className="card-kicker">샘플로 3분 체험</div>
             <h2>내 경험에서 시작하기</h2>
-            <p>이 데모는 실제 Solar 호출 전 단계로, 준비된 샘플 결과를 사용합니다.</p>
+            <p>키가 연결되면 실제 Solar를 호출하고, 없으면 원문 기반 샘플로 안전하게 전환합니다.</p>
             <label className="check-row">
               <input
                 type="checkbox"
@@ -220,8 +265,8 @@ export default function Home() {
           </div>
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(0)}>이전</button>
-            <button className="primary" disabled={experience.trim().length < 20} onClick={() => moveTo(2)}>
-              Solar 샘플로 역량 찾기 <span>→</span>
+            <button className="primary" disabled={experience.trim().length < 20 || analysisSource === "loading"} onClick={analyzeExperience}>
+              {analysisSource === "loading" ? "역량 후보를 찾는 중…" : "Solar로 역량 후보 찾기"} <span>→</span>
             </button>
           </div>
         </section>
@@ -234,8 +279,8 @@ export default function Home() {
             <div className="legend"><i /> 원문 근거가 함께 표시됩니다</div>
           </div>
           <div className="explain-strip">
-            <b>Solar 샘플 분석 완료</b>
-            <span>3개 후보 중 과장되거나 맥락이 다른 것은 거절하세요. 거절한 항목은 카드와 추천에서 빠집니다.</span>
+            <b>{analysisSource === "solar" ? `Solar ${analysisModel} 분석 완료` : "안전한 샘플 분석 완료"}</b>
+            <span>{analysisNotice} 과장되거나 맥락이 다른 후보는 거절하세요. 거절한 항목은 카드와 추천에서 빠집니다.</span>
           </div>
           <div className="claims">
             {claims.map((claim) => (
@@ -327,7 +372,7 @@ export default function Home() {
               <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}</div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주세요."}”</blockquote></div>
               <div className="chosen-action"><span>이번 주 다음 행동</span><b>{actions.find((action) => action.id === selectedAction)?.title}</b><small>{actions.find((action) => action.id === selectedAction)?.rule}</small></div>
-              <footer><span>AI 제안 → 사용자 확인 완료</span><b>2026.07.22</b></footer>
+              <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>2026.07.22</b></footer>
             </article>
 
             <article className="proof-card counselor-proof">
@@ -353,7 +398,7 @@ export default function Home() {
 
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
-        <p>샘플 데이터 · 취업 또는 적성 판정이 아닙니다</p>
+        <p>{analysisSource === "solar" ? "Solar 실연결" : "샘플 데이터"} · 취업 또는 적성 판정이 아닙니다</p>
       </footer>
     </main>
   );
