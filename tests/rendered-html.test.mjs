@@ -40,7 +40,7 @@ test("server-renders the GapProof sample journey", async () => {
   assert.match(html, /Solar 샘플 데모/);
   assert.match(html, /공백을 지우지 않고/);
   assert.match(html, /실제 Solar를 호출하고, 없으면 원문 기반 샘플/);
-  assert.match(html, /체험 기록 저장에 동의/);
+  assert.match(html, /경험 분석에 동의/);
   assert.match(html, /취업 가능성이나 적성을 판정하지 않습니다/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });
@@ -58,6 +58,10 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.match(page, /거절한 항목은 카드와 추천에서 빠집니다/);
   assert.match(page, /원문 공유는 직접 선택해요/);
   assert.match(page, /기록 삭제/);
+  assert.match(page, /setExperience\(""\)/);
+  assert.match(page, /원문 인용은 증거이므로 수정하지 않습니다/);
+  assert.match(page, /claim\.id === id \? \{ \.\.\.claim, skill: nextSkill, status: "pending" \}/);
+  assert.match(page, /confirmedClaims\.map\(\(claim\) => <li key=\{claim\.id\}>\{claim\.skill\}<\/li>\)/);
   assert.match(page, /샘플 데이터/);
   assert.match(layout, /title:\s*"GapProof \| 공백을 증거로"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

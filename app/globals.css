@@ -111,6 +111,14 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .tier b { padding: 3px 5px; border-radius: 4px; background: var(--blue-soft); color: #315d91; }
 .tier-0 b { background: #f0eee8; color: #777064; }
 .claim-card h2 { min-height: 55px; margin: 20px 0 12px; font-size: 19px; line-height: 1.45; letter-spacing: -.02em; }
+.claim-editor { min-height: 96px; margin: 14px 0 12px; padding: 12px; border: 1px solid #b9d7cd; border-radius: 10px; background: #f2faf7; }
+.claim-editor label, .claim-editor small { display: block; }
+.claim-editor label { margin-bottom: 7px; color: var(--green); font-size: 11px; font-weight: 850; }
+.claim-editor input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+.claim-editor small { margin-top: 6px; color: var(--muted); font-size: 10px; }
+.claim-editor > div { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.claim-editor button { min-height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: white; cursor: pointer; font-size: 10px; font-weight: 750; }
+.claim-editor button.save { border-color: var(--green); background: var(--green); color: white; }
 .claim-card blockquote { min-height: 112px; margin: 0; padding: 15px; border-left: 3px solid var(--yellow); background: #faf7ee; color: #445066; font-family: Georgia, "Noto Serif KR", serif; font-size: 14px; line-height: 1.65; }
 .claim-source { display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 11px; }
 .claim-source span { color: var(--muted); }

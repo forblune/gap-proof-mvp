@@ -26,6 +26,9 @@ type AnalysisResponse = {
 
 const steps = ["시작", "경험", "역량 확인", "격차·행동", "GapProof"];
 
+const defaultExperience =
+  "항공물류를 전공했고, 집에서 AI 수학과 웹을 공부했습니다. Solar API를 연결해 한국어 상담 MVP인 MindHub를 만들었습니다.";
+
 const initialClaims: Claim[] = [
   {
     id: 1,
@@ -97,15 +100,15 @@ export default function Home() {
   const [step, setStep] = useState(0);
   const [storeConsent, setStoreConsent] = useState(false);
   const [aggregateConsent, setAggregateConsent] = useState(false);
-  const [experience, setExperience] = useState(
-    "항공물류를 전공했고, 집에서 AI 수학과 웹을 공부했습니다. Solar API를 연결해 한국어 상담 MVP인 MindHub를 만들었습니다.",
-  );
+  const [experience, setExperience] = useState(defaultExperience);
   const [claims, setClaims] = useState(initialClaims);
   const [analysisSource, setAnalysisSource] = useState<AnalysisSource>("idle");
   const [analysisModel, setAnalysisModel] = useState<string | null>(null);
   const [analysisNotice, setAnalysisNotice] = useState("");
   const [selectedAction, setSelectedAction] = useState("project");
   const [notice, setNotice] = useState("");
+  const [editingClaimId, setEditingClaimId] = useState<number | null>(null);
+  const [editingSkill, setEditingSkill] = useState("");
 
   const confirmedClaims = useMemo(
     () => claims.filter((claim) => claim.status === "confirmed"),
@@ -116,6 +119,27 @@ export default function Home() {
     setClaims((current) =>
       current.map((claim) => (claim.id === id ? { ...claim, status } : claim)),
     );
+  };
+
+  const startEditingClaim = (claim: Claim) => {
+    setEditingClaimId(claim.id);
+    setEditingSkill(claim.skill);
+  };
+
+  const saveClaimSkill = (id: number) => {
+    const nextSkill = editingSkill.trim().slice(0, 80);
+    if (nextSkill.length < 3) {
+      setNotice("역량 표현을 3자 이상 적어 주세요.");
+      return;
+    }
+    setClaims((current) =>
+      current.map((claim) =>
+        claim.id === id ? { ...claim, skill: nextSkill, status: "pending" } : claim,
+      ),
+    );
+    setEditingClaimId(null);
+    setEditingSkill("");
+    setNotice("역량 표현을 수정했습니다. 원문 근거는 바뀌지 않았으니 다시 확인해 주세요.");
   };
 
   const moveTo = (next: number) => {
@@ -158,12 +182,31 @@ export default function Home() {
     setStep(0);
     setStoreConsent(false);
     setAggregateConsent(false);
+    setExperience(defaultExperience);
     setClaims(initialClaims);
     setAnalysisSource("idle");
     setAnalysisModel(null);
     setAnalysisNotice("");
     setSelectedAction("project");
-    setNotice("샘플 기록과 파생 결과를 화면에서 삭제했습니다.");
+    setEditingClaimId(null);
+    setEditingSkill("");
+    setNotice("새 샘플을 준비했습니다.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const deleteRecords = () => {
+    setStep(0);
+    setStoreConsent(false);
+    setAggregateConsent(false);
+    setExperience("");
+    setClaims([]);
+    setAnalysisSource("idle");
+    setAnalysisModel(null);
+    setAnalysisNotice("");
+    setSelectedAction("project");
+    setEditingClaimId(null);
+    setEditingSkill("");
+    setNotice("입력한 경험과 이 화면의 파생 결과를 삭제했습니다.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -176,7 +219,7 @@ export default function Home() {
         </a>
         <div className="top-actions">
           <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> {analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span>
-          <button className="text-button" onClick={resetDemo}>기록 삭제</button>
+          <button className="text-button" onClick={deleteRecords}>기록 삭제</button>
         </div>
       </header>
 
@@ -219,7 +262,7 @@ export default function Home() {
                 checked={storeConsent}
                 onChange={(event) => setStoreConsent(event.target.checked)}
               />
-              <span><b>체험 기록 저장에 동의</b><small>이 화면 안에서만 사용하며 언제든 삭제할 수 있어요.</small></span>
+              <span><b>경험 분석에 동의</b><small>분석 요청에만 사용하며 현재 버전은 서버에 원문을 저장하지 않아요.</small></span>
             </label>
             <label className="check-row optional">
               <input
@@ -289,13 +332,20 @@ export default function Home() {
                   <span className={`confidence ${claim.confidence === "높음" ? "high" : "low"}`}>{claim.confidence}</span>
                   <TierBadge tier={claim.tier} />
                 </div>
-                <h2>{claim.skill}</h2>
+                {editingClaimId === claim.id ? (
+                  <div className="claim-editor">
+                    <label htmlFor={`claim-skill-${claim.id}`}>역량 표현 수정</label>
+                    <input id={`claim-skill-${claim.id}`} value={editingSkill} maxLength={80} onChange={(event) => setEditingSkill(event.target.value)} />
+                    <small>원문 인용은 증거이므로 수정하지 않습니다.</small>
+                    <div><button onClick={() => { setEditingClaimId(null); setEditingSkill(""); }}>취소</button><button className="save" onClick={() => saveClaimSkill(claim.id)}>저장</button></div>
+                  </div>
+                ) : <h2>{claim.skill}</h2>}
                 <blockquote>“{claim.quote}”</blockquote>
                 <div className="claim-source"><span>출처</span><b>{claim.source}</b></div>
                 <p className="follow-up"><b>더 확인하면 좋은 것</b>{claim.question}</p>
                 <div className="claim-actions">
                   <button className={claim.status === "rejected" ? "selected reject" : ""} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
-                  <button onClick={() => setNotice("수정 입력은 알파 버전에서 연결할 예정입니다.")}>표현 수정</button>
+                  <button onClick={() => startEditingClaim(claim)}>표현 수정</button>
                   <button className={claim.status === "confirmed" ? "selected confirm" : "confirm"} onClick={() => updateClaim(claim.id, "confirmed")}>✓ 맞아요</button>
                 </div>
               </article>
@@ -379,8 +429,8 @@ export default function Home() {
               <div className="proof-header"><div><span className="brief-mark">1P</span><b>Gap Brief</b></div><span>상담사용 1쪽 요약</span></div>
               <div className="brief-section"><span>상담 목표</span><h2>과거 설명보다 다음 행동 합의에 시간을 씁니다.</h2></div>
               <div className="brief-columns">
-                <div><span>현재 강점</span><ul><li>도메인–기술 문제 연결</li><li>AI API 프로토타이핑</li></ul></div>
-                <div><span>우선 확인</span><ul><li>실제 사용자 검증 경험</li><li>본인이 구현한 범위</li></ul></div>
+                <div><span>현재 강점</span><ul>{confirmedClaims.map((claim) => <li key={claim.id}>{claim.skill}</li>)}</ul></div>
+                <div><span>우선 확인</span><ul>{confirmedClaims.slice(0, 2).map((claim) => <li key={claim.id}>{claim.question}</li>)}</ul></div>
               </div>
               <div className="brief-section questions"><span>다음 상담 질문</span><ol><li>이 문제를 가장 절실하게 느낀 사용자는 누구였나요?</li><li>청년 5명 테스트에서 무엇을 관찰할 건가요?</li><li>이 행동을 끝냈다고 판단할 증거는 무엇인가요?</li></ol></div>
               <div className="privacy-note"><b>기관 공유 범위</b><p>{aggregateConsent ? "익명 격차 항목 공유에 동의 · 개인 원문 제외" : "익명 통계 공유 안 함 · 개인 카드만 사용"}</p></div>
