@@ -135,6 +135,14 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 .role-chip { display: flex; flex-direction: column; gap: 3px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
 .role-chip small { color: var(--muted); }
+.role-select { display: flex; flex-wrap: wrap; gap: 8px; margin: -14px 0 22px; }
+.role-select button { border: 1px solid var(--line); padding: 9px 14px; border-radius: 999px; background: transparent; cursor: pointer; font-size: 13px; font-weight: 750; transition: border-color .15s, background .15s; }
+.role-select button:hover { border-color: #aaa393; }
+.role-select button.active { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+.evidence-link { margin: 12px 0 4px; }
+.evidence-link label { display: block; margin-bottom: 6px; color: var(--green); font-size: 11px; font-weight: 850; }
+.evidence-link input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: #fffefa; color: var(--ink); font-size: 12px; }
+.evidence-link small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; }
 .map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .strengths, .gaps { padding: 25px; }
 .map-grid h2 { margin: 8px 0 20px; font-family: Georgia, serif; font-size: 25px; }
@@ -244,6 +252,69 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
   .site-footer { align-items: flex-start; flex-direction: column; padding: 20px 18px; }
 }
 
+/* --- 고도화: 플랫 에디토리얼(그라데이션 제거 · 케이스파일 감성) --- */
+.identity { background: var(--ink); }
+.gap-row .bar i { background: var(--coral); }
+.action-card.selected { transform: translateY(-2px); }
+.proof-card { position: relative; }
+.personal-proof::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--green); z-index: 1; }
+.counselor-proof::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #315d91; z-index: 1; }
+.sample-badge { transition: background .2s, border-color .2s, color .2s; }
+/* 메타데이터 라벨 = 모노스페이스(문서/케이스파일) */
+.eyebrow, .card-kicker { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; font-weight: 700; font-size: 11px; }
+.proof-block > span, .brief-section > span, .brief-columns span, .chosen-action > span, .claim-source span, .identity small, .privacy-note b { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+.tier b { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; }
+.source { border-radius: 5px; font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; }
+
+/* 분석 로딩 스켈레톤 */
+.spinner { display: inline-block; width: 13px; height: 13px; margin-right: 2px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; vertical-align: -1px; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.skeleton-claims { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+.skeleton-card { min-height: 300px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+.skeleton-line { height: 13px; margin: 12px 0; border-radius: 6px; background: linear-gradient(90deg, #efe9db 25%, #f8f3e7 50%, #efe9db 75%); background-size: 900px 100%; animation: shimmer 1.3s infinite linear; }
+.skeleton-line.tall { height: 84px; }
+.skeleton-line.short { width: 55%; }
+@keyframes shimmer { 0% { background-position: -450px 0; } 100% { background-position: 450px 0; } }
+
+/* 학습확인(퀴즈) + 수행확인 등급 */
+.tier-2 b { background: var(--green-soft); color: var(--green); }
+.tier-3 b { background: #efe3c2; color: #6b5410; }
+.check-panel { margin-top: 22px; padding: 22px 24px; border: 1px solid #b9d7cd; border-radius: 15px; background: #f2faf7; }
+.check-panel h3 { margin: 5px 0 4px; font-family: Georgia, "Noto Serif KR", serif; font-size: 20px; }
+.check-panel > p { margin: 0 0 6px; color: var(--muted); font-size: 13px; }
+.check-q { margin: 14px 0; }
+.check-q p { margin: 0 0 8px; font-weight: 750; font-size: 14px; }
+.check-opts { display: grid; gap: 7px; }
+.check-opt { text-align: left; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: #fff; cursor: pointer; font-size: 13px; }
+.check-opt:hover { border-color: #aaa393; }
+.check-opt.picked { border-color: var(--green); background: var(--green-soft); color: var(--green); font-weight: 700; }
+.check-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+.check-actions .attempts { margin-right: auto; color: var(--muted); font-size: 12px; }
+.check-cta { min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--green); background: var(--green); color: #fff; font-weight: 800; cursor: pointer; }
+.check-cta:hover { filter: brightness(1.05); }
+.check-result { margin-top: 12px; padding: 12px 14px; border-radius: 9px; font-size: 13px; font-weight: 700; line-height: 1.5; }
+.check-result.pass { background: var(--green-soft); color: var(--green); }
+.check-result.fail { background: var(--coral-soft); color: var(--coral); }
+.check-done { display: inline-flex; align-items: center; gap: 6px; padding: 9px 13px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 12px; font-weight: 800; }
+
+/* 열린 입력 안내 + 자립(상담사 선택) 안내 */
+.input-guide { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.selfserve-note { margin: 0 0 16px; padding: 12px 16px; border: 1px solid #b9d7cd; border-radius: 11px; background: #f2faf7; color: #2f5f54; font-size: 13px; line-height: 1.55; }
+.selfserve-note b { color: var(--green); }
+
+/* PDF 인쇄: 증거카드·Gap Brief만 깨끗하게 */
+@media print {
+  .topbar, .progress-wrap, .notice, .role-select, .footer-actions, .site-footer,
+  .action-section, .story-callout, .section-head .complete-badge, .legend, .selfserve-note, .check-panel { display: none !important; }
+  body { background: #fff; }
+  .page-shell { padding: 12px 0; max-width: none; }
+  .proof-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .proof-card { box-shadow: none; border: 1px solid #c9c3b4; break-inside: avoid; }
+  .personal-proof::before, .counselor-proof::before { display: none; }
+  .section-head { margin-bottom: 14px; }
+  .section-head h1 { font-size: 22px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * { scroll-behavior: auto !important; transition: none !important; }
+  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }

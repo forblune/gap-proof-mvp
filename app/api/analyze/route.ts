@@ -16,7 +16,14 @@ type SolarClaim = {
 };
 
 const SOLAR_URL = "https://api.upstage.ai/v1/chat/completions";
-const MODEL = process.env.SOLAR_MODEL || "solar-pro3";
+function readEnv(key: string): string | undefined {
+  try {
+    return typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+  } catch {
+    return undefined;
+  }
+}
+const MODEL = readEnv("SOLAR_MODEL") || "solar-pro3";
 const MAX_INPUT_LENGTH = 3000;
 const SOLAR_TIMEOUT_MS = 12_000;
 
@@ -177,7 +184,7 @@ export async function POST(request: Request) {
   }
 
   const fallback = fallbackClaims(experience);
-  const apiKey = process.env.UPSTAGE_API_KEY;
+  const apiKey = readEnv("UPSTAGE_API_KEY");
   if (!apiKey) {
     return json({
       source: "sample",

@@ -1,6 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  ROLES,
+  findRole,
+  computeGapMap,
+  recommendNextActions,
+  tierFromLink,
+  makeCheck,
+} from "./lib/engine";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
 
@@ -13,6 +21,15 @@ type Claim = {
   confidence: "높음" | "확인 필요";
   question: string;
   status: ClaimStatus;
+  link?: string;
+};
+
+type Quiz = {
+  compId: string;
+  questions: { q: string; options: string[]; answer: number }[];
+  picks: (number | null)[];
+  attempt: number;
+  status: "open" | "passed" | "locked";
 };
 
 type AnalysisSource = "idle" | "loading" | "solar" | "sample";
@@ -40,6 +57,7 @@ const initialClaims: Claim[] = [
     confidence: "확인 필요",
     question: "문제를 확인한 사용자나 상담사가 있었나요?",
     status: "pending",
+    link: "",
   },
   {
     id: 2,
@@ -50,6 +68,7 @@ const initialClaims: Claim[] = [
     confidence: "확인 필요",
     question: "직접 구현한 범위와 작동 링크를 추가해 주세요.",
     status: "pending",
+    link: "",
   },
   {
     id: 3,
@@ -60,30 +79,7 @@ const initialClaims: Claim[] = [
     confidence: "확인 필요",
     question: "모델을 직접 학습·평가한 산출물이 있나요?",
     status: "pending",
-  },
-];
-
-const actions = [
-  {
-    id: "learn",
-    type: "학습",
-    title: "사용자 인터뷰 핵심 익히기",
-    time: "40분",
-    rule: "질문 5개를 내 프로젝트에 맞게 작성",
-  },
-  {
-    id: "project",
-    type: "미니프로젝트",
-    title: "청년 5명에게 증거카드 테스트",
-    time: "2시간",
-    rule: "인터뷰 5건과 수정사항 3개 남기기",
-  },
-  {
-    id: "counsel",
-    type: "상담",
-    title: "상담사에게 Gap Brief 검증받기",
-    time: "30분",
-    rule: "유용성 5점 평가와 빠진 정보 1개 받기",
+    link: "",
   },
 ];
 
@@ -102,6 +98,9 @@ export default function Home() {
   const [aggregateConsent, setAggregateConsent] = useState(false);
   const [experience, setExperience] = useState(defaultExperience);
   const [claims, setClaims] = useState(initialClaims);
+  const [roleId, setRoleId] = useState(ROLES[0].id);
+  const [passedChecks, setPassedChecks] = useState<Record<string, boolean>>({});
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [analysisSource, setAnalysisSource] = useState<AnalysisSource>("idle");
   const [analysisModel, setAnalysisModel] = useState<string | null>(null);
   const [analysisNotice, setAnalysisNotice] = useState("");
@@ -115,9 +114,42 @@ export default function Home() {
     [claims],
   );
 
+  const role = useMemo(() => findRole(roleId), [roleId]);
+
+  const gaps = useMemo(
+    () =>
+      computeGapMap(
+        confirmedClaims.map((claim) => ({
+          skill: claim.skill,
+          quote: claim.quote,
+          tier: claim.tier,
+        })),
+        role,
+        passedChecks,
+      ),
+    [confirmedClaims, role, passedChecks],
+  );
+
+  const passedComps = useMemo(
+    () => role.competencies.filter((c) => passedChecks[c.id]),
+    [role, passedChecks],
+  );
+
+  const recommended = useMemo(() => recommendNextActions(gaps, role), [gaps, role]);
+  const chosenAction =
+    recommended.find((action) => action.id === selectedAction) ?? recommended[0];
+
   const updateClaim = (id: number, status: ClaimStatus) => {
     setClaims((current) =>
       current.map((claim) => (claim.id === id ? { ...claim, status } : claim)),
+    );
+  };
+
+  const attachLink = (id: number, link: string) => {
+    setClaims((current) =>
+      current.map((claim) =>
+        claim.id === id ? { ...claim, link, tier: tierFromLink(link) } : claim,
+      ),
     );
   };
 
@@ -164,7 +196,7 @@ export default function Home() {
       if (!response.ok || !Array.isArray(data.claims) || !data.claims.length) {
         throw new Error(data.message || "분석 결과를 만들지 못했습니다.");
       }
-      setClaims(data.claims.map((claim) => ({ ...claim, status: "pending" })));
+      setClaims(data.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
       setAnalysisSource(data.source);
       setAnalysisModel(data.model);
       setAnalysisNotice(data.notice);
@@ -178,12 +210,44 @@ export default function Home() {
     }
   };
 
+  const startCheck = () => {
+    if (!gaps.length) return;
+    const comp = role.competencies.find((c) => c.id === gaps[0].id);
+    if (!comp) return;
+    setQuiz({ compId: comp.id, questions: makeCheck(comp, role).questions, picks: [null, null], attempt: 1, status: "open" });
+  };
+  const pickAnswer = (qi: number, oi: number) =>
+    setQuiz((q) => (q ? { ...q, picks: q.picks.map((p, i) => (i === qi ? oi : p)) } : q));
+  const submitCheck = () => {
+    if (!quiz) return;
+    if (quiz.picks.some((p) => p === null)) {
+      setNotice("모든 문항에 답해 주세요.");
+      return;
+    }
+    const ok = quiz.questions.every((qq, i) => quiz.picks[i] === qq.answer);
+    if (ok) {
+      setPassedChecks((prev) => ({ ...prev, [quiz.compId]: true }));
+      setQuiz({ ...quiz, status: "passed" });
+      setNotice("학습확인 통과 · 수행 확인(Lv.2)으로 기록했어요.");
+    } else if (quiz.attempt >= 3) {
+      setQuiz({ ...quiz, status: "locked" });
+    } else {
+      setQuiz({ ...quiz, attempt: quiz.attempt + 1, picks: [null, null] });
+      setNotice("오답이 있어요. 다시 시도해 보세요.");
+    }
+  };
+  const retryCheck = () => setQuiz((q) => (q ? { ...q, attempt: 1, picks: [null, null], status: "open" } : q));
+  const closeCheck = () => setQuiz(null);
+
   const resetDemo = () => {
     setStep(0);
     setStoreConsent(false);
     setAggregateConsent(false);
     setExperience(defaultExperience);
     setClaims(initialClaims);
+    setRoleId(ROLES[0].id);
+    setPassedChecks({});
+    setQuiz(null);
     setAnalysisSource("idle");
     setAnalysisModel(null);
     setAnalysisNotice("");
@@ -200,6 +264,9 @@ export default function Home() {
     setAggregateConsent(false);
     setExperience("");
     setClaims([]);
+    setRoleId(ROLES[0].id);
+    setPassedChecks({});
+    setQuiz(null);
     setAnalysisSource("idle");
     setAnalysisModel(null);
     setAnalysisNotice("");
@@ -244,6 +311,7 @@ export default function Home() {
             <p className="hero-lead">
               흩어진 공부와 프로젝트를 Solar가 역량 후보와 근거 문장으로 정리합니다.
               당신이 확인한 증거만 목표직무의 격차와 이번 주 행동으로 이어집니다.
+              상담사 없이 바로 추천을 받고, 원하면 상담사·기관이 검토와 K-MOOC·직업훈련 연계로 도와줍니다.
             </p>
             <div className="principles" aria-label="서비스 원칙">
               <span>AI가 진로를 단정하지 않아요</span>
@@ -286,16 +354,31 @@ export default function Home() {
             <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어주세요.</h1></div>
             <span className="time-pill">약 2분</span>
           </div>
+          {analysisSource === "loading" ? (
+            <div className="skeleton-claims" aria-busy="true" aria-live="polite">
+              {[0, 1, 2].map((n) => (
+                <div className="skeleton-card" key={n}>
+                  <div className="skeleton-line short" />
+                  <div className="skeleton-line tall" />
+                  <div className="skeleton-line" />
+                  <div className="skeleton-line short" />
+                </div>
+              ))}
+            </div>
+          ) : (
           <div className="experience-layout">
             <div className="paper-card input-card">
-              <label htmlFor="experience"><b>어떤 전공·공부·일·프로젝트를 해봤나요?</b></label>
-              <textarea id="experience" value={experience} onChange={(event) => setExperience(event.target.value)} />
+              <label htmlFor="experience"><b>무엇을 배우고, 하고, 만들어 봤나요?</b></label>
+              <p className="input-guide">꼭 처음부터 완벽히 정리하지 않아도 괜찮아요. 생각나는 대로 자세히 쓰고, 배우고 싶은 것이 있으면 그 바람도 적어 주세요.</p>
+              <textarea id="experience" placeholder="Notion·메모·손글씨 파일·자격증·들은 수업·프로젝트 등 무엇이든 좋아요. 예: 항공물류를 전공했고 집에서 AI를 독학했어요. 데이터 분석을 배우고 싶어요." value={experience} onChange={(event) => setExperience(event.target.value)} />
               <div className="input-meta"><span>개인·가족 실명과 의료정보는 적지 않아도 돼요.</span><b>{experience.length}자</b></div>
               <div className="source-list">
                 <button type="button" className="source active">프로젝트</button>
-                <button type="button" className="source">강의·수료</button>
+                <button type="button" className="source">수업·강의</button>
+                <button type="button" className="source">자격증</button>
+                <button type="button" className="source">Notion·메모</button>
+                <button type="button" className="source">손글씨 파일</button>
                 <button type="button" className="source">일·아르바이트</button>
-                <button type="button" className="source">학교</button>
               </div>
             </div>
             <aside className="paper-card evidence-preview">
@@ -306,10 +389,11 @@ export default function Home() {
               <div className="mini-evidence"><span>03</span><p><b>MindHub 제작</b><small>작동 산출물 · 프로젝트</small></p></div>
             </aside>
           </div>
+          )}
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(0)}>이전</button>
             <button className="primary" disabled={experience.trim().length < 20 || analysisSource === "loading"} onClick={analyzeExperience}>
-              {analysisSource === "loading" ? "역량 후보를 찾는 중…" : "Solar로 역량 후보 찾기"} <span>→</span>
+              {analysisSource === "loading" ? <><span className="spinner" />역량 후보를 찾는 중…</> : "Solar로 역량 후보 찾기"} <span>→</span>
             </button>
           </div>
         </section>
@@ -342,6 +426,11 @@ export default function Home() {
                 ) : <h2>{claim.skill}</h2>}
                 <blockquote>“{claim.quote}”</blockquote>
                 <div className="claim-source"><span>출처</span><b>{claim.source}</b></div>
+                <div className="evidence-link">
+                  <label htmlFor={`claim-link-${claim.id}`}>근거 링크 (선택)</label>
+                  <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="GitHub·수료증·노트 URL" onChange={(event) => attachLink(claim.id, event.target.value)} />
+                  <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작해요"}</small>
+                </div>
                 <p className="follow-up"><b>더 확인하면 좋은 것</b>{claim.question}</p>
                 <div className="claim-actions">
                   <button className={claim.status === "rejected" ? "selected reject" : ""} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
@@ -363,36 +452,44 @@ export default function Home() {
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 3 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
-            <div className="role-chip"><small>대표 목표직무</small><b>AI 서비스 기획자</b></div>
+            <div className="role-chip"><small>대표 목표직무</small><b>{role.label}</b></div>
+          </div>
+          <div className="role-select" role="group" aria-label="목표직무 선택">
+            {ROLES.map((option) => (
+              <button key={option.id} className={roleId === option.id ? "active" : ""} onClick={() => { setRoleId(option.id); setQuiz(null); }}>{option.label}</button>
+            ))}
           </div>
           <div className="map-grid">
             <section className="paper-card strengths">
               <div className="card-kicker">확인된 현재 역량</div>
               <h2>이미 출발점이 있어요.</h2>
-              {confirmedClaims.length ? confirmedClaims.map((claim) => (
-                <div className="strength-row" key={claim.id}><span>✓</span><p><b>{claim.skill}</b><small>{claim.quote}</small></p><TierBadge tier={claim.tier} /></div>
-              )) : <p>확인된 역량이 없습니다.</p>}
+              {confirmedClaims.length || passedComps.length ? (
+                <>
+                  {confirmedClaims.map((claim) => (
+                    <div className="strength-row" key={claim.id}><span>✓</span><p><b>{claim.skill}</b><small>{claim.quote}</small></p><TierBadge tier={claim.tier} /></div>
+                  ))}
+                  {passedComps.map((c) => (
+                    <div className="strength-row" key={c.id}><span>✓</span><p><b>{c.label}</b><small>학습확인 통과 · 수행 확인</small></p><TierBadge tier={2} /></div>
+                  ))}
+                </>
+              ) : <p>확인된 역량이 없습니다.</p>}
             </section>
             <section className="paper-card gaps">
-              <div className="card-kicker coral">우선 격차 3개</div>
+              <div className="card-kicker coral">우선 격차</div>
               <h2>더 필요한 것은 이만큼이에요.</h2>
-              {[
-                ["사용자 검증", 72, "인터뷰·테스트 기록"],
-                ["데이터·성과지표", 58, "KPI와 이벤트 설계"],
-                ["개인정보·AI 안전", 42, "동의·삭제·감사기록"],
-              ].map(([label, value, proof]) => (
-                <div className="gap-row" key={label as string}>
-                  <div><b>{label}</b><small>필요 증거: {proof}</small></div>
-                  <div className="bar"><i style={{ width: `${value}%` }} /></div>
-                  <strong>{value}</strong>
+              {gaps.length ? gaps.slice(0, 3).map((gap) => (
+                <div className="gap-row" key={gap.id}>
+                  <div><b>{gap.label}</b><small>필요 증거: {gap.proof} · Lv.{gap.current}/{gap.required}</small></div>
+                  <div className="bar"><i style={{ width: `${gap.percent}%` }} /></div>
+                  <strong>{gap.score}</strong>
                 </div>
-              ))}
+              )) : <p>선택한 직무의 필수 역량을 이미 확인했어요. 다른 직무로 바꿔 격차를 확인해 보세요.</p>}
             </section>
           </div>
           <div className="action-section">
             <div className="action-title"><div><span className="eyebrow">격차를 낮추는 행동</span><h2>이번 주에는 하나만 선택해요.</h2></div><p>중요도 × 격차 × 실행가능성 순으로 골랐어요.</p></div>
             <div className="action-grid">
-              {actions.map((action) => (
+              {recommended.map((action) => (
                 <button key={action.id} className={`action-card ${selectedAction === action.id ? "selected" : ""}`} onClick={() => setSelectedAction(action.id)}>
                   <span className="action-type">{action.type}</span>
                   <h3>{action.title}</h3>
@@ -402,6 +499,30 @@ export default function Home() {
               ))}
             </div>
           </div>
+          {(() => {
+            if (quiz) {
+              const comp = role.competencies.find((c) => c.id === quiz.compId);
+              const label = comp?.label ?? "";
+              if (quiz.status === "passed") return (
+                <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 수행 확인 완료</h3><div className="check-result pass">Lv.2 수행 확인으로 기록했어요. 위 격차 지도에서 이 역량이 닫힌 것을 확인하세요.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+              );
+              if (quiz.status === "locked") return (
+                <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">등급을 올리지 않았어요. 추천 학습을 완료한 뒤 다시 확인해 주세요.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+              );
+              return (
+                <div className="check-panel"><div className="card-kicker">학습확인 · 통과 시 Lv.2 수행 확인</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. 통과하면 이 역량의 격차가 닫혀요.</p>
+                  {quiz.questions.map((qq, qi) => (
+                    <div className="check-q" key={qi}><p>Q{qi + 1}. {qq.q}</p><div className="check-opts">{qq.options.map((op, oi) => (<button key={oi} className={`check-opt ${quiz.picks[qi] === oi ? "picked" : ""}`} onClick={() => pickAnswer(qi, oi)}>{op}</button>))}</div></div>
+                  ))}
+                  <div className="check-actions"><span className="attempts">시도 {quiz.attempt}/3</span><button className="check-cta" onClick={submitCheck}>제출</button><button className="secondary" onClick={closeCheck}>취소</button></div>
+                </div>
+              );
+            }
+            if (!gaps.length) return null;
+            return (
+              <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인하고, 통과하면 수행 확인(Lv.2)으로 기록해요.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
+            );
+          })()}
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(2)}>이전</button>
             <button className="primary" onClick={() => moveTo(4)}>GapProof 만들기 <span>→</span></button>
@@ -412,27 +533,28 @@ export default function Home() {
       {step === 4 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1>설명이 아니라, 다음 상담의 출발점이 생겼어요.</h1></div>
+            <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1>설명이 아니라, 바로 실행할 다음 걸음이 생겼어요.</h1></div>
             <span className="complete-badge">✓ 샘플 여정 완료</span>
           </div>
+          <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있어요. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료예요.</p>
           <div className="proof-grid">
             <article className="proof-card personal-proof">
               <div className="proof-header"><div><span className="brand-mark small">G</span><b>GapProof</b></div><span>개인용 증거카드</span></div>
-              <div className="identity"><small>목표직무</small><h2>AI 서비스 기획자</h2><p>항공물류의 도메인 경험과 AI 독학을 서비스 문제 해결로 연결하는 전환 경로</p></div>
-              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}</div>
+              <div className="identity"><small>목표직무</small><h2>{role.label}</h2><p>{role.blurb}</p></div>
+              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{passedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주세요."}”</blockquote></div>
-              <div className="chosen-action"><span>이번 주 다음 행동</span><b>{actions.find((action) => action.id === selectedAction)?.title}</b><small>{actions.find((action) => action.id === selectedAction)?.rule}</small></div>
+              <div className="chosen-action"><span>이번 주 다음 행동</span><b>{chosenAction?.title}</b><small>{chosenAction?.rule}</small></div>
               <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>2026.07.22</b></footer>
             </article>
 
             <article className="proof-card counselor-proof">
-              <div className="proof-header"><div><span className="brief-mark">1P</span><b>Gap Brief</b></div><span>상담사용 1쪽 요약</span></div>
+              <div className="proof-header"><div><span className="brief-mark">1P</span><b>Gap Brief</b></div><span>선택 · 상담사·기관 검증용</span></div>
               <div className="brief-section"><span>상담 목표</span><h2>과거 설명보다 다음 행동 합의에 시간을 씁니다.</h2></div>
               <div className="brief-columns">
                 <div><span>현재 강점</span><ul>{confirmedClaims.map((claim) => <li key={claim.id}>{claim.skill}</li>)}</ul></div>
-                <div><span>우선 확인</span><ul>{confirmedClaims.slice(0, 2).map((claim) => <li key={claim.id}>{claim.question}</li>)}</ul></div>
+                <div><span>우선 격차</span><ul>{gaps.slice(0, 3).map((gap) => <li key={gap.id}>{gap.label} (Lv.{gap.current}/{gap.required})</li>)}</ul></div>
               </div>
-              <div className="brief-section questions"><span>다음 상담 질문</span><ol><li>이 문제를 가장 절실하게 느낀 사용자는 누구였나요?</li><li>청년 5명 테스트에서 무엇을 관찰할 건가요?</li><li>이 행동을 끝냈다고 판단할 증거는 무엇인가요?</li></ol></div>
+              <div className="brief-section questions"><span>다음 상담 질문</span><ol>{confirmedClaims.slice(0, 2).map((claim) => <li key={claim.id}>{claim.question}</li>)}<li>이 행동을 끝냈다고 판단할 증거는 무엇인가요?</li></ol></div>
               <div className="privacy-note"><b>기관 공유 범위</b><p>{aggregateConsent ? "익명 격차 항목 공유에 동의 · 개인 원문 제외" : "익명 통계 공유 안 함 · 개인 카드만 사용"}</p></div>
               <footer><span>상담 보조자료 · 자동판정 아님</span><b>검토 필요</b></footer>
             </article>
@@ -440,7 +562,7 @@ export default function Home() {
           <div className="story-callout"><span>GapProof의 약속</span><p>“미래를 예측해 주는 AI가 아니라, 불확실한 미래에도 다시 움직일 수 있게 하는 AI.”</p></div>
           <div className="footer-actions final-actions">
             <button className="secondary" onClick={() => moveTo(3)}>행동 다시 고르기</button>
-            <button className="secondary" onClick={() => setNotice("PDF 내보내기는 알파 구현 범위에 포함되어 있습니다.")}>PDF 준비 중</button>
+            <button className="secondary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
             <button className="primary" onClick={resetDemo}>새 샘플 시작 <span>↻</span></button>
           </div>
         </section>
