@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { InfoShell } from "../components/info-shell";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/how-it-works" },
   title: "작동 원리 | GapProof",
   description: "경험 입력부터 카드 생성·삭제까지 GapProof 파이프라인과 증거등급 기준",
 };

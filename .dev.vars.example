@@ -9,3 +9,6 @@ SOLAR_MODEL=
 # 데모 접근 게이트 (#6) — 없으면 fail-closed(데모 분석 불가)
 GATE_ACCESS_CODE=
 GATE_SESSION_SECRET=
+
+# 카카오톡 공유 (#10) — JavaScript 키. 없으면 카카오 공유 버튼 미표시
+KAKAO_JS_KEY=

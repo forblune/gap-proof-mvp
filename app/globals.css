@@ -272,6 +272,10 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .story-callout span { font-size: 11px; font-weight: 850; color: #74631f; }
 .story-callout p { margin: 0; font-family: Georgia, serif; font-size: 18px; line-height: 1.5; }
 .final-actions { margin-top: 18px; }
+.kakao-share { border-color: #f0d800; background: #fee500; color: #191919; font-weight: 800; }
+.kakao-share:hover { border-color: #dcc900; }
+.share-note { margin: 10px 0 0; color: var(--muted); font-size: 12px; text-align: right; }
+@media print { .share-note { display: none !important; } }
 .site-footer { display: flex; justify-content: space-between; gap: 20px; padding: 25px 36px; border-top: 1px solid var(--line); color: #777064; font-size: 11px; }
 
 @media (max-width: 1050px) {

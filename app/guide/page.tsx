@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { InfoShell } from "../components/info-shell";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/guide" },
   title: "이용 가이드 | GapProof",
   description: "GapProof 데모 5단계 사용 순서와 각 단계가 필요한 이유",
 };
