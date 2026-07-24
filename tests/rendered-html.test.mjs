@@ -387,6 +387,44 @@ test("rate limit session fallback uses an irreversible digest key", async () => 
   assert.equal(allowedB.status, 200);
 });
 
+test("enforces the Solar model allowlist", async () => {
+  const cookie = await obtainGateCookie();
+  const experience = "항공물류를 전공했고 집에서 AI 수학과 웹을 독학하며 프로젝트를 만들었습니다.";
+  const post = (model) =>
+    fetchWorker(
+      new Request("http://localhost/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json", "cf-connecting-ip": testIp(), cookie },
+        body: JSON.stringify({ experience, model }),
+      }),
+    );
+
+  // 임의 모델 문자열 → 안전한 400 (요청 값 미반사)
+  const evil = await post("totally-evil-model");
+  assert.equal(evil.status, 400);
+  const evilBody = await evil.json();
+  assert.equal(evilBody.error, "model_not_allowed");
+  assert.ok(!JSON.stringify(evilBody).includes("totally-evil-model"));
+
+  // 허용 모델 → 정상 (키 없음 → 샘플 폴백, 실 Solar 호출 0건)
+  const allowed = await post("solar-mini");
+  assert.equal(allowed.status, 200);
+  assert.equal((await allowed.json()).source, "sample");
+
+  // 모델 미지정 → 기본 모델 경로로 정상
+  const none = await post(undefined);
+  assert.equal(none.status, 200);
+
+  // 단일 출처 계약: 서버·클라이언트가 같은 allowlist 모듈 사용, 클라이언트는 선택 값만 전송
+  const models = await readFile(new URL("../app/lib/models.ts", import.meta.url), "utf8");
+  assert.match(models, /solar-pro3/);
+  assert.match(models, /isAllowedModel/);
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /SOLAR_MODELS\.map/);
+  assert.match(page, /model: modelId/);
+  assert.match(page, /aria-label="Solar 모델 선택"/);
+});
+
 test("fails closed when the Workers rate limit binding is unavailable", async () => {
   const cookie = await obtainGateCookie();
   const experience = "항공물류를 전공했고 집에서 AI 수학과 웹을 독학하며 프로젝트를 만들었습니다.";

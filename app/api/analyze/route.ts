@@ -16,12 +16,12 @@ type SolarClaim = {
 };
 
 import { verifyGateSession } from "../../lib/gate-session";
+import { DEFAULT_MODEL_ID, isAllowedModel } from "../../lib/models";
 import { maskPII, maskedNoticeSuffix } from "../../lib/pii";
 import { checkRateLimit, clientKey, RATE_LIMIT_WINDOW_SECONDS } from "../../lib/rate-limit";
 import { readServerEnv } from "../../lib/server-env";
 
 const SOLAR_URL = "https://api.upstage.ai/v1/chat/completions";
-const DEFAULT_MODEL = "solar-pro3";
 const MAX_INPUT_LENGTH = 3000;
 const SOLAR_TIMEOUT_MS = 12_000;
 
@@ -192,11 +192,21 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { experience?: unknown };
+  let body: { experience?: unknown; model?: unknown };
   try {
-    body = (await request.json()) as { experience?: unknown };
+    body = (await request.json()) as { experience?: unknown; model?: unknown };
   } catch {
     return json({ error: "invalid_json", message: "요청 형식을 확인해 주세요." }, 400);
+  }
+
+  // 모델 allowlist: 등록된 모델만 허용. 임의 문자열은 안전한 400으로 거부하며
+  // 요청 값을 응답에 되돌려주지 않는다(반사 방지).
+  const requestedModel = typeof body.model === "string" ? body.model.trim() : "";
+  if (requestedModel && !isAllowedModel(requestedModel)) {
+    return json(
+      { error: "model_not_allowed", message: "선택한 모델은 사용할 수 없어요. 목록에서 다시 선택해 주세요." },
+      400,
+    );
   }
 
   const rawExperience = trimText(body.experience, MAX_INPUT_LENGTH + 1);
@@ -213,7 +223,10 @@ export async function POST(request: Request) {
 
   const fallback = fallbackClaims(experience);
   const apiKey = await readServerEnv("UPSTAGE_API_KEY");
-  const model = (await readServerEnv("SOLAR_MODEL")) || DEFAULT_MODEL;
+  // 우선순위: 사용자가 선택한 허용 모델 > 운영자 env(허용 목록 내일 때) > 기본 모델
+  const envModel = await readServerEnv("SOLAR_MODEL");
+  const model =
+    requestedModel || (envModel && isAllowedModel(envModel) ? envModel : DEFAULT_MODEL_ID);
   if (!apiKey) {
     return json({
       source: "sample",
