@@ -1,0 +1,18 @@
+{
+  "tool": "WCAG 2.x 상대 휘도 공식(자체 스크립트) + 렌더 색상 채취",
+  "spots": {
+    "infoCtaSmall": {
+      "fg": "rgb(94, 104, 125)",
+      "bg": "rgb(247, 243, 233)",
+      "text": "데모는 심사·멘토링 공유용 접근 코드가 필요해요.",
+      "ratio": 5.05
+    },
+    "footerP": {
+      "fg": "rgb(109, 103, 92)",
+      "bg": "rgb(247, 243, 233)",
+      "text": "GapProof · Solar 기반 AI 진로상담 지원",
+      "ratio": 5.06
+    },
+    "footerNavA": null
+  }
+}

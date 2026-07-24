@@ -133,7 +133,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .info-cta { margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .info-demo-link { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 11px; border: 1px solid var(--ink); background: var(--ink); color: #fff; font-weight: 800; text-decoration: none; }
 .info-demo-link span { color: var(--yellow); margin-left: 8px; }
-.info-cta small { color: var(--muted); }
+.info-cta small { color: #5e687d; } /* #26 D2: 아이보리 배경 대비 4.5:1 이상으로 최소 조정(--muted 전역은 유지) */
 .info-repo { margin-top: 12px; color: var(--muted); font-size: 13px; }
 .footer-nav { display: flex; flex-wrap: wrap; gap: 2px 12px; }
 .footer-nav a { display: inline-flex; align-items: center; min-height: 44px; color: #6f6a5f; text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px; }
@@ -276,7 +276,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .kakao-share:hover { border-color: #dcc900; }
 .share-note { margin: 10px 0 0; color: var(--muted); font-size: 12px; text-align: right; }
 @media print { .share-note { display: none !important; } }
-.site-footer { display: flex; justify-content: space-between; gap: 20px; padding: 25px 36px; border-top: 1px solid var(--line); color: #777064; font-size: 11px; }
+.site-footer { display: flex; justify-content: space-between; gap: 20px; padding: 25px 36px; border-top: 1px solid var(--line); color: #6d675c; font-size: 11px; } /* #26 D2: 대비 4.5:1 이상 */
 
 @media (max-width: 1050px) {
   .hero { grid-template-columns: 1fr; gap: 35px; padding-top: 42px; }
@@ -391,7 +391,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 /* PDF 인쇄: 증거카드·Gap Brief만 깨끗하게 */
 @media print {
-  .topbar, .progress-wrap, .notice, .role-select, .footer-actions, .site-footer,
+  .topbar, .progress-wrap, .notice, .confirm-bar, .role-select, .footer-actions, .site-footer,
   .action-section, .story-callout, .section-head .complete-badge, .legend, .selfserve-note, .check-panel { display: none !important; }
   body { background: #fff; }
   .page-shell { padding: 12px 0; max-width: none; }
@@ -400,6 +400,15 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
   .personal-proof::before, .counselor-proof::before { display: none; }
   .section-head { margin-bottom: 14px; }
   .section-head h1 { font-size: 22px; }
+  /* #26 D1: 배경 그래픽 출력 여부와 무관한 가독성 —
+     어두운 배경 블록(.identity·브랜드 마크)을 인쇄에서는 흰 배경+잉크 글씨로 반전.
+     print-color-adjust에 의존하지 않아 '배경 인쇄 안 함' 설정·흑백에서도 읽힌다. */
+  .identity { background: #fff !important; border-bottom: 2px solid var(--ink); }
+  .identity, .identity h2 { color: var(--ink) !important; }
+  .identity small { color: #4a5568 !important; }
+  .identity p { color: #333f52 !important; }
+  .brand-mark, .brand-mark.small { background: #fff !important; color: var(--ink) !important; border: 2px solid var(--ink); }
+  .primary span { color: var(--ink) !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
