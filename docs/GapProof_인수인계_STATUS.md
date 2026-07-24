@@ -4,6 +4,14 @@
 > (대화 기억은 계정/세션을 넘어가지 않음. 로컬 파일 + 이 문서가 연속성의 핵심.)
 > 최종 갱신: 2026-07-24
 
+## 문서 인덱스 (2026-07-24, Issue #3)
+
+- **제품 기준 문서**: `docs/GapProof_NotebookLM_소스북_v0.1.md` — 문제정의·사용자·원칙·Solar 역할·범위
+- **교육 원자료**: `docs/reference/AI_Reboot_학습노트.md` — AI Reboot 정규과정 학습 노트(구 `docs/preview.md`). 구현 증거로 사용하지 않음
+- **실제 적용 증거**: `docs/evidence/AI_Reboot_GapProof_적용표.md` — 수업 내용 × 코드 증거 매핑(Supabase·RLS는 Phase 2)
+- **라이브 기준·롤백**: `docs/evidence/live-baseline.md` — 배포 차단 조건 포함
+- **작업 기록**: `docs/worklog/` · 이슈 운영: Tracking [#2](https://github.com/forblune/gap-proof-mvp/issues/2), Milestone "GapProof — 3-Day Submission Polish"
+
 ## ⚠️ 최우선 읽기 — 소스 복구 상황 (2026-07-24)
 
 **문제:** 최신 깨끗한 소스가 디스크에서 사라짐. 라이브(gapproof.forblune.com)엔 최신이 배포돼 있으나 **컴파일 번들**이라 소스 복원엔 부적합.
