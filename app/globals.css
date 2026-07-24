@@ -76,6 +76,17 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .secondary { border: 1px solid var(--line); background: var(--paper); }
 .secondary:hover { border-color: #aaa393; }
 .notice { position: fixed; z-index: 40; top: 88px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(560px, calc(100vw - 32px)); padding: 12px 18px; border: 1px solid #b9d7cd; background: #edf8f4; color: #155d4e; border-radius: 10px; box-shadow: var(--shadow); font-size: 13px; font-weight: 700; text-align: center; overflow-wrap: break-word; }
+/* notice 의미 구분: success(기존 초록 유지) / error / info — 색과 별개로 오류는 "오류" 텍스트 태그 병기 */
+.notice.error { border-color: #e0a89a; background: var(--coral-soft); color: #a03c28; }
+.notice.error strong { margin-right: 8px; padding: 2px 7px; border-radius: 5px; background: var(--coral); color: #fff; font-size: 11px; }
+.notice.info { border-color: var(--line); background: var(--paper); color: #44506a; }
+
+/* 기록 삭제 확인 바 (모달 라이브러리 없이 최소 구현, 취소가 기본 포커스) */
+.confirm-bar { position: fixed; z-index: 50; top: 84px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(480px, calc(100vw - 32px)); padding: 14px 16px; border: 1px solid #e0a89a; background: var(--paper); border-radius: 12px; box-shadow: var(--shadow); }
+.confirm-bar p { margin: 0 0 12px; font-size: 13px; font-weight: 750; line-height: 1.5; }
+.confirm-bar > div { display: flex; justify-content: flex-end; gap: 8px; }
+.confirm-bar button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 9px; background: white; cursor: pointer; font-size: 13px; font-weight: 750; }
+.confirm-bar button.danger { border-color: var(--coral); background: var(--coral); color: white; }
 
 .flow-page { min-height: calc(100vh - 140px); min-height: calc(100svh - 140px); }
 .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 32px; }
@@ -86,6 +97,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .input-card label { display: block; margin-bottom: 13px; }
 .input-card textarea { width: 100%; min-height: 235px; resize: vertical; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: #fffefa; color: var(--ink); font-size: 17px; line-height: 1.7; }
 .input-meta { display: flex; justify-content: space-between; gap: 12px; margin: 9px 2px 24px; color: var(--muted); font-size: 12px; }
+.length-hint { margin: -16px 2px 20px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .source-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .source { border: 1px solid var(--line); padding: 8px 12px; border-radius: 999px; background: transparent; cursor: pointer; font-size: 12px; }
 .source.active { border-color: var(--green); background: var(--green-soft); color: var(--green); font-weight: 800; }
@@ -158,6 +170,8 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .gap-row strong { color: var(--coral); }
 .bar { height: 7px; overflow: hidden; border-radius: 99px; background: #ede9df; }
 .bar i { display: block; height: 100%; border-radius: inherit; background: var(--coral); }
+.zero-note { margin-top: 18px; padding: 12px 14px; border: 1px solid #e0c9a1; border-radius: 10px; background: #fff8da; color: #74631f; font-size: 13px; line-height: 1.55; }
+.section-head h1:focus { outline: none; }
 .action-section { margin-top: 32px; }
 .action-title { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
 .action-title h2 { margin: 6px 0 0; font-family: Georgia, serif; font-size: 28px; }

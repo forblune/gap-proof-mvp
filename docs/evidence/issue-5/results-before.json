@@ -1,0 +1,35 @@
+{
+  "errors": [
+    "Failed to load resource: the server responded with a status of 413 (Payload Too Large)"
+  ],
+  "len19": {
+    "counter": "19자",
+    "hint": null,
+    "btnDisabled": true
+  },
+  "overLen": 3001,
+  "overlimit": {
+    "step": "STEP 2 · 사용자 확인",
+    "notice": null,
+    "noticeClass": null,
+    "strip": "안전한 샘플 분석 완료",
+    "textareaKept": false,
+    "textLen": null
+  },
+  "errorNotice": {
+    "text": "역량 표현을 3자 이상 적어 주세요.",
+    "cls": "notice",
+    "role": "status"
+  },
+  "deleteClick": {
+    "confirmBar": null,
+    "focused": "기록 삭제",
+    "stillOnClaims": false,
+    "heroShown": true
+  },
+  "proof": {
+    "date": "2026.07.22",
+    "focusedTag": "BODY",
+    "focusedText": "GGapProof Solar 샘플 데모기록 삭제✓시작✓"
+  }
+}

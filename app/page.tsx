@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ROLES,
   findRole,
@@ -33,6 +33,14 @@ type Quiz = {
 };
 
 type AnalysisSource = "idle" | "loading" | "solar" | "sample";
+
+type NoticeKind = "success" | "error" | "info";
+type Notice = { text: string; kind: NoticeKind };
+
+// 카드 생성 시점의 날짜. 개인용 카드이므로 기기(사용자 로컬) 시간 기준으로 표기한다.
+function formatProofDate(date: Date) {
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
+}
 
 type AnalysisResponse = {
   source: "solar" | "sample";
@@ -105,9 +113,20 @@ export default function Home() {
   const [analysisModel, setAnalysisModel] = useState<string | null>(null);
   const [analysisNotice, setAnalysisNotice] = useState("");
   const [selectedAction, setSelectedAction] = useState("project");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [editingClaimId, setEditingClaimId] = useState<number | null>(null);
   const [editingSkill, setEditingSkill] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [proofDate, setProofDate] = useState<string | null>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
+  const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
+
+  const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+
+  // STEP 4 도착 시 결과 제목으로 포커스 이동(스크린리더·키보드 사용자 안내)
+  useEffect(() => {
+    if (step === 4) proofHeadingRef.current?.focus();
+  }, [step]);
 
   const confirmedClaims = useMemo(
     () => claims.filter((claim) => claim.status === "confirmed"),
@@ -161,7 +180,7 @@ export default function Home() {
   const saveClaimSkill = (id: number) => {
     const nextSkill = editingSkill.trim().slice(0, 80);
     if (nextSkill.length < 3) {
-      setNotice("역량 표현을 3자 이상 적어 주세요.");
+      showNotice("역량 표현을 3자 이상 적어 주세요.", "error");
       return;
     }
     setClaims((current) =>
@@ -171,20 +190,25 @@ export default function Home() {
     );
     setEditingClaimId(null);
     setEditingSkill("");
-    setNotice("역량 표현을 수정했습니다. 원문 근거는 바뀌지 않았으니 다시 확인해 주세요.");
+    showNotice("역량 표현을 수정했습니다. 원문 근거는 바뀌지 않았으니 다시 확인해 주세요.", "success");
+  };
+
+  const scrollToTop = () => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   const moveTo = (next: number) => {
-    setNotice("");
+    setNotice(null);
     setStep(next);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToTop();
   };
 
   const analyzeExperience = async () => {
     if (experience.trim().length < 20 || analysisSource === "loading") return;
     setAnalysisSource("loading");
     setAnalysisNotice("");
-    setNotice("");
+    setNotice(null);
 
     try {
       const response = await fetch("/api/analyze", {
@@ -193,8 +217,15 @@ export default function Home() {
         body: JSON.stringify({ experience: experience.trim() }),
       });
       const data = (await response.json()) as AnalysisResponse & { message?: string };
-      if (!response.ok || !Array.isArray(data.claims) || !data.claims.length) {
-        throw new Error(data.message || "분석 결과를 만들지 못했습니다.");
+      if (!response.ok) {
+        // 400·413 등 입력 오류: 서버가 준 사용자용 메시지를 그대로 보여주고,
+        // 입력을 유지한 채 현재 단계에 머문다. 샘플 결과로 대체하지 않는다.
+        setAnalysisSource("idle");
+        showNotice(data.message || "요청을 처리하지 못했어요. 입력을 확인한 뒤 다시 시도해 주세요.", "error");
+        return;
+      }
+      if (!Array.isArray(data.claims) || !data.claims.length) {
+        throw new Error("empty_claims");
       }
       setClaims(data.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
       setAnalysisSource(data.source);
@@ -202,11 +233,10 @@ export default function Home() {
       setAnalysisNotice(data.notice);
       moveTo(2);
     } catch {
-      setClaims(initialClaims);
-      setAnalysisSource("sample");
-      setAnalysisModel(null);
-      setAnalysisNotice("연결 오류로 준비된 샘플 결과를 표시합니다.");
-      moveTo(2);
+      // 네트워크·서버 장애: 입력과 단계를 유지하고 재시도를 안내한다.
+      // 사용자 입력과 무관한 정적 샘플로 대체하지 않는다(샘플 폴백은 서버가 원문 기반으로 제공).
+      setAnalysisSource("idle");
+      showNotice("연결 오류로 분석하지 못했어요. 입력은 그대로 남아 있으니 잠시 후 같은 버튼으로 다시 시도해 주세요.", "error");
     }
   };
 
@@ -221,19 +251,19 @@ export default function Home() {
   const submitCheck = () => {
     if (!quiz) return;
     if (quiz.picks.some((p) => p === null)) {
-      setNotice("모든 문항에 답해 주세요.");
+      showNotice("모든 문항에 답해 주세요.", "error");
       return;
     }
     const ok = quiz.questions.every((qq, i) => quiz.picks[i] === qq.answer);
     if (ok) {
       setPassedChecks((prev) => ({ ...prev, [quiz.compId]: true }));
       setQuiz({ ...quiz, status: "passed" });
-      setNotice("학습확인 통과 · 수행 확인(Lv.2)으로 기록했어요.");
+      showNotice("학습확인 통과 · 수행 확인(Lv.2)으로 기록했어요.", "success");
     } else if (quiz.attempt >= 3) {
       setQuiz({ ...quiz, status: "locked" });
     } else {
       setQuiz({ ...quiz, attempt: quiz.attempt + 1, picks: [null, null] });
-      setNotice("오답이 있어요. 다시 시도해 보세요.");
+      showNotice("오답이 있어요. 다시 시도해 보세요.", "error");
     }
   };
   const retryCheck = () => setQuiz((q) => (q ? { ...q, attempt: 1, picks: [null, null], status: "open" } : q));
@@ -254,8 +284,10 @@ export default function Home() {
     setSelectedAction("project");
     setEditingClaimId(null);
     setEditingSkill("");
-    setNotice("새 샘플을 준비했습니다.");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setProofDate(null);
+    setConfirmingDelete(false);
+    showNotice("새 샘플을 준비했습니다.", "info");
+    scrollToTop();
   };
 
   const deleteRecords = () => {
@@ -273,8 +305,20 @@ export default function Home() {
     setSelectedAction("project");
     setEditingClaimId(null);
     setEditingSkill("");
-    setNotice("입력한 경험과 이 화면의 파생 결과를 삭제했습니다.");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setProofDate(null);
+    setConfirmingDelete(false);
+    showNotice("입력한 경험과 이 화면의 파생 결과를 삭제했습니다.", "success");
+    scrollToTop();
+  };
+
+  const requestDelete = () => setConfirmingDelete(true);
+  const cancelDelete = () => {
+    setConfirmingDelete(false);
+    deleteButtonRef.current?.focus();
+  };
+  const confirmDelete = () => {
+    setConfirmingDelete(false);
+    deleteRecords();
   };
 
   return (
@@ -286,7 +330,7 @@ export default function Home() {
         </a>
         <div className="top-actions">
           <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
-          <button className="text-button" onClick={deleteRecords}>기록 삭제</button>
+          <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>기록 삭제</button>
         </div>
       </header>
 
@@ -301,7 +345,27 @@ export default function Home() {
         </ol>
       </section>
 
-      {notice && <div className="notice" role="status">{notice}</div>}
+      {notice && (
+        <div className={`notice ${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
+          {notice.kind === "error" && <strong>오류</strong>}
+          {notice.text}
+        </div>
+      )}
+
+      {confirmingDelete && (
+        <div
+          className="confirm-bar"
+          role="alertdialog"
+          aria-label="기록 삭제 확인"
+          onKeyDown={(event) => { if (event.key === "Escape") cancelDelete(); }}
+        >
+          <p>입력한 경험과 이 화면의 모든 결과가 삭제됩니다. 삭제할까요?</p>
+          <div>
+            <button autoFocus onClick={cancelDelete}>취소</button>
+            <button className="danger" onClick={confirmDelete}>삭제</button>
+          </div>
+        </div>
+      )}
 
       {step === 0 && (
         <section className="hero page-shell" id="top">
@@ -370,8 +434,11 @@ export default function Home() {
             <div className="paper-card input-card">
               <label htmlFor="experience"><b>무엇을 배우고, 하고, 만들어 봤나요?</b></label>
               <p className="input-guide">꼭 처음부터 완벽히 정리하지 않아도 괜찮아요. 생각나는 대로 자세히 쓰고, 배우고 싶은 것이 있으면 그 바람도 적어 주세요.</p>
-              <textarea id="experience" placeholder="Notion·메모·손글씨 파일·자격증·들은 수업·프로젝트 등 무엇이든 좋아요. 예: 항공물류를 전공했고 집에서 AI를 독학했어요. 데이터 분석을 배우고 싶어요." value={experience} onChange={(event) => setExperience(event.target.value)} />
-              <div className="input-meta"><span>개인·가족 실명과 의료정보는 적지 않아도 돼요.</span><b>{experience.length}자</b></div>
+              <textarea id="experience" maxLength={3000} placeholder="Notion·메모·손글씨 파일·자격증·들은 수업·프로젝트 등 무엇이든 좋아요. 예: 항공물류를 전공했고 집에서 AI를 독학했어요. 데이터 분석을 배우고 싶어요." value={experience} onChange={(event) => setExperience(event.target.value)} />
+              <div className="input-meta"><span>개인·가족 실명과 의료정보는 적지 않아도 돼요.</span><b>{experience.length.toLocaleString()}자 / 최소 20자 · 최대 3,000자</b></div>
+              {experience.trim().length < 20 && (
+                <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘Solar로 역량 후보 찾기’ 버튼이 켜져요.</p>
+              )}
               <div className="source-list">
                 <button type="button" className="source active">프로젝트</button>
                 <button type="button" className="source">수업·강의</button>
@@ -523,9 +590,18 @@ export default function Home() {
               <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인하고, 통과하면 수행 확인(Lv.2)으로 기록해요.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
             );
           })()}
+          {confirmedClaims.length === 0 && passedComps.length === 0 && (
+            <div className="zero-note" role="status">아직 확인된 역량이 없어요. ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주세요.</div>
+          )}
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(2)}>이전</button>
-            <button className="primary" onClick={() => moveTo(4)}>GapProof 만들기 <span>→</span></button>
+            <button
+              className="primary"
+              disabled={confirmedClaims.length === 0 && passedComps.length === 0}
+              onClick={() => { setProofDate(formatProofDate(new Date())); moveTo(4); }}
+            >
+              GapProof 만들기 <span>→</span>
+            </button>
           </div>
         </section>
       )}
@@ -533,7 +609,7 @@ export default function Home() {
       {step === 4 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1>설명이 아니라, 바로 실행할 다음 걸음이 생겼어요.</h1></div>
+            <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼어요.</h1></div>
             <span className="complete-badge">✓ 샘플 여정 완료</span>
           </div>
           <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있어요. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료예요.</p>
@@ -544,7 +620,7 @@ export default function Home() {
               <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{passedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주세요."}”</blockquote></div>
               <div className="chosen-action"><span>이번 주 다음 행동</span><b>{chosenAction?.title}</b><small>{chosenAction?.rule}</small></div>
-              <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>2026.07.22</b></footer>
+              <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>{proofDate}</b></footer>
             </article>
 
             <article className="proof-card counselor-proof">
