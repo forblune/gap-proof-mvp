@@ -1,0 +1,18 @@
+{
+  "note": "로컬 하네스(프로덕션 빌드 정적 서빙) 기준선 — 최종 프로덕션 점수 아님. 홈은 게이트 화면 기준.",
+  "date": "2026-07-25",
+  "scores": {
+    "home": {
+      "performance": 67,
+      "accessibility": 95,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "about": {
+      "performance": 90,
+      "accessibility": 95,
+      "best-practices": 100,
+      "seo": 100
+    }
+  }
+}

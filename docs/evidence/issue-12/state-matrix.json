@@ -1,0 +1,56 @@
+{
+  "비인증 게이트": {
+    "gate": true,
+    "demoHidden": true
+  },
+  "게이트 오답": {
+    "text": "오류접근 코드가 올바르지 않아요. 다시 확인해 주세요.",
+    "role": "alert"
+  },
+  "인증 성공": {
+    "hero": true
+  },
+  "입력 부족 안내": {
+    "hint": "앞뒤 공백을 뺀 20자 이상 적으면 ‘Solar로 역량 후보 찾기’ 버튼이 켜져요.",
+    "btnDisabled": true
+  },
+  "정상 분석(sample)+PII 마스킹": {
+    "strip": "안전한 샘플 분석 완료Solar API 키가 없어 규칙 기반 샘플 결과를 표시합니다. 이메일(으)로 보이는 정보는 가리고 분석했어요. 과장되거나 맥락이 다른 후보는 거절하세요. 거절한 항목은 카드와 추천에서 빠집니다",
+    "claims": 2,
+    "rawPiiOnScreen": false,
+    "sampleBadge": "Solar 샘플 데모"
+  },
+  "확인 0개 차단": {
+    "nextDisabled": true,
+    "guide": "최소 1개를 확인해 주세요."
+  },
+  "기록 삭제 취소·확인": {
+    "confirmShown": {
+      "bar": true,
+      "focus": "취소"
+    },
+    "afterCancel": {
+      "kept": true,
+      "focusBack": true
+    },
+    "afterConfirm": {
+      "text": "입력한 경험과 이 화면의 파생 결과를 삭제했습니다.",
+      "role": "status"
+    }
+  },
+  "rate limit 429": {
+    "at": 10,
+    "status": 429,
+    "retryAfter": "60",
+    "message": "요청이 잠시 몰렸어요. 1분 뒤에 다시 시도해 주세요."
+  },
+  "429 화면 표시": {
+    "text": "오류요청이 잠시 몰렸어요. 1분 뒤에 다시 시도해 주세요.",
+    "role": "alert"
+  },
+  "데모 잠금": {
+    "gateBack": true,
+    "notice": "데모를 잠갔어요. 다시 보려면 접근 코드를 입력해 주세요."
+  },
+  "_pageErrors": []
+}

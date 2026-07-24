@@ -16,3 +16,4 @@
 | [issue-8-solar-model-selector.md](issue-8-solar-model-selector.md) | [#8 [FEAT] Solar 모델 선택 UI와 서버 allowlist 연결](https://github.com/forblune/gap-proof-mvp/issues/8) |
 | [issue-9-information-architecture.md](issue-9-information-architecture.md) | [#9 [FEAT] About·Guide·Pipeline·Technology 정보구조 구현](https://github.com/forblune/gap-proof-mvp/issues/9) |
 | [issue-10-seo-sharing.md](issue-10-seo-sharing.md) | [#10 [FEAT] SEO·Open Graph·Web Share·카카오톡 공유 구현](https://github.com/forblune/gap-proof-mvp/issues/10) |
+| [issue-12-local-preflight.md](issue-12-local-preflight.md) | [#12 [QA] Phase A 로컬 사전 검증](https://github.com/forblune/gap-proof-mvp/issues/12) |

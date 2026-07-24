@@ -1,0 +1,42 @@
+{
+  "360x800": {
+    "overflow": false,
+    "errors": 0,
+    "skeleton": "1열",
+    "delete44": 44,
+    "claimBtn": 44,
+    "noticeW": 328
+  },
+  "390x844": {
+    "overflow": false,
+    "errors": 0,
+    "skeleton": "1열",
+    "delete44": 44,
+    "claimBtn": 44,
+    "noticeW": 358
+  },
+  "768x1024": {
+    "overflow": false,
+    "errors": 0,
+    "skeleton": "1열",
+    "delete44": 44,
+    "claimBtn": 44,
+    "noticeW": 426
+  },
+  "1024x768": {
+    "overflow": false,
+    "errors": 0,
+    "skeleton": "1열",
+    "delete44": 44,
+    "claimBtn": 44,
+    "noticeW": 426
+  },
+  "1440x900": {
+    "overflow": false,
+    "errors": 0,
+    "skeleton": "3열",
+    "delete44": 44,
+    "claimBtn": 44,
+    "noticeW": 426
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "chromeHidden": {
+    "topbar": true,
+    "progress": true,
+    "actions": true,
+    "shareNote": true,
+    "footer": true
+  },
+  "cardsVisible": {
+    "personal": true,
+    "brief": true
+  },
+  "dateShown": "2026.07.25",
+  "identityBg": "rgb(23, 36, 61)",
+  "identityColor": "rgb(255, 255, 255)"
+}

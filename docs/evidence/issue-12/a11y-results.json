@@ -1,0 +1,56 @@
+{
+  "gateAutofocus": {
+    "tag": "INPUT",
+    "text": "gate-code",
+    "outline": true
+  },
+  "enterSubmitWorked": true,
+  "reducedMotion": {
+    "transition": "0s",
+    "matches": true
+  },
+  "focusVisibleOnStart": {
+    "tag": "BUTTON",
+    "text": "샘플 여정 시작하기 →",
+    "outline": true
+  },
+  "keyboardToStep1": {
+    "tabsToConsent": 1,
+    "startFound": true,
+    "step1": true
+  },
+  "keyboardAnalyze": {
+    "analyzeFound": true,
+    "claims": 1
+  },
+  "liveRegions": {
+    "explainStripText": true,
+    "skeletonAriaLiveInSource": true
+  },
+  "keyboardFullJourney": {
+    "confirmFound": true,
+    "nextFound": true,
+    "makeFound": true,
+    "step4FocusOnH1": true
+  },
+  "escapeCancel": {
+    "focusOnCancel": true,
+    "focusReturned": true
+  },
+  "touchAudit": [
+    {
+      "text": "GGapProof",
+      "h": 35,
+      "w": 134,
+      "cls": "brand"
+    },
+    {
+      "text": "소개",
+      "h": 44,
+      "w": 23,
+      "cls": ""
+    }
+  ],
+  "nameAudit": [],
+  "_pageErrors": []
+}
