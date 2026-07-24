@@ -51,8 +51,9 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입 — PR 참조)
-- PR: (생성 후 기입 — Closes #3)
+- 커밋: `bdab427` docs: organize AI Reboot reference and evidence baseline (#3)
+- 보존 커밋(이 PR로 main 반영): `4b31adf`, `e78afa9`
+- PR: https://github.com/forblune/gap-proof-mvp/pull/14 (Closes #3)
 
 ## 알려진 제한사항
 
