@@ -42,5 +42,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — Closes #6)
+- 커밋: `b74ea7d` feat: server-verified demo access gate with signed session (#6)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/19 (Closes #6)
