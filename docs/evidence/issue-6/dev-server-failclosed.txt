@@ -1,0 +1,16 @@
+# 실제 workerd dev 서버(포트 3000) fail-closed 검증 — 2026-07-25
+# (사용자 .dev.vars에는 GATE_* 항목이 없는 상태. 비밀값·실코드 미사용/미출력)
+
+GET /api/gate
+-> {"authorized":false}
+
+POST /api/gate {"code":"not-the-real-code"}
+-> 503 {"error":"gate_not_configured","message":"데모 접근이 아직 준비되지 않았어요. 운영자에게 문의해 주세요."}
+   (게이트 환경변수 미구성 시 코드 정오와 무관하게 거부 = fail-closed)
+
+POST /api/analyze (유효 길이 경험, 쿠키 없음)
+-> 401 {"error":"unauthorized","message":"접근 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요."}
+   (cloudflare:workers env로 실키가 도달 가능해진 런타임에서도 Solar 비용 경로 미실행)
+
+GET /
+-> 200 (공개 소개 화면은 코드 없이 접근 가능)

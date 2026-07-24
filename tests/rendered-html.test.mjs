@@ -7,6 +7,41 @@ import test from "node:test";
 delete process.env.UPSTAGE_API_KEY;
 delete process.env.SOLAR_MODEL;
 
+// 게이트 테스트용 값(실서비스 값 아님). 서버는 Workers env가 없으면 process.env로 폴백한다.
+const TEST_GATE_CODE = "test-demo-code";
+process.env.GATE_ACCESS_CODE = TEST_GATE_CODE;
+process.env.GATE_SESSION_SECRET = "test-session-secret-not-production";
+
+async function obtainGateCookie() {
+  const response = await fetchWorker(
+    new Request("http://localhost/api/gate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: TEST_GATE_CODE }),
+    }),
+  );
+  assert.equal(response.status, 200);
+  const setCookie = response.headers.get("set-cookie") ?? "";
+  assert.match(setCookie, /HttpOnly/i);
+  assert.match(setCookie, /SameSite=Lax/i);
+  // http://localhost 요청에서는 Secure를 생략한다(운영 HTTPS에서는 포함 — 별도 테스트)
+  assert.doesNotMatch(setCookie, /Secure/i);
+  // 쿠키에 접근 코드 원문이 들어가지 않는다
+  assert.ok(!setCookie.includes(TEST_GATE_CODE));
+  return setCookie.split(";")[0];
+}
+
+function analyzeRequest(experience, cookie) {
+  return new Request("http://localhost/api/analyze", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+    },
+    body: JSON.stringify({ experience }),
+  });
+}
+
 async function fetchWorker(request) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
@@ -34,7 +69,7 @@ async function render() {
   );
 }
 
-test("server-renders the GapProof sample journey", async () => {
+test("server-renders the access gate for unauthenticated visitors", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
@@ -42,11 +77,15 @@ test("server-renders the GapProof sample journey", async () => {
   const html = await response.text();
   assert.match(html, /<html lang="ko">/i);
   assert.match(html, /<title>GapProof \| 공백을 증거로<\/title>/i);
-  assert.match(html, /Solar 샘플 데모/);
-  assert.match(html, /공백을 지우지 않고/);
-  assert.match(html, /실제 Solar를 호출하고, 없으면 원문 기반 샘플/);
-  assert.match(html, /경험 분석에 동의/);
-  assert.match(html, /취업 가능성이나 적성을 판정하지 않습니다/);
+  // 게이트 화면: 서비스 이름 + 짧은 설명 + 데모 코드임을 명시
+  assert.match(html, /데모 접근 확인/);
+  assert.match(html, /접근 코드를 입력해 주세요/);
+  assert.match(html, /계정 로그인이나 개인 비밀번호가 아니에요/);
+  assert.match(html, /취업 가능성이나 적성을 판정하지 않아요/);
+  // 비인증 HTML에는 메인 데모 흐름이 노출되지 않는다 (전체 데모 진입 게이트 정책)
+  assert.doesNotMatch(html, /공백을 지우지 않고/);
+  assert.doesNotMatch(html, /경험 분석에 동의/);
+  assert.doesNotMatch(html, /Solar 샘플 데모/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });
 
@@ -85,13 +124,8 @@ test("keeps AI claims bounded and user-confirmed", async () => {
 test("returns a traceable sample when a Solar key is unavailable", async () => {
   const experience =
     "항공물류를 전공했습니다. 집에서 AI 수학을 독학했습니다. Solar API로 웹 프로젝트를 만들었습니다.";
-  const response = await fetchWorker(
-    new Request("http://localhost/api/analyze", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ experience }),
-    }),
-  );
+  const cookie = await obtainGateCookie();
+  const response = await fetchWorker(analyzeRequest(experience, cookie));
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get("cache-control") ?? "", /no-store/i);
@@ -109,13 +143,8 @@ test("returns a traceable sample when a Solar key is unavailable", async () => {
 });
 
 test("rejects oversized experience before any model call", async () => {
-  const response = await fetchWorker(
-    new Request("http://localhost/api/analyze", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ experience: "가".repeat(3001) }),
-    }),
-  );
+  const cookie = await obtainGateCookie();
+  const response = await fetchWorker(analyzeRequest("가".repeat(3001), cookie));
 
   assert.equal(response.status, 413);
   const body = await response.json();
@@ -124,14 +153,8 @@ test("rejects oversized experience before any model call", async () => {
 });
 
 test("enforces input boundaries with actionable user messages", async () => {
-  const post = (experience) =>
-    fetchWorker(
-      new Request("http://localhost/api/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ experience }),
-      }),
-    );
+  const cookie = await obtainGateCookie();
+  const post = (experience) => fetchWorker(analyzeRequest(experience, cookie));
 
   const r19 = await post("가".repeat(19));
   assert.equal(r19.status, 400);
@@ -146,4 +169,119 @@ test("enforces input boundaries with actionable user messages", async () => {
   const r3000 = await post("가".repeat(3000));
   assert.equal(r3000.status, 200);
   assert.equal((await r3000.json()).source, "sample");
+});
+
+test("gate protects the analyze API with a signed HttpOnly session", async () => {
+  const validExperience =
+    "항공물류를 전공했습니다. 집에서 AI 수학을 독학했습니다. Solar API로 웹 프로젝트를 만들었습니다.";
+
+  // 1) 비인증 분석 요청: JSON 401, 분석·비용 경로 미실행
+  const unauthorized = await fetchWorker(analyzeRequest(validExperience));
+  assert.equal(unauthorized.status, 401);
+  const unauthorizedBody = await unauthorized.json();
+  assert.equal(unauthorizedBody.error, "unauthorized");
+  assert.ok(unauthorizedBody.message.includes("접근 코드"));
+
+  // 2) 위조 쿠키 거부
+  const forged = await fetchWorker(analyzeRequest(validExperience, "gp_gate=v1.9999999999.deadbeef"));
+  assert.equal(forged.status, 401);
+
+  // 3) 빈 코드 400 / 오답 401
+  const empty = await fetchWorker(
+    new Request("http://localhost/api/gate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: "  " }),
+    }),
+  );
+  assert.equal(empty.status, 400);
+  assert.equal((await empty.json()).error, "code_required");
+
+  const wrong = await fetchWorker(
+    new Request("http://localhost/api/gate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: "wrong-code" }),
+    }),
+  );
+  assert.equal(wrong.status, 401);
+  assert.equal((await wrong.json()).error, "invalid_code");
+
+  // 4) 올바른 코드 → 서명 쿠키 발급(HttpOnly/Secure/SameSite는 obtainGateCookie에서 검증) → 분석 허용
+  const cookie = await obtainGateCookie();
+  const statusCheck = await fetchWorker(
+    new Request("http://localhost/api/gate", { headers: { cookie } }),
+  );
+  assert.deepEqual(await statusCheck.json(), { authorized: true });
+  const authorized = await fetchWorker(analyzeRequest(validExperience, cookie));
+  assert.equal(authorized.status, 200);
+  assert.equal((await authorized.json()).source, "sample");
+
+  // 5) fail-closed: 게이트 환경변수가 없으면 코드가 맞아도 503, 기존 세션도 무효(401)
+  const savedCode = process.env.GATE_ACCESS_CODE;
+  const savedSecret = process.env.GATE_SESSION_SECRET;
+  delete process.env.GATE_ACCESS_CODE;
+  delete process.env.GATE_SESSION_SECRET;
+  try {
+    const unconfigured = await fetchWorker(
+      new Request("http://localhost/api/gate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: TEST_GATE_CODE }),
+      }),
+    );
+    assert.equal(unconfigured.status, 503);
+    assert.equal((await unconfigured.json()).error, "gate_not_configured");
+
+    const closedAnalyze = await fetchWorker(analyzeRequest(validExperience, cookie));
+    assert.equal(closedAnalyze.status, 401);
+  } finally {
+    process.env.GATE_ACCESS_CODE = savedCode;
+    process.env.GATE_SESSION_SECRET = savedSecret;
+  }
+});
+
+test("cookie policy: SameSite=Lax everywhere, Secure only outside local HTTP", async () => {
+  const gatePost = (origin) =>
+    fetchWorker(
+      new Request(`${origin}/api/gate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: TEST_GATE_CODE }),
+      }),
+    );
+
+  // 운영 HTTPS 조건 → Secure 포함
+  const https = await gatePost("https://gapproof.example");
+  assert.equal(https.status, 200);
+  const httpsCookie = https.headers.get("set-cookie") ?? "";
+  assert.match(httpsCookie, /HttpOnly/i);
+  assert.match(httpsCookie, /Secure/i);
+  assert.match(httpsCookie, /SameSite=Lax/i);
+  assert.match(httpsCookie, /Path=\//);
+  assert.match(httpsCookie, /Max-Age=43200/); // 12시간
+  assert.ok(!httpsCookie.includes(TEST_GATE_CODE));
+
+  // localhost가 아닌 HTTP 호스트도 Secure 포함(생략은 localhost/127.0.0.1 한정)
+  const httpRemote = await gatePost("http://gapproof.example");
+  assert.match(httpRemote.headers.get("set-cookie") ?? "", /Secure/i);
+
+  // 로컬 HTTP → Secure 생략 (obtainGateCookie에서 검증)
+  const local = await gatePost("http://127.0.0.1");
+  const localCookie = local.headers.get("set-cookie") ?? "";
+  assert.doesNotMatch(localCookie, /Secure/i);
+  assert.match(localCookie, /SameSite=Lax/i);
+
+  // 데모 잠금(로그아웃): 쿠키 즉시 만료 + 이후 분석은 401
+  const logout = await fetchWorker(new Request("http://localhost/api/gate", { method: "DELETE" }));
+  assert.equal(logout.status, 200);
+  const cleared = logout.headers.get("set-cookie") ?? "";
+  assert.match(cleared, /gp_gate=;/);
+  assert.match(cleared, /Max-Age=0/);
+  assert.deepEqual(await logout.json(), { authorized: false });
+
+  const afterLogout = await fetchWorker(
+    analyzeRequest("항공물류를 전공했습니다. 집에서 AI 수학을 독학했습니다. Solar API로 웹 프로젝트를 만들었습니다."),
+  );
+  assert.equal(afterLogout.status, 401);
 });

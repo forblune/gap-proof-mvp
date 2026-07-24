@@ -118,10 +118,30 @@ export default function Home() {
   const [editingSkill, setEditingSkill] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [proofDate, setProofDate] = useState<string | null>(null);
+  // 전체 데모 진입 게이트: 인증 전에는 메인 5단계 흐름을 렌더하지 않는다.
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateCode, setGateCode] = useState("");
+  const [gateBusy, setGateBusy] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+
+  // 세션 쿠키는 HttpOnly라 클라이언트가 읽을 수 없으므로 서버에 상태를 물어본다(새로고침 후 세션 유지).
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/gate")
+      .then((response) => response.json())
+      .then((data: { authorized?: boolean }) => {
+        if (!cancelled) setGateOpen(Boolean(data.authorized));
+      })
+      .catch(() => {
+        if (!cancelled) setGateOpen(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // STEP 4 도착 시 결과 제목으로 포커스 이동(스크린리더·키보드 사용자 안내)
   useEffect(() => {
@@ -217,6 +237,14 @@ export default function Home() {
         body: JSON.stringify({ experience: experience.trim() }),
       });
       const data = (await response.json()) as AnalysisResponse & { message?: string };
+      if (response.status === 401) {
+        // 세션 없음·만료: 입력·단계는 유지한 채 게이트 화면으로 전환한다(재인증 후 그 자리로 복귀).
+        setAnalysisSource("idle");
+        setGateOpen(false);
+        showNotice(data.message || "접근 코드 확인이 필요해요. 코드를 다시 입력해 주세요.", "error");
+        scrollToTop();
+        return;
+      }
       if (!response.ok) {
         // 400·413 등 입력 오류: 서버가 준 사용자용 메시지를 그대로 보여주고,
         // 입력을 유지한 채 현재 단계에 머문다. 샘플 결과로 대체하지 않는다.
@@ -311,6 +339,45 @@ export default function Home() {
     scrollToTop();
   };
 
+  const submitGateCode = async () => {
+    const code = gateCode.trim();
+    if (!code || gateBusy) return;
+    setGateBusy(true);
+    try {
+      const response = await fetch("/api/gate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { authorized?: boolean; message?: string };
+      if (!response.ok) {
+        showNotice(data.message || "접근 코드를 확인하지 못했어요. 다시 시도해 주세요.", "error");
+        return;
+      }
+      setNotice(null);
+      setGateOpen(true);
+      setGateCode("");
+      scrollToTop();
+    } catch {
+      showNotice("연결 오류로 접근 코드를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+    } finally {
+      setGateBusy(false);
+    }
+  };
+
+  // 데모 잠금(로그아웃): 서버 쿠키 만료 + 게이트 화면 복귀 (입력 데이터는 유지)
+  const lockDemo = async () => {
+    try {
+      await fetch("/api/gate", { method: "DELETE" });
+    } catch {
+      // 네트워크 실패여도 화면은 잠근다(쿠키는 만료 시 자동 무효)
+    }
+    setGateOpen(false);
+    setGateCode("");
+    showNotice("데모를 잠갔어요. 다시 보려면 접근 코드를 입력해 주세요.", "info");
+    scrollToTop();
+  };
+
   const requestDelete = () => setConfirmingDelete(true);
   const cancelDelete = () => {
     setConfirmingDelete(false);
@@ -328,22 +395,26 @@ export default function Home() {
           <span className="brand-mark">G</span>
           <span>GapProof</span>
         </a>
-        <div className="top-actions">
-          <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
-          <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>기록 삭제</button>
-        </div>
+        {gateOpen && (
+          <div className="top-actions">
+            <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
+            <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>기록 삭제</button>
+          </div>
+        )}
       </header>
 
-      <section className="progress-wrap" aria-label="진행 단계">
-        <ol className="progress">
-          {steps.map((label, index) => (
-            <li key={label} className={index === step ? "active" : index < step ? "done" : ""}>
-              <span>{index < step ? "✓" : index + 1}</span>
-              <b>{label}</b>
-            </li>
-          ))}
-        </ol>
-      </section>
+      {gateOpen && (
+        <section className="progress-wrap" aria-label="진행 단계">
+          <ol className="progress">
+            {steps.map((label, index) => (
+              <li key={label} className={index === step ? "active" : index < step ? "done" : ""}>
+                <span>{index < step ? "✓" : index + 1}</span>
+                <b>{label}</b>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       {notice && (
         <div className={`notice ${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
@@ -367,7 +438,39 @@ export default function Home() {
         </div>
       )}
 
-      {step === 0 && (
+      {!gateOpen && (
+        <section className="page-shell gate-page" aria-label="데모 접근 코드 확인">
+          <div className="gate-card">
+            <div className="gate-brand"><span className="brand-mark">G</span><b>GapProof</b></div>
+            <div className="card-kicker">데모 접근 확인</div>
+            <h1>접근 코드를 입력해 주세요.</h1>
+            <p className="gate-guide">
+              공백·전환 경험을 역량 증거와 이번 주 행동으로 바꾸는 <b>Solar 기반 진로 탐색 데모</b>예요.
+              심사·멘토링 공유용 <b>데모 접근 코드</b>가 필요하며, 계정 로그인이나 개인 비밀번호가 아니에요.
+              코드는 안내받은 채널에서 확인할 수 있어요.
+            </p>
+            <label htmlFor="gate-code">접근 코드</label>
+            <input
+              id="gate-code"
+              type="password"
+              autoComplete="one-time-code"
+              maxLength={64}
+              value={gateCode}
+              autoFocus
+              onChange={(event) => setGateCode(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") submitGateCode(); }}
+            />
+            <small className="gate-hint">GapProof는 취업 가능성이나 적성을 판정하지 않아요.</small>
+            <div className="gate-actions">
+              <button className="primary" disabled={!gateCode.trim() || gateBusy} onClick={submitGateCode}>
+                {gateBusy ? "확인 중…" : "데모 열기"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {gateOpen && step === 0 && (
         <section className="hero page-shell" id="top">
           <div className="hero-copy">
             <span className="eyebrow">공백·전환 경험을 위한 AI 진로상담 지원</span>
@@ -412,7 +515,7 @@ export default function Home() {
         </section>
       )}
 
-      {step === 1 && (
+      {gateOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어주세요.</h1></div>
@@ -466,7 +569,7 @@ export default function Home() {
         </section>
       )}
 
-      {step === 2 && (
+      {gateOpen && step === 2 && (
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 2 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저예요.</h1></div>
@@ -515,7 +618,7 @@ export default function Home() {
         </section>
       )}
 
-      {step === 3 && (
+      {gateOpen && step === 3 && (
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 3 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
@@ -606,7 +709,7 @@ export default function Home() {
         </section>
       )}
 
-      {step === 4 && (
+      {gateOpen && step === 4 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼어요.</h1></div>
@@ -647,6 +750,9 @@ export default function Home() {
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
         <p>{analysisSource === "solar" ? "Solar 실연결" : "샘플 데이터"} · 취업 또는 적성 판정이 아닙니다</p>
+        {gateOpen && (
+          <button className="text-button" onClick={lockDemo}>데모 잠금</button>
+        )}
       </footer>
     </main>
   );
