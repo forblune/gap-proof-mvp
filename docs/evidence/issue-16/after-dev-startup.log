@@ -1,0 +1,16 @@
+> gapproof-mvp@0.1.0 dev
+> WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev
+  vinext dev  (Vite 8.0.13)
+(node:70071) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Using secrets defined in .dev.vars
+8:12:04 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+  ➜  Local:   http://localhost:3000/
+  ➜  Debug:   http://localhost:3000/__debug
+ GET / 200 in 2.4s (compile: 1784891513.9s, render: 1.5s)
+ GET / 200 in 90ms (compile: 1784891513.0s, render: 42ms)
+ POST /api/analyze 200 in 65ms
+ POST /api/analyze 400 in 35ms
+ POST /api/analyze 400 in 35ms
+ GET / 200 in 175ms (compile: 1784891513.1s, render: 55ms)
+ POST /api/analyze 200 in 267ms
