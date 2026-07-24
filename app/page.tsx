@@ -285,7 +285,7 @@ export default function Home() {
           <span>GapProof</span>
         </a>
         <div className="top-actions">
-          <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> {analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span>
+          <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
           <button className="text-button" onClick={deleteRecords}>기록 삭제</button>
         </div>
       </header>

@@ -1,0 +1,367 @@
+{
+  "360x800": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 360,
+      "cw": 360
+    },
+    "header": {
+      "deleteVisible": false,
+      "deleteRect": {
+        "w": 0,
+        "h": 0
+      },
+      "badgeRight": 342
+    },
+    "progressActiveLabelVisible": false,
+    "tabOrder": [
+      "A.brand",
+      "INPUT.",
+      "INPUT.",
+      "BODY.",
+      "A.brand",
+      "INPUT."
+    ],
+    "overflow_step1": {
+      "sw": 360,
+      "cw": 360
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 360,
+      "cw": 360
+    },
+    "skeleton": {
+      "cols": 3,
+      "cardW": 98
+    },
+    "overflow_claims": {
+      "sw": 360,
+      "cw": 360
+    },
+    "touch": {
+      "claimAction": {
+        "w": 278,
+        "h": 39
+      },
+      "source": null,
+      "evidenceInputFont": "12px"
+    },
+    "editorBtn": {
+      "w": 39,
+      "h": 30
+    },
+    "notice": {
+      "left": 90,
+      "right": 270,
+      "w": 180,
+      "vw": 360
+    },
+    "overflow_notice": {
+      "sw": 360,
+      "cw": 360
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 40
+    },
+    "overflow_proof": {
+      "sw": 360,
+      "cw": 360
+    }
+  },
+  "390x844": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 390,
+      "cw": 390
+    },
+    "header": {
+      "deleteVisible": false,
+      "deleteRect": {
+        "w": 0,
+        "h": 0
+      },
+      "badgeRight": 372
+    },
+    "progressActiveLabelVisible": false,
+    "tabOrder": [
+      "A.brand",
+      "INPUT.",
+      "INPUT.",
+      "BODY.",
+      "A.brand",
+      "INPUT."
+    ],
+    "overflow_step1": {
+      "sw": 390,
+      "cw": 390
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 390,
+      "cw": 390
+    },
+    "skeleton": {
+      "cols": 3,
+      "cardW": 108
+    },
+    "overflow_claims": {
+      "sw": 390,
+      "cw": 390
+    },
+    "touch": {
+      "claimAction": {
+        "w": 308,
+        "h": 39
+      },
+      "source": null,
+      "evidenceInputFont": "12px"
+    },
+    "editorBtn": {
+      "w": 39,
+      "h": 30
+    },
+    "notice": {
+      "left": 98,
+      "right": 293,
+      "w": 195,
+      "vw": 390
+    },
+    "overflow_notice": {
+      "sw": 390,
+      "cw": 390
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 40
+    },
+    "overflow_proof": {
+      "sw": 390,
+      "cw": 390
+    }
+  },
+  "768x1024": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 768,
+      "cw": 768
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 49,
+        "h": 29
+      },
+      "badgeRight": 665
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "A.brand",
+      "BUTTON.text-button",
+      "INPUT.",
+      "INPUT.",
+      "BODY.",
+      "A.brand"
+    ],
+    "overflow_step1": {
+      "sw": 768,
+      "cw": 768
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 768,
+      "cw": 768
+    },
+    "skeleton": {
+      "cols": 3,
+      "cardW": 222
+    },
+    "overflow_claims": {
+      "sw": 768,
+      "cw": 768
+    },
+    "touch": {
+      "claimAction": {
+        "w": 203,
+        "h": 39
+      },
+      "source": null,
+      "evidenceInputFont": "12px"
+    },
+    "editorBtn": {
+      "w": 39,
+      "h": 30
+    },
+    "notice": {
+      "left": 192,
+      "right": 576,
+      "w": 384,
+      "vw": 768
+    },
+    "overflow_notice": {
+      "sw": 768,
+      "cw": 768
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 40
+    },
+    "overflow_proof": {
+      "sw": 768,
+      "cw": 768
+    }
+  },
+  "1024x768": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 49,
+        "h": 29
+      },
+      "badgeRight": 921
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "A.brand",
+      "BUTTON.text-button",
+      "INPUT.",
+      "INPUT.",
+      "BODY.",
+      "A.brand"
+    ],
+    "overflow_step1": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "skeleton": {
+      "cols": 3,
+      "cardW": 307
+    },
+    "overflow_claims": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "touch": {
+      "claimAction": {
+        "w": 284,
+        "h": 39
+      },
+      "source": null,
+      "evidenceInputFont": "12px"
+    },
+    "editorBtn": {
+      "w": 39,
+      "h": 30
+    },
+    "notice": {
+      "left": 299,
+      "right": 725,
+      "w": 426,
+      "vw": 1024
+    },
+    "overflow_notice": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 40
+    },
+    "overflow_proof": {
+      "sw": 1024,
+      "cw": 1024
+    }
+  },
+  "1440x900": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 49,
+        "h": 29
+      },
+      "badgeRight": 1337
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "A.brand",
+      "BUTTON.text-button",
+      "INPUT.",
+      "INPUT.",
+      "BODY.",
+      "A.brand"
+    ],
+    "overflow_step1": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "skeleton": {
+      "cols": 3,
+      "cardW": 446
+    },
+    "overflow_claims": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "touch": {
+      "claimAction": {
+        "w": 124,
+        "h": 39
+      },
+      "source": null,
+      "evidenceInputFont": "12px"
+    },
+    "editorBtn": {
+      "w": 39,
+      "h": 30
+    },
+    "notice": {
+      "left": 507,
+      "right": 933,
+      "w": 426,
+      "vw": 1440
+    },
+    "overflow_notice": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 40
+    },
+    "overflow_proof": {
+      "sw": 1440,
+      "cw": 1440
+    }
+  }
+}
