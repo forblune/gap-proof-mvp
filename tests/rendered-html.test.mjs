@@ -108,6 +108,31 @@ test("server-renders the access gate for unauthenticated visitors", async () => 
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });
 
+test("serves public information pages without the demo gate", async () => {
+  const pages = [
+    ["/about", ["만든 계기", "하지 않는 판단", "취업 가능성이나 적성을 판정하지 않습니다"]],
+    ["/guide", ["사용 순서", "입력하지 않아도 되는 정보", "오류가 나면 이렇게 하세요"]],
+    ["/how-it-works", ["파이프라인", "증거등급 기준", "원문 인용 검증"]],
+    ["/technology", ["실제 기술 스택", "보안·개인정보 설계", "의도적으로 사용하지 않았습니다"]],
+  ];
+
+  for (const [path, phrases] of pages) {
+    // 쿠키 없이(비인증) 접근 — 공개 페이지 정책(#6)
+    const response = await fetchWorker(
+      new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }),
+    );
+    assert.equal(response.status, 200, path);
+    const html = await response.text();
+    for (const phrase of phrases) {
+      assert.ok(html.includes(phrase), `${path} should contain "${phrase}"`);
+    }
+    // 공용 내비게이션 존재 + 메인 데모 흐름·게이트 입력은 미노출
+    assert.ok(html.includes("이용 가이드"), `${path} nav`);
+    assert.ok(!html.includes("경험 분석에 동의"), `${path} must not expose the demo flow`);
+    assert.ok(!html.includes('id="gate-code"'), `${path} must not render the gate input`);
+  }
+});
+
 test("keeps AI claims bounded and user-confirmed", async () => {
   const [page, layout, packageJson, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),

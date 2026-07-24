@@ -487,6 +487,12 @@ export default function Home() {
                 {gateBusy ? "확인 중…" : "데모 열기"}
               </button>
             </div>
+            <nav className="gate-links" aria-label="서비스 소개 페이지">
+              <a href="/about">소개</a>
+              <a href="/guide">이용 가이드</a>
+              <a href="/how-it-works">작동 원리</a>
+              <a href="/technology">기술과 검증</a>
+            </nav>
           </div>
         </section>
       )}
@@ -770,6 +776,12 @@ export default function Home() {
 
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
+        <nav className="footer-nav" aria-label="정보 페이지">
+          <a href="/about">소개</a>
+          <a href="/guide">이용 가이드</a>
+          <a href="/how-it-works">작동 원리</a>
+          <a href="/technology">기술과 검증</a>
+        </nav>
         <p>{analysisSource === "solar" ? "Solar 실연결" : "샘플 데이터"} · 취업 또는 적성 판정이 아닙니다</p>
         {gateOpen && (
           <button className="text-button" onClick={lockDemo}>데모 잠금</button>

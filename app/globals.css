@@ -102,6 +102,41 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .gate-card input { width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fffefa; color: var(--ink); font-size: 16px; letter-spacing: .12em; }
 .gate-hint { display: block; margin-top: 8px; color: var(--muted); font-size: 11px; }
 .gate-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.gate-links { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.gate-links a { color: var(--green); font-size: 12px; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; padding: 6px 0; }
+
+/* 정보 페이지 (#9) */
+.info-bar { height: auto; min-height: 64px; flex-wrap: wrap; gap: 6px 14px; padding: 12px 18px; padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
+.info-nav { display: flex; flex-wrap: wrap; gap: 4px 4px; }
+.info-nav a { padding: 8px 10px; min-height: 40px; display: inline-flex; align-items: center; border-radius: 999px; color: #505b6b; font-size: 13px; font-weight: 750; text-decoration: none; }
+.info-nav a:hover { color: var(--ink); }
+.info-nav a[aria-current="page"] { background: var(--green-soft); color: var(--green); }
+.info-shell { max-width: 880px; padding-top: 40px; }
+.info-shell h1 { margin: 10px 0 14px; font-family: Georgia, "Noto Serif KR", serif; font-size: clamp(30px, 4.5vw, 44px); letter-spacing: -.04em; line-height: 1.18; }
+.info-lead { margin: 0 0 26px; color: #4c576a; font-size: 16px; line-height: 1.7; word-break: keep-all; }
+.info-section { margin: 22px 0; padding: 22px 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
+.info-section h2 { margin: 0 0 12px; font-family: Georgia, "Noto Serif KR", serif; font-size: 21px; }
+.info-section p { margin: 0 0 10px; color: #445066; font-size: 14px; line-height: 1.7; }
+.info-section ul { margin: 0; padding-left: 18px; color: #445066; font-size: 14px; line-height: 1.75; }
+.table-scroll { overflow-x: auto; }
+.info-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 13px; line-height: 1.6; }
+.info-table th, .info-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.info-table th { color: var(--muted); font-size: 11px; font-weight: 800; }
+.info-pipeline { margin: 0; padding-left: 20px; }
+.info-pipeline li { margin-bottom: 12px; font-size: 14px; }
+.info-pipeline li b { display: block; margin-bottom: 2px; }
+.info-pipeline li p { margin: 0; color: #596475; font-size: 13px; line-height: 1.6; }
+.info-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.info-cards li { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fffefa; font-size: 13px; }
+.info-cards li b { display: block; margin-bottom: 5px; color: var(--green); }
+.info-cards li p { margin: 0; color: #596475; line-height: 1.6; }
+.info-cta { margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.info-demo-link { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 11px; border: 1px solid var(--ink); background: var(--ink); color: #fff; font-weight: 800; text-decoration: none; }
+.info-demo-link span { color: var(--yellow); margin-left: 8px; }
+.info-cta small { color: var(--muted); }
+.info-repo { margin-top: 12px; color: var(--muted); font-size: 13px; }
+.footer-nav { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.footer-nav a { color: #6f6a5f; text-decoration: underline; text-underline-offset: 3px; padding: 6px 0; }
 .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 32px; }
 .section-head h1 { margin: 8px 0 0; font-size: clamp(34px, 3.5vw, 52px); }
 .time-pill, .complete-badge { flex: 0 0 auto; padding: 9px 13px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 12px; font-weight: 800; }
