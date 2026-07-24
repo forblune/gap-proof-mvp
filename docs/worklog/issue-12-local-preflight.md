@@ -32,5 +32,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — "Partial progress for #12 — Phase A", Closes 미사용)
+- 커밋: `834f854` qa: local preflight verification for #12 — Phase A
+- PR: https://github.com/forblune/gap-proof-mvp/pull/25 (Partial progress for #12 — Phase A, Closes 미사용)
