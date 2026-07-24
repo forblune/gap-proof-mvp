@@ -573,7 +573,7 @@ export default function Home() {
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 2 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저예요.</h1></div>
-            <div className="legend"><i /> 원문 근거가 함께 표시됩니다</div>
+            <div className="legend"><i /> 입력 문장을 근거로 인용해요 · 개인정보가 감지되면 가려서 표시돼요</div>
           </div>
           <div className="explain-strip">
             <b>{analysisSource === "solar" ? `Solar ${analysisModel} 분석 완료` : "안전한 샘플 분석 완료"}</b>

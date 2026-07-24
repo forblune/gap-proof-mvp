@@ -21,6 +21,11 @@ export async function readServerBinding(key: string): Promise<unknown> {
   return (await workersEnv())?.[key];
 }
 
+// 실제 Workers 런타임 여부: cloudflare:workers env 모듈이 존재하면 true, Node(테스트 하네스)면 false.
+export async function isWorkersRuntime(): Promise<boolean> {
+  return (await workersEnv()) !== null;
+}
+
 export async function readServerEnv(key: string): Promise<string | undefined> {
   const binding = (await workersEnv())?.[key];
   if (typeof binding === "string" && binding.length > 0) return binding;

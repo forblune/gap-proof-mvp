@@ -17,7 +17,7 @@ type SolarClaim = {
 
 import { verifyGateSession } from "../../lib/gate-session";
 import { maskPII, maskedNoticeSuffix } from "../../lib/pii";
-import { allowRequest, clientKey } from "../../lib/rate-limit";
+import { checkRateLimit, clientKey, RATE_LIMIT_WINDOW_SECONDS } from "../../lib/rate-limit";
 import { readServerEnv } from "../../lib/server-env";
 
 const SOLAR_URL = "https://api.upstage.ai/v1/chat/completions";
@@ -34,12 +34,13 @@ quote는 반드시 사용자 원문에 연속해서 실제로 존재하는 문�
 question은 그 역량을 더 강한 증거로 바꾸기 위해 필요한 링크, 산출물, 기간, 역할 중 하나를 묻는다.
 JSON 객체 {"claims":[...]}만 출력하라.`;
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
+      ...extraHeaders,
     },
   });
 }
@@ -175,10 +176,19 @@ export async function POST(request: Request) {
   }
 
   // 남용 방지: 유료 Solar 호출·폴백 생성 이전에 한도를 검사한다.
-  if (!(await allowRequest("ANALYZE_RATE_LIMITER", clientKey(request)))) {
+  // 실제 Workers에서 바인딩이 없거나 실패하면 fail-closed(503) — 조용한 대체 없음.
+  const rateDecision = await checkRateLimit("ANALYZE_RATE_LIMITER", await clientKey(request));
+  if (rateDecision === "unavailable") {
+    return json(
+      { error: "rate_limit_unavailable", message: "요청 한도 확인이 불가해 분석을 잠시 멈췄어요. 잠시 후 다시 시도해 주세요." },
+      503,
+    );
+  }
+  if (rateDecision === "limited") {
     return json(
       { error: "rate_limited", message: "요청이 잠시 몰렸어요. 1분 뒤에 다시 시도해 주세요." },
       429,
+      { "retry-after": String(RATE_LIMIT_WINDOW_SECONDS) },
     );
   }
 

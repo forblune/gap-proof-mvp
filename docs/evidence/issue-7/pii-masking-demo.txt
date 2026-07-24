@@ -7,3 +7,10 @@
 - masked: ["이메일", "전화번호"]
 - 응답 JSON 전체에 원문 PII 포함 여부: False ([이메일]/[전화번호]로 대체)
 - 인용 검증(experience.includes(quote))은 마스킹 텍스트 기준으로 유지되어 claims 정상 생성
+
+## 마스킹 안내 UI 실측 (2026-07-25 보완, masking-notice-ui.png)
+- STEP2 explain-strip에 "…가리고 분석했어요" 고지 표시: true
+- 화면(strip+인용문)에 원문 PII 노출: false
+- 인용문에 마스킹 토큰([이메일]/[전화번호]) 표시: true
+- STEP2 legend 문구: "입력 문장을 근거로 인용해요 · 개인정보가 감지되면 가려서 표시돼요"
+  (개인정보 없는 입력은 기존 exact-quote 원칙 그대로 — 기존 테스트 유지로 검증)

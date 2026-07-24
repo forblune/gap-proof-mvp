@@ -12,10 +12,11 @@
 | Cloudflare 대시보드 Rate Limiting 규칙 | 보류 — 저장소 밖 설정이라 재현·검증 불가, 배포 계정 작업 필요. 운영 보강안으로 worklog에만 기록 |
 | KV | 기각 — 결과적 일관성이라 정확한 카운팅 부적합 |
 | Durable Objects | 기각 — 정확하지만 이 규모(데모 한도)에 과설계, vinext 경로에 신규 클래스 도입 위험 |
-| **인스턴스 로컬 Map** | **보조 수단으로만** — Workers 인스턴스별 격리라 운영급 한도가 아님(코드 주석 명시). 바인딩이 없는 런타임(Node 테스트)과 바인딩 오류 시 fail-open 방지용 |
+| **인스턴스 로컬 Map** | **Node 테스트 전용 어댑터로만** — Workers 인스턴스별 격리라 운영 보안 수준이 아님(코드 주석 명시). **실제 Workers 분기에서는 도달 불가**: 바인딩 누락·호출 예외·예상 밖 응답은 조용한 대체 없이 fail-closed(503 `rate_limit_unavailable`, Solar 미호출, gate는 코드 검증 없이 종료) |
 
-- 한도: analyze·gate 각각 **10회/60초**, 키는 `CF-Connecting-IP`(엣지가 설정하는 신뢰 헤더) 우선 → 게이트 세션 토큰 꼬리 → 공용. 게이트 POST에도 적용해 **접근 코드 무차별 대입 방지**.
-- 429 응답 메시지는 #5의 오류 표시 경로로 클라이언트에 그대로 노출(클라이언트 코드 변경 0).
+- 한도: analyze·gate 각각 **10회/60초**. 키 네임스페이스: `ip:<정규화 CF-Connecting-IP>`(엣지 신뢰 헤더만 — X-Forwarded-For는 코드에서 읽지 않음·테스트 강제) → `session:<세션 토큰의 비가역 SHA-256 digest 앞 16자>` → `anonymous:shared`. 원본 쿠키·토큰은 키·로그·응답 어디에도 쓰지 않는다. 게이트 POST에도 적용해 **접근 코드 무차별 대입 방지**.
+- **429 계약**: JSON 오류 코드 + 안전한 메시지 + **`Retry-After: 60`**(simple.period=60초 창과 일관) + `Cache-Control: no-store` + 내부 키·IP·digest 비노출. analyze는 Solar 호출 이전, gate는 코드 비교 이전 반환.
+- 429·마스킹 메시지는 #5의 오류 표시 경로로 클라이언트에 그대로 노출. 인용 정합 고지로 STEP2 legend를 "입력 문장을 근거로 인용해요 · 개인정보가 감지되면 가려서 표시돼요"로 최소 수정(개인정보 없는 입력은 기존 exact-quote 원칙 유지).
 
 ## PII 마스킹 설계
 
@@ -41,9 +42,9 @@
 
 ## 검증 결과
 
-- `npm test` **10/10 PASS** — 신규: 보안 헤더 전 응답 부착 / PII 마스킹(원문 PII 응답 부재·고지·인용 무결성·masked 배열) / rate limit(같은 키 10회 후 11번째 429 + 게이트 오답 10회 후 429). 기존 테스트는 요청별 테스트 IP로 버킷 격리
+- `npm test` **12/12 PASS** (보완: 세션 digest 동작·429 계약 헤더·fail-closed 2모드) — 신규: 보안 헤더 전 응답 부착 / PII 마스킹(원문 PII 응답 부재·고지·인용 무결성·masked 배열) / rate limit(같은 키 10회 후 11번째 429 + 게이트 오답 10회 후 429). 기존 테스트는 요청별 테스트 IP로 버킷 격리
 - 테스트 하네스 수정: worker 모듈을 요청마다 재import하던 것을 1회 로드로 변경(실제 Workers isolate 동작과 일치 — 모듈 상태 검증 가능)
-- **실제 workerd dev 서버**: 헤더 5종 부착 확인, 게이트 오답 연속 시 **정확히 10회 후 429**(`security-headers-and-ratelimit.txt` — 바인딩/보조 경로 구분의 한계도 정직하게 기록), dist 산출물에 ratelimits 상속 확인
+- **실제 workerd dev 서버(보완 후 재검증)**: fail-closed 코드에서 첫 응답이 `gate_not_configured`(바인딩 미프로비저닝이면 `rate_limit_unavailable`이어야 함) → **바인딩 프로비저닝·경로 확정 입증**. 오답 연속 10회 후 **429 + `retry-after: 60` + `no-store`** 실측. dist 산출물 ratelimits 상속 확인
 - 하네스 마스킹 실측(`pii-masking-demo.txt`): 원문 PII 미포함·고지 문구·claims 정상
 - 5뷰포트 회귀 스모크(헤더 적용 상태): overflow 0·console error 0
 - lint 통과 · diff-check 통과 · tsc 레거시 2건만(worker/index.ts — 본 이슈 수정에도 기존 오류 무변화) · **실 유료 Solar 호출 0건** · `UPSTAGE_API_KEY` 값 미열람·미출력

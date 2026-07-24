@@ -46,7 +46,7 @@ function analyzeRequest(experience, cookie, ip = testIp()) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "cf-connecting-ip": ip,
+      ...(ip ? { "cf-connecting-ip": ip } : {}),
       ...(cookie ? { cookie } : {}),
     },
     body: JSON.stringify({ experience }),
@@ -135,6 +135,7 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.match(page, /role="alertdialog"/); // 기록 삭제 확인 절차
   assert.match(page, /아직 확인된 역량이 없어요/); // 확인 0개 가드 안내
   assert.match(page, /notice\.kind === "error" \? "alert" : "status"/); // 오류 알림 라이브 리전
+  assert.match(page, /개인정보가 감지되면 가려서 표시돼요/); // 마스킹 가능성 고지(#7)
   assert.match(layout, /title:\s*"GapProof \| 공백을 증거로"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.match(css, /@media \(max-width: 720px\)/);
@@ -326,9 +327,16 @@ test("rate limits repeated calls per client key", async () => {
   }
   const limited = await fetchWorker(analyzeRequest(experience, cookie, fixedIp));
   assert.equal(limited.status, 429);
+  // 429 계약: Retry-After(60초 창과 일관) + no-store + 내부 키·IP·digest 비노출
+  assert.equal(limited.headers.get("retry-after"), "60");
+  assert.match(limited.headers.get("cache-control") ?? "", /no-store/);
   const body = await limited.json();
   assert.equal(body.error, "rate_limited");
   assert.ok(body.message.includes("1분"));
+  const limitedSerialized = JSON.stringify(body);
+  assert.ok(!limitedSerialized.includes(fixedIp));
+  assert.ok(!limitedSerialized.includes("ip:"));
+  assert.ok(!limitedSerialized.includes("session:"));
 
   // 게이트 무차별 대입 방지: 같은 IP에서 오답 10회 이후 429
   const bruteIp = "203.0.113.88";
@@ -338,5 +346,69 @@ test("rate limits repeated calls per client key", async () => {
   }
   const gateLimited = await fetchWorker(gateRequest("wrong-code", bruteIp));
   assert.equal(gateLimited.status, 429);
+  assert.equal(gateLimited.headers.get("retry-after"), "60");
+  assert.match(gateLimited.headers.get("cache-control") ?? "", /no-store/);
   assert.equal((await gateLimited.json()).error, "rate_limited");
+});
+
+test("rate limit session fallback uses an irreversible digest key", async () => {
+  // 소스 계약: 원본 토큰을 키에 쓰지 않고 SHA-256 digest + 네임스페이스만 사용,
+  // 신뢰 IP는 CF-Connecting-IP뿐(X-Forwarded-For 미사용)
+  const src = await readFile(new URL("../app/lib/rate-limit.ts", import.meta.url), "utf8");
+  assert.match(src, /SHA-256/);
+  assert.match(src, /session:\$\{/);
+  assert.match(src, /anonymous:shared/);
+  assert.match(src, /headers\.get\("cf-connecting-ip"\)/);
+  // 주석 언급은 허용하되, 코드가 X-Forwarded-For를 실제로 읽지 않는지 검사
+  assert.doesNotMatch(src, /headers\.get\(["']x-forwarded-for["']\)/i);
+  assert.doesNotMatch(src, /slice\(-24\)/);
+
+  const experience = "항공물류를 전공했고 집에서 AI 수학과 웹을 독학하며 프로젝트를 만들었습니다.";
+
+  // 동일 세션(동일 쿠키, IP 없음) → 동일 digest 버킷: 11번째에서 429
+  const cookieA = await obtainGateCookie();
+  for (let i = 0; i < 10; i += 1) {
+    const ok = await fetchWorker(analyzeRequest(experience, cookieA, null));
+    assert.equal(ok.status, 200, `same-session attempt ${i + 1}`);
+  }
+  const limitedA = await fetchWorker(analyzeRequest(experience, cookieA, null));
+  assert.equal(limitedA.status, 429);
+  // 429 응답 어디에도 쿠키 원문·digest가 없다
+  const rawToken = cookieA.split("=")[1];
+  const responseText = JSON.stringify(await limitedA.json()) + JSON.stringify([...limitedA.headers.entries()]);
+  assert.ok(!responseText.includes(rawToken));
+  assert.ok(!/session:[0-9a-f]{8}/.test(responseText));
+
+  // 다른 세션(만료초가 다른 토큰) → 다른 digest 버킷: 즉시 허용
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  const cookieB = await obtainGateCookie();
+  assert.notEqual(cookieA, cookieB);
+  const allowedB = await fetchWorker(analyzeRequest(experience, cookieB, null));
+  assert.equal(allowedB.status, 200);
+});
+
+test("fails closed when the Workers rate limit binding is unavailable", async () => {
+  const cookie = await obtainGateCookie();
+  const experience = "항공물류를 전공했고 집에서 AI 수학과 웹을 독학하며 프로젝트를 만들었습니다.";
+
+  for (const mode of ["binding-missing", "binding-error"]) {
+    process.env.RATE_LIMIT_TEST_MODE = mode;
+    try {
+      // analyze: 503 + rate_limit_unavailable, Solar/폴백 경로 미도달
+      const analyze = await fetchWorker(analyzeRequest(experience, cookie));
+      assert.equal(analyze.status, 503, `analyze ${mode}`);
+      const body = await analyze.json();
+      assert.equal(body.error, "rate_limit_unavailable");
+      assert.match(analyze.headers.get("cache-control") ?? "", /no-store/);
+      assert.ok(!("claims" in body)); // 분석 결과 미생성 = 비용 경로 미실행
+
+      // gate: 정답 코드여도 코드 검증을 계속하지 않고 503 종료(쿠키 미발급)
+      const gate = await fetchWorker(gateRequest(TEST_GATE_CODE));
+      assert.equal(gate.status, 503, `gate ${mode}`);
+      assert.equal((await gate.json()).error, "rate_limit_unavailable");
+      assert.ok(!gate.headers.get("set-cookie"));
+    } finally {
+      delete process.env.RATE_LIMIT_TEST_MODE;
+    }
+  }
 });

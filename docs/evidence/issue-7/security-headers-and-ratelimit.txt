@@ -1,4 +1,4 @@
-# 실제 workerd dev 서버 검증 — 2026-07-25 (Issue #7)
+# 실제 workerd dev 서버 검증 — 2026-07-25 (Issue #7, PR #20 보완 후 최신)
 
 ## 보안 응답 헤더 (GET /)
 content-security-policy: frame-ancestors 'none'
@@ -7,17 +7,33 @@ referrer-policy: strict-origin-when-cross-origin
 x-content-type-options: nosniff
 x-frame-options: DENY
 
-## Rate limit — 게이트 무차별 대입 (POST /api/gate, 오답 코드 연속 11회)
-503 503 503 503 503 503 503 503 503 503 429
-11번째: {"error":"rate_limited","message":"시도가 너무 잦아요. 1분 뒤에 다시 입력해 주세요."}
-(dev 게이트는 미구성 fail-closed 상태라 앞 10회는 503, 한도 10회/60초 정확히 동작)
+## Rate limit — 실제 workerd에서 바인딩 경로 확정 입증 (fail-closed 코드 기준)
+fail-closed 정책에서는 바인딩이 없으면 첫 요청부터 503 rate_limit_unavailable이 떠야 한다.
+실측 첫 응답은 아래와 같이 코드 검증 단계까지 도달했다(= 한도 검사를 바인딩이 통과시킴):
+  POST /api/gate (오답) -> 503 {"error":"gate_not_configured", ...}
+따라서 miniflare가 wrangler.jsonc의 ratelimits 바인딩을 실제로 프로비저닝하며,
+인메모리 보조 경로는 Workers 분기에 존재하지 않으므로 아래 한도 동작은 바인딩의 것이다.
+
+연속 시도(오답): 503 ×10 → 이후 429
+12번째 응답:
+  HTTP/1.1 429 Too Many Requests
+  cache-control: no-store
+  retry-after: 60        ← simple.period=60초 창과 일관
+  {"error":"rate_limited","message":"시도가 너무 잦아요. 1분 뒤에 다시 입력해 주세요."}
+응답에 IP·세션 digest·내부 키 없음.
+
+## fail-closed (Node 테스트 어댑터로 Workers 바인딩 실패 시나리오 재현 — npm test 12/12)
+- binding-missing → analyze 503 rate_limit_unavailable (claims 미생성 = Solar/폴백 미실행)
+- binding-error   → analyze 503 rate_limit_unavailable
+- gate: 정답 코드여도 코드 검증 없이 503 종료(Set-Cookie 미발급으로 방증)
+- 인메모리 카운터는 Node 테스트 전용 어댑터이며 Workers 분기에서 도달 불가(코드 구조상)
+
+## Rate-limit 키 (원본 토큰 미사용)
+- ip:<normalized CF-Connecting-IP>  (X-Forwarded-For 등 사용자 헤더는 코드에서 읽지 않음 — 테스트로 강제)
+- session:<세션 토큰의 SHA-256 digest 앞 16자>  (비가역·고정 길이 — 동일 세션 동일 digest·다른 세션 다른 digest를 동작 테스트로 검증)
+- anonymous:shared
+- 429/503 응답·증거 어디에도 원본 토큰·digest·IP 미출력
 
 ## 바인딩 상속 확인 (배포 아티팩트 dist/server/wrangler.json)
 "ratelimits":[{"name":"ANALYZE_RATE_LIMITER","namespace_id":"1001","simple":{"limit":10,"period":60}},
               {"name":"GATE_RATE_LIMITER","namespace_id":"1002","simple":{"limit":10,"period":60}}]
-
-## 정직한 한정
-바인딩과 보조 카운터의 한도 정책이 동일(10/60s)해 출력만으로 두 경로를 구분할 수는 없다.
-다만 (a) wrangler 4.92 스키마가 ratelimits를 지원하고 (b) miniflare 소스에 ratelimits 지원이 확인되며
-(c) dist 산출물에 바인딩이 상속되고 (d) cloudflare:workers env 동작은 #6에서 실증됐다.
-보조 카운터는 인스턴스 로컬이므로 운영급 한도 주장에 사용하지 않는다(코드 주석·worklog 명시).
