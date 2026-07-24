@@ -15,15 +15,11 @@ type SolarClaim = {
   question?: unknown;
 };
 
+import { verifyGateSession } from "../../lib/gate-session";
+import { readServerEnv } from "../../lib/server-env";
+
 const SOLAR_URL = "https://api.upstage.ai/v1/chat/completions";
-function readEnv(key: string): string | undefined {
-  try {
-    return typeof process !== "undefined" && process.env ? process.env[key] : undefined;
-  } catch {
-    return undefined;
-  }
-}
-const MODEL = readEnv("SOLAR_MODEL") || "solar-pro3";
+const DEFAULT_MODEL = "solar-pro3";
 const MAX_INPUT_LENGTH = 3000;
 const SOLAR_TIMEOUT_MS = 12_000;
 
@@ -168,6 +164,14 @@ function parseSolarContent(content: string) {
 }
 
 export async function POST(request: Request) {
+  // 인증을 가장 먼저 검사한다: 비인증 요청은 본문 파싱·폴백 생성·Solar 호출(비용 경로)에 도달하지 않는다.
+  if (!(await verifyGateSession(request))) {
+    return json(
+      { error: "unauthorized", message: "접근 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요." },
+      401,
+    );
+  }
+
   let body: { experience?: unknown };
   try {
     body = (await request.json()) as { experience?: unknown };
@@ -184,7 +188,8 @@ export async function POST(request: Request) {
   }
 
   const fallback = fallbackClaims(experience);
-  const apiKey = readEnv("UPSTAGE_API_KEY");
+  const apiKey = await readServerEnv("UPSTAGE_API_KEY");
+  const model = (await readServerEnv("SOLAR_MODEL")) || DEFAULT_MODEL;
   if (!apiKey) {
     return json({
       source: "sample",
@@ -205,7 +210,7 @@ export async function POST(request: Request) {
         authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: experience },
@@ -244,7 +249,7 @@ export async function POST(request: Request) {
 
     return json({
       source: "solar",
-      model: MODEL,
+      model,
       claims,
       notice: "Solar가 만든 후보입니다. 사용자가 확인하기 전에는 증명으로 사용하지 않습니다.",
     });

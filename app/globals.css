@@ -89,6 +89,16 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .confirm-bar button.danger { border-color: var(--coral); background: var(--coral); color: white; }
 
 .flow-page { min-height: calc(100vh - 140px); min-height: calc(100svh - 140px); }
+
+/* 데모 접근 게이트 */
+.gate-page { display: flex; justify-content: center; }
+.gate-card { width: 100%; max-width: 460px; margin: 34px auto; padding: 30px 28px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
+.gate-card h1 { margin: 10px 0 12px; font-family: Georgia, "Noto Serif KR", serif; font-size: clamp(26px, 4vw, 34px); letter-spacing: -.03em; line-height: 1.2; }
+.gate-guide { margin: 0 0 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.gate-card label { display: block; margin-bottom: 8px; color: var(--green); font-size: 11px; font-weight: 850; }
+.gate-card input { width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fffefa; color: var(--ink); font-size: 16px; letter-spacing: .12em; }
+.gate-hint { display: block; margin-top: 8px; color: var(--muted); font-size: 11px; }
+.gate-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 32px; }
 .section-head h1 { margin: 8px 0 0; font-size: clamp(34px, 3.5vw, 52px); }
 .time-pill, .complete-badge { flex: 0 0 auto; padding: 9px 13px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 12px; font-weight: 800; }

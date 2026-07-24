@@ -1,0 +1,11 @@
+# 로컬 개발용 환경변수 예시 — 키 이름만 기재한다.
+# 실제 값은 무추적 파일 .dev.vars 에만 두고, 절대 커밋하지 않는다.
+# 프로덕션은 `npx wrangler secret put <이름>` 으로 등록한다.
+
+# Solar(Upstage) API
+UPSTAGE_API_KEY=
+SOLAR_MODEL=
+
+# 데모 접근 게이트 (#6) — 없으면 fail-closed(데모 분석 불가)
+GATE_ACCESS_CODE=
+GATE_SESSION_SECRET=

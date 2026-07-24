@@ -49,7 +49,13 @@ npm run build
 ```text
 UPSTAGE_API_KEY=발급받은_키
 SOLAR_MODEL=solar-pro3
+GATE_ACCESS_CODE=데모_접근_코드
+GATE_SESSION_SECRET=세션_서명_비밀
 ```
+
+데모 분석(`POST /api/analyze`)은 접근 코드 게이트(`POST /api/gate`)를 통과해 발급된
+서명 HttpOnly 세션 쿠키가 있어야 호출할 수 있습니다. 게이트 환경변수가 없으면
+데모는 열리지 않습니다(fail-closed). 시작 화면 소개는 코드 없이 볼 수 있습니다.
 
 `POST /api/analyze`는 경험 텍스트를 최대 3,000자까지 받고 최대 3개의 역량 후보를
 돌려줍니다. 12초 안에 응답하지 않거나, JSON이 잘못되었거나, 원문과 일치하는 인용이

@@ -7,6 +7,38 @@ import test from "node:test";
 delete process.env.UPSTAGE_API_KEY;
 delete process.env.SOLAR_MODEL;
 
+// 게이트 테스트용 값(실서비스 값 아님). 서버는 Workers env가 없으면 process.env로 폴백한다.
+const TEST_GATE_CODE = "test-demo-code";
+process.env.GATE_ACCESS_CODE = TEST_GATE_CODE;
+process.env.GATE_SESSION_SECRET = "test-session-secret-not-production";
+
+async function obtainGateCookie() {
+  const response = await fetchWorker(
+    new Request("http://localhost/api/gate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: TEST_GATE_CODE }),
+    }),
+  );
+  assert.equal(response.status, 200);
+  const setCookie = response.headers.get("set-cookie") ?? "";
+  assert.match(setCookie, /HttpOnly/i);
+  assert.match(setCookie, /Secure/i);
+  assert.match(setCookie, /SameSite=Strict/i);
+  return setCookie.split(";")[0];
+}
+
+function analyzeRequest(experience, cookie) {
+  return new Request("http://localhost/api/analyze", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+    },
+    body: JSON.stringify({ experience }),
+  });
+}
+
 async function fetchWorker(request) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
@@ -85,13 +117,8 @@ test("keeps AI claims bounded and user-confirmed", async () => {
 test("returns a traceable sample when a Solar key is unavailable", async () => {
   const experience =
     "항공물류를 전공했습니다. 집에서 AI 수학을 독학했습니다. Solar API로 웹 프로젝트를 만들었습니다.";
-  const response = await fetchWorker(
-    new Request("http://localhost/api/analyze", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ experience }),
-    }),
-  );
+  const cookie = await obtainGateCookie();
+  const response = await fetchWorker(analyzeRequest(experience, cookie));
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get("cache-control") ?? "", /no-store/i);
@@ -109,13 +136,8 @@ test("returns a traceable sample when a Solar key is unavailable", async () => {
 });
 
 test("rejects oversized experience before any model call", async () => {
-  const response = await fetchWorker(
-    new Request("http://localhost/api/analyze", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ experience: "가".repeat(3001) }),
-    }),
-  );
+  const cookie = await obtainGateCookie();
+  const response = await fetchWorker(analyzeRequest("가".repeat(3001), cookie));
 
   assert.equal(response.status, 413);
   const body = await response.json();
@@ -124,14 +146,8 @@ test("rejects oversized experience before any model call", async () => {
 });
 
 test("enforces input boundaries with actionable user messages", async () => {
-  const post = (experience) =>
-    fetchWorker(
-      new Request("http://localhost/api/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ experience }),
-      }),
-    );
+  const cookie = await obtainGateCookie();
+  const post = (experience) => fetchWorker(analyzeRequest(experience, cookie));
 
   const r19 = await post("가".repeat(19));
   assert.equal(r19.status, 400);
@@ -146,4 +162,74 @@ test("enforces input boundaries with actionable user messages", async () => {
   const r3000 = await post("가".repeat(3000));
   assert.equal(r3000.status, 200);
   assert.equal((await r3000.json()).source, "sample");
+});
+
+test("gate protects the analyze API with a signed HttpOnly session", async () => {
+  const validExperience =
+    "항공물류를 전공했습니다. 집에서 AI 수학을 독학했습니다. Solar API로 웹 프로젝트를 만들었습니다.";
+
+  // 1) 비인증 분석 요청: JSON 401, 분석·비용 경로 미실행
+  const unauthorized = await fetchWorker(analyzeRequest(validExperience));
+  assert.equal(unauthorized.status, 401);
+  const unauthorizedBody = await unauthorized.json();
+  assert.equal(unauthorizedBody.error, "unauthorized");
+  assert.ok(unauthorizedBody.message.includes("접근 코드"));
+
+  // 2) 위조 쿠키 거부
+  const forged = await fetchWorker(analyzeRequest(validExperience, "gp_gate=v1.9999999999.deadbeef"));
+  assert.equal(forged.status, 401);
+
+  // 3) 빈 코드 400 / 오답 401
+  const empty = await fetchWorker(
+    new Request("http://localhost/api/gate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: "  " }),
+    }),
+  );
+  assert.equal(empty.status, 400);
+  assert.equal((await empty.json()).error, "code_required");
+
+  const wrong = await fetchWorker(
+    new Request("http://localhost/api/gate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: "wrong-code" }),
+    }),
+  );
+  assert.equal(wrong.status, 401);
+  assert.equal((await wrong.json()).error, "invalid_code");
+
+  // 4) 올바른 코드 → 서명 쿠키 발급(HttpOnly/Secure/SameSite는 obtainGateCookie에서 검증) → 분석 허용
+  const cookie = await obtainGateCookie();
+  const statusCheck = await fetchWorker(
+    new Request("http://localhost/api/gate", { headers: { cookie } }),
+  );
+  assert.deepEqual(await statusCheck.json(), { authorized: true });
+  const authorized = await fetchWorker(analyzeRequest(validExperience, cookie));
+  assert.equal(authorized.status, 200);
+  assert.equal((await authorized.json()).source, "sample");
+
+  // 5) fail-closed: 게이트 환경변수가 없으면 코드가 맞아도 503, 기존 세션도 무효(401)
+  const savedCode = process.env.GATE_ACCESS_CODE;
+  const savedSecret = process.env.GATE_SESSION_SECRET;
+  delete process.env.GATE_ACCESS_CODE;
+  delete process.env.GATE_SESSION_SECRET;
+  try {
+    const unconfigured = await fetchWorker(
+      new Request("http://localhost/api/gate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: TEST_GATE_CODE }),
+      }),
+    );
+    assert.equal(unconfigured.status, 503);
+    assert.equal((await unconfigured.json()).error, "gate_not_configured");
+
+    const closedAnalyze = await fetchWorker(analyzeRequest(validExperience, cookie));
+    assert.equal(closedAnalyze.status, 401);
+  } finally {
+    process.env.GATE_ACCESS_CODE = savedCode;
+    process.env.GATE_SESSION_SECRET = savedSecret;
+  }
 });

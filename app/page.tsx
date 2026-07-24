@@ -118,10 +118,30 @@ export default function Home() {
   const [editingSkill, setEditingSkill] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [proofDate, setProofDate] = useState<string | null>(null);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [showGate, setShowGate] = useState(false);
+  const [gateCode, setGateCode] = useState("");
+  const [gateBusy, setGateBusy] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+
+  // 세션 쿠키는 HttpOnly라 클라이언트가 읽을 수 없으므로 서버에 상태를 물어본다(새로고침 후 세션 유지).
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/gate")
+      .then((response) => response.json())
+      .then((data: { authorized?: boolean }) => {
+        if (!cancelled) setGateOpen(Boolean(data.authorized));
+      })
+      .catch(() => {
+        if (!cancelled) setGateOpen(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // STEP 4 도착 시 결과 제목으로 포커스 이동(스크린리더·키보드 사용자 안내)
   useEffect(() => {
@@ -217,6 +237,16 @@ export default function Home() {
         body: JSON.stringify({ experience: experience.trim() }),
       });
       const data = (await response.json()) as AnalysisResponse & { message?: string };
+      if (response.status === 401) {
+        // 세션 없음·만료: 입력은 유지한 채 게이트 화면으로 안내한다. 분석은 실행되지 않았다.
+        setAnalysisSource("idle");
+        setGateOpen(false);
+        setShowGate(true);
+        setStep(0);
+        showNotice(data.message || "접근 코드 확인이 필요해요. 코드를 다시 입력해 주세요.", "error");
+        scrollToTop();
+        return;
+      }
       if (!response.ok) {
         // 400·413 등 입력 오류: 서버가 준 사용자용 메시지를 그대로 보여주고,
         // 입력을 유지한 채 현재 단계에 머문다. 샘플 결과로 대체하지 않는다.
@@ -286,6 +316,8 @@ export default function Home() {
     setEditingSkill("");
     setProofDate(null);
     setConfirmingDelete(false);
+    setShowGate(false);
+    setGateCode("");
     showNotice("새 샘플을 준비했습니다.", "info");
     scrollToTop();
   };
@@ -307,8 +339,46 @@ export default function Home() {
     setEditingSkill("");
     setProofDate(null);
     setConfirmingDelete(false);
+    setShowGate(false);
+    setGateCode("");
     showNotice("입력한 경험과 이 화면의 파생 결과를 삭제했습니다.", "success");
     scrollToTop();
+  };
+
+  const handleStart = () => {
+    if (gateOpen) {
+      moveTo(1);
+      return;
+    }
+    setNotice(null);
+    setShowGate(true);
+    scrollToTop();
+  };
+
+  const submitGateCode = async () => {
+    const code = gateCode.trim();
+    if (!code || gateBusy) return;
+    setGateBusy(true);
+    try {
+      const response = await fetch("/api/gate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { authorized?: boolean; message?: string };
+      if (!response.ok) {
+        showNotice(data.message || "접근 코드를 확인하지 못했어요. 다시 시도해 주세요.", "error");
+        return;
+      }
+      setGateOpen(true);
+      setShowGate(false);
+      setGateCode("");
+      moveTo(1);
+    } catch {
+      showNotice("연결 오류로 접근 코드를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+    } finally {
+      setGateBusy(false);
+    }
   };
 
   const requestDelete = () => setConfirmingDelete(true);
@@ -367,7 +437,38 @@ export default function Home() {
         </div>
       )}
 
-      {step === 0 && (
+      {step === 0 && showGate && (
+        <section className="page-shell gate-page" aria-label="데모 접근 코드 확인">
+          <div className="gate-card">
+            <div className="card-kicker">데모 접근 확인</div>
+            <h1>접근 코드를 입력해 주세요.</h1>
+            <p className="gate-guide">
+              심사·멘토링 공유용 <b>데모 접근 코드</b>예요. 계정 로그인이나 개인 비밀번호가 아니며,
+              코드는 안내받은 채널에서 확인할 수 있어요.
+            </p>
+            <label htmlFor="gate-code">접근 코드</label>
+            <input
+              id="gate-code"
+              type="password"
+              autoComplete="one-time-code"
+              maxLength={64}
+              value={gateCode}
+              autoFocus
+              onChange={(event) => setGateCode(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") submitGateCode(); }}
+            />
+            <small className="gate-hint">코드가 없으면 시작 화면의 소개만 둘러볼 수 있어요.</small>
+            <div className="gate-actions">
+              <button className="secondary" onClick={() => { setShowGate(false); setGateCode(""); }}>이전</button>
+              <button className="primary" disabled={!gateCode.trim() || gateBusy} onClick={submitGateCode}>
+                {gateBusy ? "확인 중…" : "데모 시작"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {step === 0 && !showGate && (
         <section className="hero page-shell" id="top">
           <div className="hero-copy">
             <span className="eyebrow">공백·전환 경험을 위한 AI 진로상담 지원</span>
@@ -404,7 +505,7 @@ export default function Home() {
               />
               <span><b>익명 격차 통계 공유</b><small>선택사항 · 개인 원문은 기관 통계에 포함하지 않아요.</small></span>
             </label>
-            <button className="primary full" disabled={!storeConsent} onClick={() => moveTo(1)}>
+            <button className="primary full" disabled={!storeConsent} onClick={handleStart}>
               샘플 여정 시작하기 <span>→</span>
             </button>
             <small className="fine-print">GapProof는 취업 가능성이나 적성을 판정하지 않습니다.</small>
