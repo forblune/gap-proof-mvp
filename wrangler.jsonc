@@ -1,7 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gapproof-mvp",
-  "compatibility_date": "2026-07-23",
+  // 로컬 workerd 1.20260515.1(잠금파일 고정)의 최대 지원일. 스캐폴드 생성일(2026-07-23)이 그대로 박혀
+  // dev가 기동 불가했던 것을 정정 (#16). 최신 miniflare(4.20260722.0)도 07-23은 미지원이라 업그레이드로는 해결 불가.
+  // 빌드 산출물(dist/server/wrangler.json)이 이 값을 상속하므로 로컬 dev와 배포 의미가 일치한다.
+  "compatibility_date": "2026-05-22",
   "compatibility_flags": [],
   "main": "./worker/index.ts",
   "assets": {
