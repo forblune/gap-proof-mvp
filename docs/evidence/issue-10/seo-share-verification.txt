@@ -1,0 +1,31 @@
+# SEO·Open Graph·공유 검증 — 2026-07-25 (Issue #10)
+
+## SSR head 실측 (빌드 산출물 Worker)
+- og:title/description/url/site_name/type/locale(ko_KR)/image(+width 1200/height 630/alt)
+- twitter:card summary_large_image + title/description/image
+- canonical(절대 URL, metadataBase=https://gapproof.forblune.com)
+- icons: favicon.svg(브랜드 G 마크로 교체) + icon-512.png + apple-touch-icon.png
+- 정보 페이지 4종 각자 canonical(/about 등)
+
+## robots·sitemap (App Router 규약 — worker가 서빙, 테스트로 검증)
+- GET /robots.txt → 200: Allow / · Disallow /api/ · Sitemap 절대 URL
+- GET /sitemap.xml → 200: 홈+정보 라우트 4종 절대 URL
+
+## 대표 이미지
+- public/og.png 1200×630 (PNG IHDR 검증), 브랜드 카드 렌더(og-preview는 저장소의 og.png 자체)
+
+## 공유 UI E2E (하네스, Kakao 키·UPSTAGE 미설정)
+- STEP4 버튼: 링크 복사·공유하기 표시, 카카오톡 공유는 키 없음 → 미표시(정상)
+- 링크 복사 → 클립보드 = origin(사용자 입력 미포함 확인), 성공 notice
+- 공유하기 → navigator.share 미지원(헤드리스) → 복사 폴백 + 안내 notice
+- 공유 문구는 상수(SHARE_TEXT) — 사용자 경험·결과 미포함(소스 계약 테스트)
+- 안내 카피: "링크 공유에는 서비스 소개만 담겨요 — 내 경험 입력과 결과는 포함되지 않아요."
+
+## 카카오톡 공유
+- Kakao JS SDK(2.7.4)는 KAKAO_JS_KEY 환경변수가 구성된 경우에만 STEP4에서 로드·초기화
+  (키는 저장소·이슈에 기록하지 않음 — .dev.vars.example에 이름만)
+- 피드 페이로드: 서비스 제목·소개 문구·og.png·링크만 (사용자 원문 없음)
+- 실제 카카오톡 공유 실측은 사용자 Kakao Developers 앱·도메인 설정 완료 후 QA #12에서
+
+## 회귀
+- npm test 15/15 · 5뷰포트 데모 스윕 overflow 0·console error 0 · 실 유료 Solar 호출 0건

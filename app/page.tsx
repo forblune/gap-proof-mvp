@@ -52,6 +52,9 @@ type AnalysisResponse = {
 
 const steps = ["시작", "경험", "역량 확인", "격차·행동", "GapProof"];
 
+// 공유 문구는 상수로 고정 — 사용자의 경험 입력·분석 결과를 절대 포함하지 않는다.
+const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동으로 — GapProof 데모";
+
 const defaultExperience =
   "항공물류를 전공했고, 집에서 AI 수학과 웹을 공부했습니다. Solar API를 연결해 한국어 상담 MVP인 MindHub를 만들었습니다.";
 
@@ -124,6 +127,7 @@ export default function Home() {
   const [gateOpen, setGateOpen] = useState(false);
   const [gateCode, setGateCode] = useState("");
   const [gateBusy, setGateBusy] = useState(false);
+  const [kakaoReady, setKakaoReady] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
@@ -149,6 +153,38 @@ export default function Home() {
   useEffect(() => {
     if (step === 4) proofHeadingRef.current?.focus();
   }, [step]);
+
+  // 카카오 공유 준비: STEP 4에서 키가 구성된 경우에만 SDK를 로드한다.
+  // 키는 저장소에 없고 서버 환경변수(KAKAO_JS_KEY)에서만 온다. 없으면 버튼 미표시.
+  useEffect(() => {
+    if (step !== 4 || kakaoReady) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/share-config");
+        const { kakaoJsKey } = (await response.json()) as { kakaoJsKey?: string | null };
+        if (!kakaoJsKey || cancelled) return;
+        const holder = window as unknown as { Kakao?: { isInitialized(): boolean; init(key: string): void } };
+        if (!holder.Kakao) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js";
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error("kakao_sdk_load_failed"));
+            document.head.appendChild(script);
+          });
+        }
+        if (cancelled || !holder.Kakao) return;
+        if (!holder.Kakao.isInitialized()) holder.Kakao.init(kakaoJsKey);
+        setKakaoReady(true);
+      } catch {
+        // 키 미구성·SDK 로드 실패 — 카카오 버튼을 표시하지 않는다
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [step, kakaoReady]);
 
   const confirmedClaims = useMemo(
     () => claims.filter((claim) => claim.status === "confirmed"),
@@ -380,6 +416,51 @@ export default function Home() {
     setGateCode("");
     showNotice("데모를 잠갔어요. 다시 보려면 접근 코드를 입력해 주세요.", "info");
     scrollToTop();
+  };
+
+  const shareUrl = () => window.location.origin;
+
+  const copyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl());
+      showNotice("링크를 복사했어요. 어디든 붙여넣어 공유할 수 있어요.", "success");
+    } catch {
+      showNotice("복사 권한이 없어 링크를 복사하지 못했어요. 주소창의 주소를 직접 복사해 주세요.", "error");
+    }
+  };
+
+  const shareViaSystem = async () => {
+    // 공유에는 서비스 소개와 링크만 담는다 — 사용자의 경험 원문·분석 결과는 포함하지 않는다.
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "GapProof", text: SHARE_TEXT, url: shareUrl() });
+      } catch {
+        // 사용자가 공유를 취소한 경우 등 — 조용히 종료
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl());
+      showNotice("이 브라우저는 바로 공유를 지원하지 않아 링크를 복사했어요.", "info");
+    } catch {
+      showNotice("공유를 지원하지 않는 브라우저예요. 주소창의 주소를 복사해 주세요.", "error");
+    }
+  };
+
+  const shareViaKakao = () => {
+    const holder = window as unknown as { Kakao?: { Share?: { sendDefault(options: object): void } } };
+    if (!holder.Kakao?.Share) return;
+    const url = shareUrl();
+    holder.Kakao.Share.sendDefault({
+      objectType: "feed",
+      content: {
+        title: "GapProof | 공백을 증거로",
+        description: SHARE_TEXT,
+        imageUrl: `${url}/og.png`,
+        link: { mobileWebUrl: url, webUrl: url },
+      },
+      buttons: [{ title: "데모 열어보기", link: { mobileWebUrl: url, webUrl: url } }],
+    });
   };
 
   const requestDelete = () => setConfirmingDelete(true);
@@ -768,9 +849,15 @@ export default function Home() {
           <div className="story-callout"><span>GapProof의 약속</span><p>“미래를 예측해 주는 AI가 아니라, 불확실한 미래에도 다시 움직일 수 있게 하는 AI.”</p></div>
           <div className="footer-actions final-actions">
             <button className="secondary" onClick={() => moveTo(3)}>행동 다시 고르기</button>
+            <button className="secondary" onClick={copyShareLink}>링크 복사</button>
+            <button className="secondary" onClick={shareViaSystem}>공유하기</button>
+            {kakaoReady && (
+              <button className="secondary kakao-share" onClick={shareViaKakao}>카카오톡 공유</button>
+            )}
             <button className="secondary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
             <button className="primary" onClick={resetDemo}>새 샘플 시작 <span>↻</span></button>
           </div>
+          <p className="share-note">링크 공유에는 서비스 소개만 담겨요 — 내 경험 입력과 결과는 포함되지 않아요.</p>
         </section>
       )}
 

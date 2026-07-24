@@ -108,6 +108,45 @@ test("server-renders the access gate for unauthenticated visitors", async () => 
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });
 
+test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
+  const page = await render();
+  const html = await page.text();
+  const head = html.slice(0, html.indexOf("</head>"));
+  for (const probe of ["og:title", "og:image", "og:site_name", "og:locale", "og:url", "twitter:card", "canonical", "apple-touch-icon", "favicon.svg", "icon-512"]) {
+    assert.ok(head.includes(probe), `head should include ${probe}`);
+  }
+  assert.ok(head.includes("/og.png"), "og image url");
+
+  const robots = await fetchWorker(new Request("http://localhost/robots.txt"));
+  assert.equal(robots.status, 200);
+  const robotsText = await robots.text();
+  assert.match(robotsText, /Disallow: \/api\//);
+  assert.match(robotsText, /Sitemap: https:\/\/gapproof\.forblune\.com\/sitemap\.xml/);
+
+  const sitemap = await fetchWorker(new Request("http://localhost/sitemap.xml"));
+  assert.equal(sitemap.status, 200);
+  const sitemapText = await sitemap.text();
+  for (const route of ["/about", "/guide", "/how-it-works", "/technology"]) {
+    assert.ok(sitemapText.includes(`https://gapproof.forblune.com${route}`), `sitemap ${route}`);
+  }
+
+  // 대표 이미지 실파일 1200×630 (PNG IHDR)
+  const og = await readFile(new URL("../public/og.png", import.meta.url));
+  assert.equal(og.readUInt32BE(16), 1200);
+  assert.equal(og.readUInt32BE(20), 630);
+
+  // 정보 페이지 canonical
+  const about = await (await fetchWorker(new Request("http://localhost/about", { headers: { accept: "text/html" } }))).text();
+  assert.ok(about.includes("canonical"), "about canonical");
+
+  // 공유 계약: 문구는 상수, 사용자 경험·결과는 페이로드에 미포함(소스 계약)
+  const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(pageSource, /const SHARE_TEXT =/);
+  assert.match(pageSource, /text: SHARE_TEXT/);
+  assert.doesNotMatch(pageSource, /navigator\.share\([^)]*experience/s);
+  assert.match(pageSource, /링크 공유에는 서비스 소개만/);
+});
+
 test("serves public information pages without the demo gate", async () => {
   const pages = [
     ["/about", ["만든 계기", "하지 않는 판단", "취업 가능성이나 적성을 판정하지 않습니다"]],
@@ -161,7 +200,8 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.match(page, /아직 확인된 역량이 없어요/); // 확인 0개 가드 안내
   assert.match(page, /notice\.kind === "error" \? "alert" : "status"/); // 오류 알림 라이브 리전
   assert.match(page, /개인정보가 감지되면 가려서 표시돼요/); // 마스킹 가능성 고지(#7)
-  assert.match(layout, /title:\s*"GapProof \| 공백을 증거로"/);
+  assert.match(layout, /SITE_TITLE = "GapProof \| 공백을 증거로"/);
+  assert.match(layout, /metadataBase: new URL\(SITE_URL\)/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.match(css, /@media \(max-width: 720px\)/);
 });
