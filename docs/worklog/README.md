@@ -9,3 +9,4 @@
 |---|---|
 | [issue-3-project-baseline.md](issue-3-project-baseline.md) | [#3 [DOCS] 프로젝트 기준 문서와 AI Reboot 적용 증거 정리](https://github.com/forblune/gap-proof-mvp/issues/3) |
 | [issue-4-mobile-responsive.md](issue-4-mobile-responsive.md) | [#4 [FIX] 모바일·태블릿 반응형과 터치 사용성 보강](https://github.com/forblune/gap-proof-mvp/issues/4) |
+| [issue-5-state-accuracy.md](issue-5-state-accuracy.md) | [#5 [FIX] 입력·오류·삭제·결과 상태 표시 정확성 개선](https://github.com/forblune/gap-proof-mvp/issues/5) |
