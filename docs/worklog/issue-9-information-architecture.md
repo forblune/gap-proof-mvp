@@ -33,5 +33,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — Closes #9)
+- 커밋: `1b6e1da` feat: public information architecture for About/Guide/Pipeline/Technology (#9)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/22 (Closes #9)
