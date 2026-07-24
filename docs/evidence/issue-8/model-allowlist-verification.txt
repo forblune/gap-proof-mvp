@@ -1,0 +1,22 @@
+# Solar 모델 선택·allowlist 검증 — 2026-07-25 (Issue #8)
+
+## E2E (하네스, UPSTAGE 미설정 → 실 유료 Solar 호출 0건)
+- 헤더 셀렉터: 기본값 solar-pro3, 옵션 ["Pro 3 (기본)", "Pro 2", "Mini"] (model-selector-header.png)
+- Mini 선택 후 분석 → 실제 요청 본문 model = "solar-mini" (라우트 인터셉트로 캡처)
+- 로딩 중 셀렉터 disabled = true (분석 중 모델 변경 잠금)
+- 페이지 오류 0
+
+## 자동 테스트 (npm test 13/13)
+- 임의 모델 "totally-evil-model" → 400 {"error":"model_not_allowed"} + 요청 문자열 미반사
+- 허용 모델 solar-mini → 200 (키 없음 → source:"sample")
+- 모델 미지정 → 200 (기본 모델 경로)
+- 서버·클라이언트가 동일 allowlist 모듈(app/lib/models.ts) 사용 — 소스 계약 어서션
+
+## 반응형 (셀렉터 추가 후 5뷰포트 스윕)
+- 360/390/768/1024/1440 전부 가로 overflow 0 · console error 0
+- 360px: 셀렉터+상태 점+기록삭제 공존 (header-360-with-selector.png, ≤480px에서 배지 텍스트는
+  점으로 축약 — 전체 상태는 aria-label·푸터·STEP2 스트립 제공)
+
+## 보존 확인
+- #7 경로 유지: 인증 → rate limit → 본문 파싱 → 모델 allowlist → 길이 검증 → PII 마스킹 → 분석
+- API 키·내부 설정 클라이언트 노출 없음(models.ts는 공개 UI 데이터만)

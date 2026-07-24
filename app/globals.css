@@ -32,6 +32,8 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .sample-badge.live { border-color: #8fc2b4; background: var(--green-soft); color: var(--green); }
 .sample-badge.live i { background: var(--green); box-shadow: 0 0 0 3px rgba(31, 112, 95, .16); }
 .text-button { border: 0; padding: 12px 6px; min-height: 44px; display: inline-flex; align-items: center; background: transparent; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.model-select { min-height: 44px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 750; cursor: pointer; }
+.model-select:disabled { opacity: .5; cursor: not-allowed; }
 .sample-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .progress-wrap { max-width: 1440px; margin: 0 auto; padding: 22px 36px 0; }
@@ -253,9 +255,15 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 @media (max-width: 720px) {
   .topbar { height: 64px; padding: 0 18px; padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
-  .top-actions { gap: 8px; }
+  .top-actions { gap: 6px; }
   .text-button { font-size: 12px; padding: 12px 4px; }
-  .sample-badge { font-size: 10px; padding: 6px 8px; max-width: 44vw; }
+  .model-select { font-size: 11px; padding: 0 5px; }
+  .sample-badge { font-size: 10px; padding: 6px 8px; max-width: 30vw; }
+  /* 상태 텍스트는 480px 이하에서 점(dot)만 남긴다 — 전체 상태는 aria-label·푸터·STEP2 스트립이 제공 */
+  @media (max-width: 480px) {
+    .sample-badge-text { display: none; }
+    .sample-badge { padding: 6px; max-width: none; }
+  }
   .progress-wrap { padding: 14px 18px 0; overflow: hidden; }
   .progress li b { display: none; }
   .progress li.active b { display: inline; font-size: 11px; white-space: nowrap; }

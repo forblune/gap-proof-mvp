@@ -9,6 +9,7 @@ import {
   tierFromLink,
   makeCheck,
 } from "./lib/engine";
+import { DEFAULT_MODEL_ID, SOLAR_MODELS } from "./lib/models";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
 
@@ -111,6 +112,7 @@ export default function Home() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [analysisSource, setAnalysisSource] = useState<AnalysisSource>("idle");
   const [analysisModel, setAnalysisModel] = useState<string | null>(null);
+  const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
   const [analysisNotice, setAnalysisNotice] = useState("");
   const [selectedAction, setSelectedAction] = useState("project");
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -234,7 +236,7 @@ export default function Home() {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ experience: experience.trim() }),
+        body: JSON.stringify({ experience: experience.trim(), model: modelId }),
       });
       const data = (await response.json()) as AnalysisResponse & { message?: string };
       if (response.status === 401) {
@@ -314,6 +316,7 @@ export default function Home() {
     setEditingSkill("");
     setProofDate(null);
     setConfirmingDelete(false);
+    setModelId(DEFAULT_MODEL_ID);
     showNotice("새 샘플을 준비했습니다.", "info");
     scrollToTop();
   };
@@ -335,6 +338,7 @@ export default function Home() {
     setEditingSkill("");
     setProofDate(null);
     setConfirmingDelete(false);
+    setModelId(DEFAULT_MODEL_ID);
     showNotice("입력한 경험과 이 화면의 파생 결과를 삭제했습니다.", "success");
     scrollToTop();
   };
@@ -397,7 +401,24 @@ export default function Home() {
         </a>
         {gateOpen && (
           <div className="top-actions">
-            <span className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
+            <select
+              className="model-select"
+              aria-label="Solar 모델 선택"
+              title={SOLAR_MODELS.find((option) => option.id === modelId)?.description}
+              value={modelId}
+              disabled={analysisSource === "loading"}
+              onChange={(event) => setModelId(event.target.value)}
+            >
+              {SOLAR_MODELS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}{option.id === DEFAULT_MODEL_ID ? " (기본)" : ""}
+                </option>
+              ))}
+            </select>
+            <span
+              className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}
+              aria-label={analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}
+            ><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
             <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>기록 삭제</button>
           </div>
         )}
