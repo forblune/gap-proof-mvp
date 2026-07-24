@@ -32,5 +32,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — Closes #8)
+- 커밋: `1676c0a` feat: Solar model selector wired to server allowlist (#8)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/21 (Closes #8)
