@@ -79,6 +79,22 @@ npx vinext deploy
 - 계정 로그인 / 약관 동의 / 정부포털(data.go.kr·온통청년) 신청서 제출 = **사용자 본인이** 수행. (에이전트가 대신 못 함)
 - 개인 서사(가족·재수 등)는 발표 공개 범위를 본인이 결정 — 강제로 넣지 않음.
 
+## 설치한 플러그인 (2026-07-24 기준)
+
+계정·컴퓨터가 바뀌면 재설치 필요할 수 있음. 설치: `/plugin marketplace add <저장소>` → `/plugin install <이름>@<마켓플레이스>`.
+
+**GapProof 작업 중 추가(핵심):**
+- `frontend-design` — UI 디자인 가이드 (claude-plugins-official)
+- `superpowers` 묶음 (superpowers-marketplace): superpowers, superpowers-dev, superpowers-lab, superpowers-chrome, claude-session-driver, elements-of-style, double-shot-latte
+- `episodic-memory` (superpowers-marketplace) — 대화 기억(= "claude-mem" 역할)
+- 보안 리뷰: `42crunch-api-security-testing`, `aikido` (claude-plugins-official) + 내장 `/security-review` 커맨드
+- 코드 리뷰: `engineering:code-review` 스킬 + `/review`·`/code-review` 커맨드
+- ⚠️ `gstack` (garrytan/gstack, Gary Tan "stack") — `/plugin marketplace add garrytan/gstack`로 시도했으나 **현재 설치 목록엔 안 보임**(Bun 설치 이슈). 필요하면 재확인.
+
+**Cowork 기본 세트 (knowledge-work-plugins):** `design`, `engineering`, `data`, `pdf-viewer`, `legal`
+
+**마켓플레이스:** knowledge-work-plugins(기본) · superpowers-marketplace · claude-plugins-official · (시도) garrytan/gstack
+
 ## 계정 전환 체크리스트 (부드러운 이어가기)
 - [ ] 중요한 산출물은 이 폴더에 파일로 저장돼 있는지 확인(로컬은 계정 무관 유지)
 - [ ] 새 계정/세션에서 **이 프로젝트 폴더 + gap-proof-mvp 코드 폴더** 다시 연결
