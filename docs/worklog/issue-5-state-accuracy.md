@@ -66,5 +66,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — Closes #5)
+- 커밋: `eb69ca7` fix: accurate input, error, delete, and result state feedback (#5)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/17 (Closes #5)
