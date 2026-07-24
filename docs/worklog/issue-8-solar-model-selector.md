@@ -25,6 +25,16 @@
 - lint 통과 · diff-check 통과 · tsc 레거시 2건만(worker/index.ts, 무변화) · `npm run build` 정상(테스트 선행)
 - #7 경로 회귀 없음: rate limit·PII·게이트 테스트 전부 유지 통과
 
+## 공식 모델 식별자 확인 (2026-07-25, PR #21 조건부 승인 보완)
+
+- 코드 값 `solar-pro3` / `solar-pro2` / `solar-mini` — **공식 식별자와 일치 확인, 변경 불필요.**
+- 확인 출처(실제 유료 API 미호출):
+  1. Upstage 공식 블로그 [Solar Pro 3 발표](https://www.upstage.ai/blog/ko/solar-pro-3-0127) — "Console API 제공" 명시, 모델 문서 `console.upstage.ai/docs/models/solar-pro-3` 링크
+  2. [OpenRouter upstage/solar-pro-3](https://openrouter.ai/upstage/solar-pro-3:free) — `api.upstage.ai/v1`의 `model:"solar-pro3"` 확인
+  3. [Mastra 프로바이더 레지스트리](https://mastra.ai/models/providers/upstage) — `solar-mini`·`solar-pro2`·`solar-pro3` 3종 정확 일치
+- 한계: Upstage Console 문서 페이지는 JS 렌더라 본 세션에서 본문 직접 인용 불가 — 공식 블로그+제3자 레지스트리 2곳 교차로 확인. STATUS 문서의 운영 기록("Solar 모델: solar-pro3")과도 일치.
+- 설명 문구는 중립 표현으로 정정(최상급 제거): "복잡한 분석에 적합한 최신 모델(기본)" / "안정적인 고성능 모델" / "빠르고 가벼운 분석용 모델".
+
 ## 남은 제한사항
 
 - 실키 연결 시 모델별 실제 응답 표시(배지 "Solar 실연결 · <model>")는 프로덕션 키 등록 후 QA #12에서 확인
