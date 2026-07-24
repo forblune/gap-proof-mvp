@@ -29,3 +29,8 @@
 
 ## 회귀
 - npm test 15/15 · 5뷰포트 데모 스윕 overflow 0·console error 0 · 실 유료 Solar 호출 0건
+
+## 에셋 상태 (2026-07-25 명시)
+- favicon.svg / og.png / icon-512.png / apple-touch-icon.png 은 최종 로고 부재로 만든
+  **임시(플레이스홀더) 자산**이다. 확정 브랜드 자산이 아니며, 최종 로고 제작 후 전부 교체한다.
+- Kakao Developers 앱 아이콘·비즈 앱·이메일 권한 검토는 로고 제작 단계의 후속 작업.
