@@ -1,0 +1,77 @@
+{
+  "errors": [],
+  "pages": {
+    "/about@360": {
+      "overflow": false,
+      "h1": "공백을 지우지 않고, 증거로 바꿉니다.",
+      "navCurrent": "소개",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    },
+    "/guide@360": {
+      "overflow": false,
+      "h1": "3분이면 전체 흐름을 볼 수 있어요.",
+      "navCurrent": "이용 가이드",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    },
+    "/how-it-works@360": {
+      "overflow": false,
+      "h1": "근거 없는 역량은 만들지 않습니다.",
+      "navCurrent": "작동 원리",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    },
+    "/technology@360": {
+      "overflow": false,
+      "h1": "쓴 기술만 말하고, 검증한 만큼만 주장합니다.",
+      "navCurrent": "기술과 검증",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    },
+    "/about@1440": {
+      "overflow": false,
+      "h1": "공백을 지우지 않고, 증거로 바꿉니다.",
+      "navCurrent": "소개",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    },
+    "/guide@1440": {
+      "overflow": false,
+      "h1": "3분이면 전체 흐름을 볼 수 있어요.",
+      "navCurrent": "이용 가이드",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    },
+    "/how-it-works@1440": {
+      "overflow": false,
+      "h1": "근거 없는 역량은 만들지 않습니다.",
+      "navCurrent": "작동 원리",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    },
+    "/technology@1440": {
+      "overflow": false,
+      "h1": "쓴 기술만 말하고, 검증한 만큼만 주장합니다.",
+      "navCurrent": "기술과 검증",
+      "gateInput": false,
+      "navMinHeight": 44,
+      "navOverlap": false
+    }
+  },
+  "gateLinks": [
+    "/about",
+    "/guide",
+    "/how-it-works",
+    "/technology"
+  ],
+  "gateToAbout": "/about",
+  "backToGate": true
+}

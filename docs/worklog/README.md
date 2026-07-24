@@ -14,3 +14,4 @@
 | [issue-6-server-access-gate.md](issue-6-server-access-gate.md) | [#6 [SECURITY] 서버 검증 기반 데모 접근 게이트와 API 보호](https://github.com/forblune/gap-proof-mvp/issues/6) |
 | [issue-7-solar-abuse-pii.md](issue-7-solar-abuse-pii.md) | [#7 [SECURITY] Solar API 남용 방지와 입력 개인정보 보호](https://github.com/forblune/gap-proof-mvp/issues/7) |
 | [issue-8-solar-model-selector.md](issue-8-solar-model-selector.md) | [#8 [FEAT] Solar 모델 선택 UI와 서버 allowlist 연결](https://github.com/forblune/gap-proof-mvp/issues/8) |
+| [issue-9-information-architecture.md](issue-9-information-architecture.md) | [#9 [FEAT] About·Guide·Pipeline·Technology 정보구조 구현](https://github.com/forblune/gap-proof-mvp/issues/9) |
