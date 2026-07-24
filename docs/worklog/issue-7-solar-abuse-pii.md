@@ -56,5 +56,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — Closes #7)
+- 커밋: `579832b` security: rate limiting, PII masking, and security headers (#7)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/20 (Closes #7)
