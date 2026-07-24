@@ -49,5 +49,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — Closes #26)
+- 커밋: `9543b5b` fix: print readability without background graphics and contrast (#26)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/27 (Closes #26)
