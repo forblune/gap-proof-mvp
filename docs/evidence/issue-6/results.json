@@ -1,37 +1,48 @@
 {
   "errors": [],
-  "publicHero": true,
-  "gateShown": {
-    "gateH1": "접근 코드를 입력해 주세요.",
-    "heroGone": true,
-    "inputType": "password",
-    "focused": "gate-code"
+  "gateFirst": {
+    "gate": true,
+    "heroHidden": true,
+    "progressHidden": true,
+    "brand": "GGapProof",
+    "demoCodeCopy": true
   },
   "wrongCode": {
     "notice": "오류접근 코드가 올바르지 않아요. 다시 확인해 주세요.",
     "cls": "notice error",
     "stillGate": true
   },
-  "passed": {
-    "onStep1": "STEP 1 · 경험함",
+  "authed": {
+    "heroShown": true,
+    "progressShown": true,
     "cookie": {
       "httpOnly": true,
-      "secure": true,
-      "sameSite": "Strict",
+      "secure": false,
+      "sameSite": "Lax",
       "valueHidden": true
     }
   },
-  "sessionPersisted": {
-    "step1": true,
-    "gateSkipped": true
+  "refreshKept": {
+    "hero": true,
+    "gateGone": true
   },
-  "expired": {
+  "locked": {
+    "gateBack": true,
+    "heroGone": true,
+    "notice": "데모를 잠갔어요. 다시 보려면 접근 코드를 입력해 주세요.",
+    "cookieGone": true
+  },
+  "apiUnauth": {
+    "status": 401,
+    "error": "unauthorized"
+  },
+  "midAnalysisExpiry": {
     "gateBack": true,
     "notice": "오류접근 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요."
   },
-  "experienceKept": 57,
-  "analyzed": {
-    "strip": "안전한 샘플 분석 완료",
-    "claims": 1
-  }
+  "resume": {
+    "step1": true,
+    "kept": 57
+  },
+  "analyzed": 1
 }

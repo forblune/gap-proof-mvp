@@ -1,4 +1,4 @@
-import { createGateCookie, verifyAccessCode, verifyGateSession } from "../../lib/gate-session";
+import { clearGateCookie, createGateCookie, verifyAccessCode, verifyGateSession } from "../../lib/gate-session";
 
 function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -42,9 +42,14 @@ export async function POST(request: Request) {
     return json({ error: "invalid_code", message: "접근 코드가 올바르지 않아요. 다시 확인해 주세요." }, 401);
   }
 
-  const cookie = await createGateCookie();
+  const cookie = await createGateCookie(request);
   if (!cookie) {
     return json({ error: "gate_not_configured", message: "데모 접근이 아직 준비되지 않았어요. 운영자에게 문의해 주세요." }, 503);
   }
   return json({ authorized: true }, 200, { "set-cookie": cookie });
+}
+
+// 데모 잠금(로그아웃): 세션 쿠키 즉시 만료
+export async function DELETE(request: Request) {
+  return json({ authorized: false }, 200, { "set-cookie": clearGateCookie(request) });
 }

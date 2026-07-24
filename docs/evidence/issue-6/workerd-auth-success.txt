@@ -1,0 +1,19 @@
+# 실제 workerd 인증 성공 경로 검증 — 2026-07-25 (PR #19 보완)
+# 방식: 저장소를 임시 디렉터리에 복사(.git·사용자 .dev.vars 미복사) 후 테스트 전용
+# .dev.vars(GATE_ACCESS_CODE/GATE_SESSION_SECRET만, UPSTAGE_API_KEY 없음) 생성,
+# 별도 포트(3200)에서 npm run dev 실행. 검증 후 임시 디렉터리 삭제.
+# 쿠키 값·시크릿은 마스킹. #16에서 workerd의 process.env 미주입이 실측됐으므로,
+# 아래 성공 경로는 cloudflare:workers env 바인딩이 실제 workerd에서 동작한다는 증거다.
+
+ 1) 비인증 POST /api/analyze            -> 401 {"error":"unauthorized",...}
+ 2) 오답 코드 POST /api/gate            -> 401 {"error":"invalid_code",...}
+ 3) 정답(테스트 전용 코드)              -> Set-Cookie: gp_gate=****MASKED****; Max-Age=43200; Path=/; HttpOnly; SameSite=Lax
+                                           (localhost HTTP → Secure 생략 정책이 실제 workerd에서도 적용됨)
+ 4) 쿠키로 GET /api/gate                -> {"authorized":true}
+ 5) 새 요청(새로고침 상당)              -> {"authorized":true} (세션 유지)
+ 6) 인증 쿠키로 POST /api/analyze       -> 200 {"source":"sample","model":null,...}
+                                           (UPSTAGE_API_KEY 미설정 → 실제 Solar 호출 0건)
+ 7) 위조 쿠키(gp_gate=v1.9999999999.deadbeef) -> 401
+ 8) DELETE /api/gate (데모 잠금)        -> Set-Cookie: gp_gate=****CLEARED****; Max-Age=0; Path=/; HttpOnly; SameSite=Lax
+ 9) 로그아웃 후 POST /api/analyze       -> 401
+10) 본 파일의 쿠키 값·테스트 시크릿 마스킹 완료
