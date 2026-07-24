@@ -68,5 +68,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입 — Closes #4)
+- 커밋: `df5afe3` fix: mobile/tablet responsive layout and touch usability (#4)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/15 (Closes #4)
