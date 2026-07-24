@@ -14,5 +14,11 @@
   },
   "images": {
     "binding": "IMAGES"
-  }
+  },
+  // Workers Rate Limiting API 바인딩 (#7): 실행 환경(엣지) 차원의 한도.
+  // 인스턴스 로컬 메모리는 운영급 한도가 아니므로(인스턴스별 격리) 바인딩이 1차 수단이다.
+  "ratelimits": [
+    { "name": "ANALYZE_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "GATE_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
+  ]
 }

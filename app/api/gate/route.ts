@@ -1,4 +1,5 @@
 import { clearGateCookie, createGateCookie, verifyAccessCode, verifyGateSession } from "../../lib/gate-session";
+import { allowRequest, clientKey } from "../../lib/rate-limit";
 
 function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -18,6 +19,11 @@ export async function GET(request: Request) {
 
 // 접근 코드 검증 → 서명된 HttpOnly 세션 쿠키 발급
 export async function POST(request: Request) {
+  // 코드 무차별 대입 방지: 검증 이전에 한도를 검사한다.
+  if (!(await allowRequest("GATE_RATE_LIMITER", clientKey(request)))) {
+    return json({ error: "rate_limited", message: "시도가 너무 잦아요. 1분 뒤에 다시 입력해 주세요." }, 429);
+  }
+
   let body: { code?: unknown };
   try {
     body = (await request.json()) as { code?: unknown };

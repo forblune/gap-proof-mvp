@@ -12,3 +12,4 @@
 | [issue-5-state-accuracy.md](issue-5-state-accuracy.md) | [#5 [FIX] 입력·오류·삭제·결과 상태 표시 정확성 개선](https://github.com/forblune/gap-proof-mvp/issues/5) |
 | [issue-16-cloudflare-compatibility.md](issue-16-cloudflare-compatibility.md) | [#16 [CHORE] Cloudflare compatibility_date와 로컬 workerd 호환성 정리](https://github.com/forblune/gap-proof-mvp/issues/16) |
 | [issue-6-server-access-gate.md](issue-6-server-access-gate.md) | [#6 [SECURITY] 서버 검증 기반 데모 접근 게이트와 API 보호](https://github.com/forblune/gap-proof-mvp/issues/6) |
+| [issue-7-solar-abuse-pii.md](issue-7-solar-abuse-pii.md) | [#7 [SECURITY] Solar API 남용 방지와 입력 개인정보 보호](https://github.com/forblune/gap-proof-mvp/issues/7) |
