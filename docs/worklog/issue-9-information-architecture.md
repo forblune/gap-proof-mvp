@@ -25,6 +25,12 @@
 - 데모 회귀: 5뷰포트 전체 여정 스윕 overflow 0·console error 0
 - lint·diff-check 통과 · tsc 레거시 2건만 · 비밀값 스캔 0건 · 실 유료 Solar 호출 0건
 
+## 2026-07-25 보완 (PR #22 조건부 승인 반영)
+
+- 내비 터치: info-nav 링크 min-height 44px(패딩 전체 클릭·중첩 없음 — E2E로 높이 44·중첩 false 실측), gate-links·footer-nav도 44px 정렬. focus-visible은 전역 a:focus-visible 아웃라인 적용, aria-current 유지, 360px 4항목 줄바꿈·overflow 0, 데스크톱 회귀 없음.
+- /technology 가변 수치 제거: "자동 테스트 14종" → "자동 테스트, 실제 Workers 개발환경, 5개 화면 크기에서 검증했습니다." (정확한 개수·확인일은 본 worklog와 evidence에만 유지 — 현재 14/14, 2026-07-25). 게이트 카드에 "개인 계정 인증은 아니에요" 명시로 과장 방지.
+- 문서-코드 재대조 결과: 파이프라인 순서(길이 검증→마스킹→Solar→인용 검증) 일치 · 마스킹은 Solar 전송 전 일치 · 확인 전 역량 미사용 일치 · 무저장/Supabase Phase 2 일치 · 10회/60초 일치(wrangler simple.limit 10·period 60). 불일치 0건 — 기능 변경 없음.
+
 ## 남은 제한사항 / 후속
 
 - OG·Twitter 메타·sitemap·robots에 정보 라우트 반영은 #10에서(본 이슈는 title/description만)
