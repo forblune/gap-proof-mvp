@@ -59,4 +59,4 @@
 ## 관련 커밋·PR
 
 - 커밋: `32d5b13` design: apply final A1 brand assets across site (#24)
-- PR: (생성 후 기입) — Closes #24
+- PR: https://github.com/forblune/gap-proof-mvp/pull/29 (Closes #24)
