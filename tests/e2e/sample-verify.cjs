@@ -16,8 +16,8 @@ const OUT = process.argv[2];
 
   // 2) 전체 여정(분석 API 0회)
   await p.locator(".check-row input").first().check();
-  await p.getByRole("button", { name: /샘플 여정 시작하기/ }).click();
-  await p.getByRole("button", { name: /역량 후보/ }).click();
+  await p.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
+  await p.getByRole("button", { name: /가능성 찾기/ }).click();
   await p.waitForSelector(".claim-card", { timeout: 8000 });
   r.sampleNotice = (await p.locator("main").innerText()).includes("샘플 체험 중이에요");
   r.badgeSample = ((await p.locator(".sample-badge").first().textContent()) ?? "").includes("샘플");

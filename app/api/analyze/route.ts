@@ -190,7 +190,7 @@ export async function POST(request: Request) {
   // 인증을 가장 먼저 검사한다: 비인증 요청은 본문 파싱·폴백 생성·Solar 호출(비용 경로)에 도달하지 않는다.
   if (!(await verifyGateSession(request))) {
     return json(
-      { error: "unauthorized", message: "접근 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요." },
+      { error: "unauthorized", message: "데모 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요." },
       401,
     );
   }

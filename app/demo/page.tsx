@@ -518,15 +518,9 @@ export default function Home() {
     scrollToTop();
   };
 
-  const resetDemo = () => {
-    resetJourneyState(SAMPLE_JOURNEY.experience, []);
-    showNotice("새 샘플을 준비했습니다.", "info");
-    scrollToTop();
-  };
-
   const deleteRecords = () => {
     resetJourneyState("", []);
-    showNotice("입력한 경험과 이 화면의 파생 결과를 삭제했습니다.", "success");
+    showNotice("이전 내용을 모두 지웠어요. 새 분석을 시작할 수 있어요.", "success");
     scrollToTop();
   };
 
@@ -542,7 +536,7 @@ export default function Home() {
       });
       const data = (await response.json().catch(() => ({}))) as { authorized?: boolean; message?: string };
       if (!response.ok) {
-        showNotice(data.message || "접근 코드를 확인하지 못했어요. 다시 시도해 주세요.", "error");
+        showNotice(data.message || "데모 코드를 확인하지 못했어요. 다시 시도해 주세요.", "error");
         return;
       }
       setNotice(null);
@@ -550,7 +544,7 @@ export default function Home() {
       setGateCode("");
       scrollToTop();
     } catch {
-      showNotice("연결 오류로 접근 코드를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+      showNotice("연결 오류로 데모 코드를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
     } finally {
       setGateBusy(false);
     }
@@ -567,7 +561,7 @@ export default function Home() {
     resetJourneyState("", []);
     setGateOpen(false);
     setGateCode("");
-    showNotice("데모를 잠갔어요. 다시 보려면 접근 코드를 입력해 주세요.", "info");
+    showNotice("데모에서 나왔어요. 다시 보려면 데모 코드를 입력해 주세요.", "info");
     scrollToTop();
   };
 
@@ -651,7 +645,7 @@ export default function Home() {
               className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}
               aria-label={analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}
             ><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
-            {!sampleMode && <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>기록 삭제</button>}
+            {!sampleMode && <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>새 분석 시작하기</button>}
           </div>
         )}
       </header>
@@ -687,29 +681,29 @@ export default function Home() {
         <div
           className="confirm-bar"
           role="alertdialog"
-          aria-label="기록 삭제 확인"
+          aria-label="새 분석 시작 확인"
           onKeyDown={(event) => { if (event.key === "Escape") cancelDelete(); }}
         >
-          <p>입력한 경험과 이 화면의 모든 결과가 삭제됩니다. 삭제할까요?</p>
+          <p>새 분석을 시작할까요? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
           <div>
-            <button autoFocus onClick={cancelDelete}>취소</button>
-            <button className="danger" onClick={confirmDelete}>삭제</button>
+            <button autoFocus onClick={cancelDelete}>계속 작성하기</button>
+            <button className="danger" onClick={confirmDelete}>새 분석 시작</button>
           </div>
         </div>
       )}
 
       {!journeyOpen && (
-        <section className="page-shell gate-page" aria-label="데모 접근 코드 확인">
+        <section className="page-shell gate-page" aria-label="심사·멘토링 데모 입장">
           <div className="gate-card">
             <div className="gate-brand"><span className="brand-mark"><BrandGlyph /></span><b>GapProof</b></div>
-            <div className="card-kicker">데모 접근 확인</div>
-            <h1>접근 코드를 입력해 주세요.</h1>
+            <div className="card-kicker">심사·멘토링 데모</div>
+            <h1>안내받은 데모 코드를 입력해 주세요.</h1>
             <p className="gate-guide">
               공백·전환 경험을 역량 증거와 이번 주 행동으로 바꾸는 <b>Solar 기반 진로 탐색 데모</b>예요.
-              심사·멘토링 공유용 <b>데모 접근 코드</b>가 필요하며, 계정 로그인이나 개인 비밀번호가 아니에요.
+              현재 버전은 제한된 테스트를 위해 운영되며, 심사·멘토링 공유용 <b>데모 코드</b>가 필요하고, 계정 로그인이나 개인 비밀번호가 아니에요.
               코드는 안내받은 채널에서 확인할 수 있어요.
             </p>
-            <label htmlFor="gate-code">접근 코드</label>
+            <label htmlFor="gate-code">데모 코드</label>
             <input
               id="gate-code"
               type="password"
@@ -767,7 +761,7 @@ export default function Home() {
                 checked={storeConsent}
                 onChange={(event) => setStoreConsent(event.target.checked)}
               />
-              <span><b>경험 분석에 동의</b><small>분석 요청에만 사용하며 현재 버전은 서버에 원문을 저장하지 않아요.</small></span>
+              <span><b>[필수] 경험 분석을 위한 원문 처리</b><small>분석 요청에만 사용하며 현재 버전은 서버에 원문을 저장하지 않아요.</small></span>
             </label>
             <label className="check-row optional">
               <input
@@ -775,10 +769,10 @@ export default function Home() {
                 checked={aggregateConsent}
                 onChange={(event) => setAggregateConsent(event.target.checked)}
               />
-              <span><b>익명 격차 통계 공유</b><small>선택사항 · 개인 원문은 기관 통계에 포함하지 않아요.</small></span>
+              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 GapProof의 핵심 기능을 이용할 수 있어요 · 개인 원문은 포함되지 않아요.</small></span>
             </label>
             <button className="primary full" disabled={!storeConsent} onClick={() => moveTo(1)}>
-              샘플 여정 시작하기 <span>→</span>
+              {sampleMode ? "샘플로 둘러보기" : "내 경험에서 시작하기"} <span>→</span>
             </button>
             <small className="fine-print">GapProof는 취업 가능성이나 적성을 판정하지 않습니다.</small>
           </aside>
@@ -813,7 +807,7 @@ export default function Home() {
                 <p className="length-hint over" role="alert">10,000자를 넘었어요. 지금 내용은 그대로 남아 있으니 {(experienceLength - 10000).toLocaleString()}자만 줄이면 분석할 수 있어요. 자동으로 잘라내지 않아요.</p>
               )}
               {experience.trim().length < 20 && (
-                <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘Solar로 역량 후보 찾기’ 버튼이 켜져요.</p>
+                <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜져요.</p>
               )}
               <p className="source-note">이런 경험도 좋아요 — 프로젝트, 수업·강의, 자격증, Notion·메모, 손글씨 기록, 일·아르바이트, 돌봄, 게임·커뮤니티, 쉬었던 시기.</p>
 
@@ -869,7 +863,7 @@ export default function Home() {
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(0)}>이전</button>
             <button className="primary" disabled={experience.trim().length < 20 || OVER_LIMIT || analysisSource === "loading"} onClick={analyzeExperience}>
-              {analysisSource === "loading" ? <><span className="spinner" />역량 후보를 찾는 중…</> : "Solar로 역량 후보 찾기"} <span>→</span>
+              {analysisSource === "loading" ? <><span className="spinner" />역량 후보를 찾는 중…</> : "내 경험에서 가능성 찾기"} <span>→</span>
             </button>
           </div>
         </section>
@@ -889,7 +883,7 @@ export default function Home() {
             {claims.map((claim) => (
               <article key={claim.id} className={`claim-card ${claim.status}`}>
                 <div className="claim-top">
-                  <span className={`confidence ${claim.confidence === "높음" ? "high" : "low"}`}>{claim.confidence}</span>
+                  <span className={`confidence ${claim.confidence === "높음" ? "high" : "low"}`}>{claim.confidence === "높음" ? "근거 일치 높음" : "근거 확인 필요"}</span>
                   <TierBadge tier={claim.tier} />
                 </div>
                 {editingClaimId === claim.id ? (
@@ -1081,7 +1075,7 @@ export default function Home() {
               <button className="secondary kakao-share" onClick={shareViaKakao}>카카오톡 공유</button>
             )}
             <button className="secondary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
-            <button className="primary" onClick={sampleMode ? restartSample : resetDemo}>{sampleMode ? "체험 처음부터 시작하기" : "새 샘플 시작"} <span>↻</span></button>
+            <button className="primary" onClick={sampleMode ? restartSample : requestDelete}>{sampleMode ? "체험 처음부터 시작하기" : "새 분석 시작하기"} <span>↻</span></button>
           </div>
           <p className="share-note">링크 공유에는 서비스 소개만 담겨요 — 내 경험 입력과 결과는 포함되지 않아요.</p>
         </section>
@@ -1142,7 +1136,7 @@ export default function Home() {
         </nav>
         <p>{analysisSource === "solar" ? "Solar 실연결" : "샘플 데이터"} · 취업 또는 적성 판정이 아닙니다</p>
         {journeyOpen && (
-          <button className="text-button" onClick={sampleMode ? exitSample : lockDemo}>{sampleMode ? "체험 나가기" : "데모 잠금"}</button>
+          <button className="text-button" onClick={sampleMode ? exitSample : lockDemo}>{sampleMode ? "체험 나가기" : "데모 나가기"}</button>
         )}
       </footer>
     </main>

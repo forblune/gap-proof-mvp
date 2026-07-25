@@ -34,9 +34,9 @@ const OUT = process.argv[2];
 
   // 선택값이 API 요청 본문과 일치(무과금: 키 없음 → 서버 샘플 폴백)
   await p.locator(".check-row input").first().check();
-  await p.getByRole("button", { name: /샘플 여정 시작하기/ }).click();
+  await p.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
   await p.locator("#experience").fill("모델 선택 일치 검증용 입력입니다. 스물자 이상 채웁니다.");
-  await p.getByRole("button", { name: /역량 후보/ }).click();
+  await p.getByRole("button", { name: /가능성 찾기/ }).click();
   await p.waitForSelector(".claim-card", { timeout: 20000 });
   r.requestModelMatches = lastBody && lastBody.model === "solar-mini";
 

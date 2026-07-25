@@ -12,7 +12,7 @@ const OUT = process.argv[2];
   await p.getByRole("button", { name: "데모 열기" }).click();
   await p.waitForSelector(".check-row input", { timeout: 8000 });
   await p.locator(".check-row input").first().check();
-  await p.getByRole("button", { name: /샘플 여정 시작하기/ }).click();
+  await p.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
 
   // 1) AI 프롬프트 복사
   await p.getByText("이미 사용하는 AI가 있나요?").click();
