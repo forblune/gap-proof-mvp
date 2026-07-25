@@ -80,16 +80,40 @@ async function fetchWorker(request) {
   );
 }
 
-async function render() {
+async function render(path = "/") {
   return fetchWorker(
-    new Request("http://localhost/", {
+    new Request(`http://localhost${path}`, {
       headers: { accept: "text/html" },
     }),
   );
 }
 
-test("server-renders the access gate for unauthenticated visitors", async () => {
+// Gate 2a(#36): 홈은 공개 제품 스토리 — 게이트·데모 폼 없이 핵심 질문에 답한다
+test("serves the public homepage without any gate", async () => {
   const response = await render();
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  for (const phrase of [
+    "경력이라고 생각하지 않았던 경험",   // Hero
+    "왜 필요한가",                        // 문제
+    "누구를 위한가",                      // 대상
+    "어떤 경험이 가능한가",               // 입력 범위
+    "어떻게 작동하는가",                  // 파이프라인 요약
+    "가상 사례",                          // Before/After (실존 아님 고지)
+    "AI 모델 선택",                       // 모델
+    "기술·안전·검증",                     // 기술
+    "현재와 다음 단계",                   // 구현/계획 구분
+    "취업 가능성이나 적성을 판정하지 않습니다", // 판정 아님
+  ]) {
+    assert.ok(html.includes(phrase), `home should include ${phrase}`);
+  }
+  assert.ok(!html.includes('id="gate-code"'), "home must not render the gate");
+  assert.ok(!html.includes('id="experience"'), "home must not render the demo form");
+  assert.ok(html.includes('href="/demo"'), "home links to the demo");
+});
+
+test("server-renders the access gate for unauthenticated visitors", async () => {
+  const response = await render("/demo");
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
@@ -140,7 +164,7 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
   assert.ok(about.includes("canonical"), "about canonical");
 
   // 공유 계약: 문구는 상수, 사용자 경험·결과는 페이로드에 미포함(소스 계약)
-  const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const pageSource = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(pageSource, /const SHARE_TEXT =/);
   assert.match(pageSource, /text: SHARE_TEXT/);
   assert.doesNotMatch(pageSource, /navigator\.share\([^)]*experience/s);
@@ -174,7 +198,7 @@ test("serves public information pages without the demo gate", async () => {
 
 test("keeps AI claims bounded and user-confirmed", async () => {
   const [page, layout, packageJson, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -486,7 +510,7 @@ test("enforces the Solar model allowlist", async () => {
   const models = await readFile(new URL("../app/lib/models.ts", import.meta.url), "utf8");
   assert.match(models, /solar-pro3/);
   assert.match(models, /isAllowedModel/);
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(page, /SOLAR_MODELS\.map/);
   assert.match(page, /model: modelId/);
   assert.match(page, /aria-label="Solar 모델 선택"/);

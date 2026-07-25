@@ -27,7 +27,7 @@ export function InfoShell({
   return (
     <main>
       <header className="topbar info-bar">
-        <a className="brand" href="/" aria-label="GapProof 데모로 이동">
+        <a className="brand" href="/" aria-label="GapProof 홈으로 이동">
           <span className="brand-mark"><BrandGlyph /></span>
           <span>GapProof</span>
         </a>
@@ -46,7 +46,7 @@ export function InfoShell({
         <p className="info-lead">{lead}</p>
         {children}
         <div className="info-cta">
-          <a className="primary info-demo-link" href="/">GapProof 데모 시작하기 <span>→</span></a>
+          <a className="primary info-demo-link" href="/demo">GapProof 데모 시작하기 <span>→</span></a>
           <small>데모는 심사·멘토링 공유용 접근 코드가 필요해요.</small>
         </div>
       </section>
