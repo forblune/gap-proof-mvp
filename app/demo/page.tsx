@@ -1137,6 +1137,8 @@ export default function Home() {
           <a href="/guide">이용 가이드</a>
           <a href="/how-it-works">작동 원리</a>
           <a href="/technology">기술과 검증</a>
+          <a href="/privacy">개인정보 처리방침</a>
+          <a href="/terms">이용약관</a>
         </nav>
         <p>{analysisSource === "solar" ? "Solar 실연결" : "샘플 데이터"} · 취업 또는 적성 판정이 아닙니다</p>
         {journeyOpen && (

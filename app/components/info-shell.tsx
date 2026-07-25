@@ -20,7 +20,7 @@ export function InfoShell({
   lead,
   children,
 }: {
-  active: InfoPageKey;
+  active: InfoPageKey | null; // privacy·terms처럼 상단 내비에 없는 페이지는 null
   eyebrow: string;
   title: string;
   lead: string;
@@ -60,6 +60,8 @@ export function InfoShell({
           {NAV_ITEMS.map((item) => (
             <a key={item.href} href={item.href}>{item.label}</a>
           ))}
+          <a href="/privacy">개인정보 처리방침</a>
+          <a href="/terms">이용약관</a>
         </nav>
         <p>취업 또는 적성 판정이 아닙니다</p>
       </footer>
