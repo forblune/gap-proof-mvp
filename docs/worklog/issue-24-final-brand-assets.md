@@ -58,5 +58,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: `74d09ea` design: apply final A1 brand assets across site (#24)
+- 커밋: `32d5b13` design: apply final A1 brand assets across site (#24)
 - PR: (생성 후 기입) — Closes #24
