@@ -1,0 +1,18 @@
+{
+  "fail": [],
+  "assets200": true,
+  "overflowZero": true,
+  "overflowDetail": {},
+  "namedControls": true,
+  "unnamedSamples": [],
+  "kbConsent": true,
+  "kbStart": true,
+  "kbAnalyze": true,
+  "focusStyle": true,
+  "reducedMotion": true,
+  "printInverted": true,
+  "consoleZero": true,
+  "consoleSamples": [],
+  "webkitHome": true,
+  "webkitSample": true
+}
