@@ -69,6 +69,46 @@ test("저장·복원·소거가 storage 계약을 지킨다", () => {
   assert.equal(loadDraft(storage), null);
 });
 
+test("savedAt은 정보용 — 미래 시각·과거 시각 모두 복원한다(TTL 없음 = privacy v0.1의 '사용자 삭제 전까지'와 일치)", () => {
+  const ok = JSON.parse(serializeDraft(base(), "2099-01-01T00:00:00.000Z"));
+  assert.ok(parseDraft(JSON.stringify(ok))); // 미래 savedAt 수용(기기 시계 오차 허용)
+  const old = JSON.parse(serializeDraft(base(), "2020-01-01T00:00:00.000Z"));
+  assert.ok(parseDraft(JSON.stringify(old))); // 만료 개념 없음 — 명시적 삭제만
+});
+
+test("필수 필드 누락은 null — 부분 draft로 화면을 오염시키지 않는다", () => {
+  const ok = JSON.parse(serializeDraft(base(), "t"));
+  for (const key of ["step", "experience", "claims", "modelId", "savedAt"]) {
+    const broken = { ...ok };
+    delete broken[key];
+    assert.equal(parseDraft(JSON.stringify(broken)), null, key);
+  }
+});
+
+test("분석 상한(10,000자)을 넘겨 붙여넣은 입력도 draft로는 보존된다(소실 금지)", () => {
+  const big = { ...base(), experience: "가".repeat(25_000) }; // 입력 상한 초과·draft 상한 이내
+  const d = parseDraft(serializeDraft(big, "t"));
+  assert.ok(d);
+  assert.equal(d.experience.length, 25_000);
+  assert.equal(parseDraft(serializeDraft({ ...base(), experience: "가".repeat(DRAFT_MAX_EXPERIENCE + 1) }, "t")), null); // 비정상 초과만 거부
+});
+
+test("손상된 V2 선택 필드는 draft 전체가 아니라 해당 필드만 제거된다(렌더 크래시 방지)", () => {
+  const ok = JSON.parse(serializeDraft(base(), "t"));
+  ok.claims[0].jobHypotheses = "corrupted-string";
+  ok.claims[0].behaviors = [1, 2];
+  ok.claims[0].factStatus = "이상한값";
+  ok.claims[0].signals = ["반복", "초능력"];
+  ok.claims[0].smallStep = "정상 문자열";
+  const d = parseDraft(JSON.stringify(ok));
+  assert.ok(d, "draft 자체는 복원되어야 한다");
+  assert.equal(d.claims[0].jobHypotheses, undefined);
+  assert.equal(d.claims[0].behaviors, undefined);
+  assert.equal(d.claims[0].factStatus, undefined);
+  assert.equal(d.claims[0].signals, undefined);
+  assert.equal(d.claims[0].smallStep, "정상 문자열");
+});
+
 test("접근 불가 storage에서도 예외 없이 동작한다(프라이빗 모드)", () => {
   const throwing = {
     getItem: () => { throw new Error("denied"); },

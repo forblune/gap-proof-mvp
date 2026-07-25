@@ -4,8 +4,9 @@
 // 구조가 조금이라도 어긋난 draft는 복원하지 않는다(null) — 깨진 상태로 화면을 오염시키지 않기 위해서다.
 
 export const DRAFT_KEY = "gp_draft_v1";
-// 입력 상한 확장(Gate 3, 10,000자)을 대비한 검증 여유 상한
-export const DRAFT_MAX_EXPERIENCE = 20_000;
+// 분석 상한(10,000자)을 초과해 '붙여넣기만 한' 상태도 draft로는 보존해야 한다(절삭·소실 금지).
+// 이 값을 넘는 비정상 데이터만 복원을 포기한다.
+export const DRAFT_MAX_EXPERIENCE = 100_000;
 const MAX_CLAIMS = 50;
 const MAX_CHECK_KEYS = 100;
 
@@ -62,6 +63,36 @@ function isClaim(x: unknown): x is DraftClaim {
   );
 }
 
+// V2 선택 필드 위생 처리: 손상된 필드는 draft 전체를 버리지 않고 해당 필드만 제거한다
+// (없어도 렌더되지 않는 선택 필드이므로 — 렌더 크래시 방지가 목적).
+const FACT_STATUS = new Set(["확인됨", "부분 확인", "계획·관심"]);
+const V2_SIGNALS = new Set(["반복", "책임", "문제 해결", "몰입"]);
+const STRENGTH = new Set(["강함", "보통", "약함"]);
+
+function isStringArray(x: unknown): x is string[] {
+  return Array.isArray(x) && x.every((item) => typeof item === "string");
+}
+
+function sanitizeClaimV2Fields(claim: Record<string, unknown>): void {
+  if (claim.factStatus !== undefined && !(typeof claim.factStatus === "string" && FACT_STATUS.has(claim.factStatus))) delete claim.factStatus;
+  if (claim.evidenceStrength !== undefined && !(typeof claim.evidenceStrength === "string" && STRENGTH.has(claim.evidenceStrength))) delete claim.evidenceStrength;
+  if (claim.context !== undefined && typeof claim.context !== "string") delete claim.context;
+  if (claim.smallStep !== undefined && typeof claim.smallStep !== "string") delete claim.smallStep;
+  if (claim.overclaimRisk !== undefined && claim.overclaimRisk !== null && typeof claim.overclaimRisk !== "string") delete claim.overclaimRisk;
+  if (claim.behaviors !== undefined && !isStringArray(claim.behaviors)) delete claim.behaviors;
+  if (claim.signals !== undefined && !(isStringArray(claim.signals) && claim.signals.every((signal) => V2_SIGNALS.has(signal)))) delete claim.signals;
+  if (claim.jobHypotheses !== undefined) {
+    const list = claim.jobHypotheses;
+    const valid = Array.isArray(list) && list.every(
+      (h) => typeof h === "object" && h !== null &&
+        typeof (h as Record<string, unknown>).title === "string" &&
+        typeof (h as Record<string, unknown>).reason === "string" &&
+        typeof (h as Record<string, unknown>).missing === "string",
+    );
+    if (!valid) delete claim.jobHypotheses;
+  }
+}
+
 export function serializeDraft(data: Omit<DraftV1, "v" | "savedAt">, savedAt: string): string {
   return JSON.stringify({ v: 1, savedAt, ...data });
 }
@@ -82,6 +113,7 @@ export function parseDraft(raw: string | null | undefined): DraftV1 | null {
   if (typeof d.storeConsent !== "boolean" || typeof d.aggregateConsent !== "boolean") return null;
   if (typeof d.experience !== "string" || d.experience.length > DRAFT_MAX_EXPERIENCE) return null;
   if (!Array.isArray(d.claims) || d.claims.length > MAX_CLAIMS || !d.claims.every(isClaim)) return null;
+  for (const claim of d.claims) sanitizeClaimV2Fields(claim as unknown as Record<string, unknown>);
   if (typeof d.roleId !== "string") return null;
   if (!isRecord(d.passedChecks)) return null;
   const checkEntries = Object.entries(d.passedChecks);

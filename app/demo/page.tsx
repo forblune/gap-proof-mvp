@@ -499,6 +499,8 @@ export default function Home() {
   };
   const exitSample = () => {
     setSampleMode(false);
+    // ?sample=1이 남아 있으면 새로고침 시 샘플로 재진입해 실제 작성 흐름과 어긋난다 — URL 정리
+    try { window.history.replaceState(null, "", window.location.pathname); } catch { /* 미지원 무시 */ }
     const draft = loadDraft(window.localStorage);
     resetJourneyState(draft ? draft.experience : "", draft ? (draft.claims as Claim[]) : [], { keepStoredDraft: true });
     if (draft) {
@@ -769,7 +771,7 @@ export default function Home() {
                 checked={aggregateConsent}
                 onChange={(event) => setAggregateConsent(event.target.checked)}
               />
-              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 GapProof의 핵심 기능을 이용할 수 있어요 · 개인 원문은 포함되지 않아요.</small></span>
+              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 핵심 기능을 모두 쓸 수 있어요 · 현재 버전은 통계를 실제로 수집하지 않으며, 이 선택은 Gap Brief의 기관 공유 범위 표시에만 반영돼요.</small></span>
             </label>
             <button className="primary full" disabled={!storeConsent} onClick={() => moveTo(1)}>
               {sampleMode ? "샘플로 둘러보기" : "내 경험에서 시작하기"} <span>→</span>
@@ -1041,7 +1043,7 @@ export default function Home() {
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼어요.</h1></div>
-            <span className="complete-badge">✓ 샘플 여정 완료</span>
+            <span className="complete-badge">{analysisSource === "solar" ? "✓ 분석 여정 완료" : "✓ 샘플 여정 완료"}</span>
           </div>
           <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있어요. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료예요.</p>
           <div className="proof-grid">
