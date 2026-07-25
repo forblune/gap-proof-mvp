@@ -10,6 +10,7 @@ import {
   makeCheck,
 } from "./lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS } from "./lib/models";
+import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "./lib/draft";
 import BrandGlyph from "./components/brand-mark";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
@@ -131,8 +132,63 @@ export default function Home() {
   const [kakaoReady, setKakaoReady] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  // Gate 1(#35): draft 저장은 사용자 상호작용(첫 상태 변화) 이후부터 시작한다.
+  // 마운트 직후 기본값을 저장해 기존 draft를 덮어쓰지 않기 위한 가드.
+  const draftSaveArmed = useRef(false);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+
+  // Gate 1(#35): 마지막 진행 상태 복원 — 인앱 브라우저 재시작·세션 만료 후 재인증해도
+  // 원래 단계·입력·확인 상태로 복귀한다. draft는 이 기기 localStorage에만 존재한다.
+  // SSR 하이드레이션과 초기 HTML을 일치시키기 위해 복원은 반드시 effect에서 1회 수행한다
+  // (useState 초기값에서 읽으면 서버·클라 첫 렌더가 달라져 hydration 오류가 난다).
+  useEffect(() => {
+    const draft = loadDraft(window.localStorage);
+    if (!draft) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- 마운트 1회성 복원(연쇄 렌더 없음) */
+    setStep(draft.step);
+    setStoreConsent(draft.storeConsent);
+    setAggregateConsent(draft.aggregateConsent);
+    setExperience(draft.experience);
+    setClaims(draft.claims as Claim[]);
+    setRoleId(draft.roleId);
+    setPassedChecks(draft.passedChecks);
+    setAnalysisSource(draft.analysisSource);
+    setAnalysisModel(draft.analysisModel);
+    setModelId(draft.modelId);
+    setAnalysisNotice(draft.analysisNotice);
+    setSelectedAction(draft.selectedAction);
+    setProofDate(draft.proofDate);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  // Gate 1(#35): 진행 상태를 draft로 저장. 로딩 상태는 저장하지 않는다.
+  useEffect(() => {
+    if (!draftSaveArmed.current) {
+      draftSaveArmed.current = true; // 마운트 첫 실행(기본값)은 저장하지 않음
+      return;
+    }
+    if (analysisSource === "loading") return;
+    saveDraft(
+      window.localStorage,
+      {
+        step,
+        storeConsent,
+        aggregateConsent,
+        experience,
+        claims: claims as DraftClaim[],
+        roleId,
+        passedChecks,
+        analysisSource,
+        analysisModel,
+        modelId,
+        analysisNotice,
+        selectedAction,
+        proofDate,
+      },
+      new Date().toISOString(),
+    );
+  }, [step, storeConsent, aggregateConsent, experience, claims, roleId, passedChecks, analysisSource, analysisModel, modelId, analysisNotice, selectedAction, proofDate]);
 
   // 세션 쿠키는 HttpOnly라 클라이언트가 읽을 수 없으므로 서버에 상태를 물어본다(새로고침 후 세션 유지).
   useEffect(() => {
@@ -277,10 +333,11 @@ export default function Home() {
       });
       const data = (await response.json()) as AnalysisResponse & { message?: string };
       if (response.status === 401) {
-        // 세션 없음·만료: 입력·단계는 유지한 채 게이트 화면으로 전환한다(재인증 후 그 자리로 복귀).
+        // 세션 없음·만료: 입력·단계는 메모리와 draft(이 기기)에 유지한 채 게이트로 전환한다.
+        // draft 저장(#35)이 있으므로 "이어서 진행" 안내가 실제 동작과 일치한다.
         setAnalysisSource("idle");
         setGateOpen(false);
-        showNotice(data.message || "접근 코드 확인이 필요해요. 코드를 다시 입력해 주세요.", "error");
+        showNotice("데모 이용 시간이 만료되었어요. 작성한 내용은 이 기기에 잠시 보관했습니다. 다시 인증하면 이어서 진행할 수 있어요.", "error");
         scrollToTop();
         return;
       }
@@ -336,12 +393,16 @@ export default function Home() {
   const retryCheck = () => setQuiz((q) => (q ? { ...q, attempt: 1, picks: [null, null], status: "open" } : q));
   const closeCheck = () => setQuiz(null);
 
-  const resetDemo = () => {
+  // Gate 1(#35): 여정 상태 일괄 초기화 + draft 소거. 소거 직후 초기값이 draft로
+  // 재저장되지 않도록 저장 가드를 해제한다(다음 사용자 상호작용부터 다시 저장).
+  const resetJourneyState = (nextExperience: string, nextClaims: Claim[]) => {
+    clearDraft(window.localStorage);
+    draftSaveArmed.current = false;
     setStep(0);
     setStoreConsent(false);
     setAggregateConsent(false);
-    setExperience(defaultExperience);
-    setClaims(initialClaims);
+    setExperience(nextExperience);
+    setClaims(nextClaims);
     setRoleId(ROLES[0].id);
     setPassedChecks({});
     setQuiz(null);
@@ -354,28 +415,16 @@ export default function Home() {
     setProofDate(null);
     setConfirmingDelete(false);
     setModelId(DEFAULT_MODEL_ID);
+  };
+
+  const resetDemo = () => {
+    resetJourneyState(defaultExperience, initialClaims);
     showNotice("새 샘플을 준비했습니다.", "info");
     scrollToTop();
   };
 
   const deleteRecords = () => {
-    setStep(0);
-    setStoreConsent(false);
-    setAggregateConsent(false);
-    setExperience("");
-    setClaims([]);
-    setRoleId(ROLES[0].id);
-    setPassedChecks({});
-    setQuiz(null);
-    setAnalysisSource("idle");
-    setAnalysisModel(null);
-    setAnalysisNotice("");
-    setSelectedAction("project");
-    setEditingClaimId(null);
-    setEditingSkill("");
-    setProofDate(null);
-    setConfirmingDelete(false);
-    setModelId(DEFAULT_MODEL_ID);
+    resetJourneyState("", []);
     showNotice("입력한 경험과 이 화면의 파생 결과를 삭제했습니다.", "success");
     scrollToTop();
   };
@@ -406,13 +455,15 @@ export default function Home() {
     }
   };
 
-  // 데모 잠금(로그아웃): 서버 쿠키 만료 + 게이트 화면 복귀 (입력 데이터는 유지)
+  // 데모 잠금(로그아웃): 서버 쿠키 만료 + 게이트 화면 복귀.
+  // Gate 1(#35): 잠금은 공용 기기 이탈 신호로 보고 화면 상태와 draft를 함께 지운다.
   const lockDemo = async () => {
     try {
       await fetch("/api/gate", { method: "DELETE" });
     } catch {
       // 네트워크 실패여도 화면은 잠근다(쿠키는 만료 시 자동 무효)
     }
+    resetJourneyState("", []);
     setGateOpen(false);
     setGateCode("");
     showNotice("데모를 잠갔어요. 다시 보려면 접근 코드를 입력해 주세요.", "info");

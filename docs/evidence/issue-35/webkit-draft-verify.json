@@ -1,0 +1,22 @@
+{
+  "engine": "webkit",
+  "reloadKeepsStep1": true,
+  "reloadKeepsText": true,
+  "reloadKeepsStep2": true,
+  "reloadKeepsConfirm": true,
+  "expiredNotice": true,
+  "reauthKeepsText": true,
+  "lockClearsDraft": true,
+  "afterLockPristine": true,
+  "draftExistsBeforeDelete": true,
+  "deleteClearsDraft": true,
+  "consoleErrors": 8,
+  "consoleErrorTexts": [
+    "Origin http://localhost:3100 is not allowed by Access-Control-Allow-Origin. Status code: 200",
+    "Failed to load resource: Origin http://localhost:3100 is not allowed by Access-Control-Allow-Origin. Status code: 200",
+    "Origin http://localhost:3100 is not allowed by Access-Control-Allow-Origin. Status code: 200",
+    "Failed to load resource: Origin http://localhost:3100 is not allowed by Access-Control-Allow-Origin. Status code: 200",
+    "Origin http://localhost:3100 is not allowed by Access-Control-Allow-Origin. Status code: 200"
+  ],
+  "expected401NetworkLogs": 1
+}
