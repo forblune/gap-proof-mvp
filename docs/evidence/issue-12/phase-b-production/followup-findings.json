@@ -1,0 +1,16 @@
+{
+  "consoleErrors": [],
+  "confirmBarShown": true,
+  "cancelKeepsInput": true,
+  "deleteResets": true,
+  "lockReturnsGate": true,
+  "lockPersists": true,
+  "infoOverflow": {
+    "360": "OK",
+    "390": "OK",
+    "768": "OK",
+    "1024": "OK",
+    "1440": "OK"
+  },
+  "consoleErrorCount": 0
+}
