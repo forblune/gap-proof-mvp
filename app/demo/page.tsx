@@ -9,7 +9,7 @@ import {
   tierFromLink,
   makeCheck,
 } from "../lib/engine";
-import { DEFAULT_MODEL_ID, SOLAR_MODELS } from "../lib/models";
+import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
 import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
 import BrandGlyph from "../components/brand-mark";
@@ -102,6 +102,11 @@ export default function Home() {
   const [gateCode, setGateCode] = useState("");
   const [gateBusy, setGateBusy] = useState(false);
   const [kakaoReady, setKakaoReady] = useState(false);
+  // Gate 5(#41): 모델 선택 다이얼로그(네이티브 <dialog> — focus trap·Esc 기본 제공)
+  const [modelDialogOpen, setModelDialogOpen] = useState(false);
+  const [pendingModelId, setPendingModelId] = useState(modelId);
+  const modelDialogRef = useRef<HTMLDialogElement | null>(null);
+  const modelButtonRef = useRef<HTMLButtonElement | null>(null);
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
   // Gate 1(#35): draft 저장은 사용자 상호작용(첫 상태 변화) 이후부터 시작한다.
@@ -109,6 +114,35 @@ export default function Home() {
   const draftSaveArmed = useRef(false);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+
+  // Gate 5(#41): 모델 다이얼로그 — 열 때 history state를 쌓아 모바일 뒤로가기가 닫기로 동작
+  const openModelDialog = () => {
+    setPendingModelId(modelId);
+    setModelDialogOpen(true);
+    try { window.history.pushState({ gpModelDialog: true }, ""); } catch { /* 미지원 환경 무시 */ }
+  };
+  const closeModelDialog = (viaHistory = false) => {
+    setModelDialogOpen(false);
+    modelButtonRef.current?.focus();
+    if (!viaHistory) {
+      try { if (window.history.state?.gpModelDialog) window.history.back(); } catch { /* 무시 */ }
+    }
+  };
+  const applyModel = () => {
+    setModelId(pendingModelId);
+    closeModelDialog();
+  };
+  useEffect(() => {
+    const dialog = modelDialogRef.current;
+    if (!dialog) return;
+    if (modelDialogOpen && !dialog.open) dialog.showModal();
+    if (!modelDialogOpen && dialog.open) dialog.close();
+  }, [modelDialogOpen]);
+  useEffect(() => {
+    const onPop = () => { if (modelDialogOpen) closeModelDialog(true); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [modelDialogOpen]);
   const journeyOpen = gateOpen || sampleMode;
   const experienceLength = experience.length;
   const OVER_LIMIT = experienceLength > 10000;
@@ -558,20 +592,18 @@ export default function Home() {
         </a>
         {journeyOpen && (
           <div className="top-actions">
-            <select
-              className="model-select"
-              aria-label="Solar 모델 선택"
-              title={SOLAR_MODELS.find((option) => option.id === modelId)?.description}
-              value={modelId}
-              disabled={analysisSource === "loading"}
-              onChange={(event) => setModelId(event.target.value)}
-            >
-              {SOLAR_MODELS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}{option.id === DEFAULT_MODEL_ID ? " (기본)" : ""}
-                </option>
-              ))}
-            </select>
+            <div className="model-summary">
+              <span className="model-summary-text" aria-live="polite">
+                <small>AI 분석 모델</small>
+                <b>{findModel(modelId).fullName}{modelId === DEFAULT_MODEL_ID ? " · 기본" : ""}</b>
+              </span>
+              <button
+                ref={modelButtonRef}
+                className="secondary model-change"
+                disabled={analysisSource === "loading"}
+                onClick={openModelDialog}
+              >모델 변경</button>
+            </div>
             <span
               className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}
               aria-label={analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}
@@ -980,6 +1012,49 @@ export default function Home() {
           <p className="share-note">링크 공유에는 서비스 소개만 담겨요 — 내 경험 입력과 결과는 포함되지 않아요.</p>
         </section>
       )}
+
+
+      {/* Gate 5(#41): 모델 선택 — 모바일 Bottom Sheet / 데스크톱 Dialog (CSS 분기) */}
+      <dialog
+        ref={modelDialogRef}
+        className="model-dialog"
+        aria-label="AI 분석 모델 선택"
+        onClose={() => { if (modelDialogOpen) closeModelDialog(); }}
+        onCancel={() => { if (modelDialogOpen) closeModelDialog(); }}
+      >
+        <div className="model-dialog-head">
+          <b>AI 분석 모델 선택</b>
+          <p>모델마다 성격이 달라요. [공식]은 Upstage 소개 기반, [자체]는 GapProof 관찰이며 검증 전 항목은 &ldquo;평가 중&rdquo;으로 표시해요.</p>
+        </div>
+        <div className="model-cards" role="radiogroup" aria-label="Solar 모델">
+          {SOLAR_MODELS.map((option) => (
+            <label key={option.id} className={`model-card ${pendingModelId === option.id ? "selected" : ""}`}>
+              <input
+                type="radio"
+                name="solar-model"
+                value={option.id}
+                checked={pendingModelId === option.id}
+                onChange={() => setPendingModelId(option.id)}
+              />
+              <span className="model-card-head">
+                <b>{option.fullName}</b>
+                <span className="model-badge">{option.badge}</span>
+                {pendingModelId === option.id && <span className="model-selected">현재 선택</span>}
+              </span>
+              <span className="model-card-line"><i>[공식]</i>{option.officialNote}</span>
+              <span className="model-card-line"><i>[공식]</i>잘 맞는 입력: {option.goodFor}</span>
+              <span className="model-card-line"><i>[자체]</i>상대 속도: {option.relativeSpeed}</span>
+              <span className="model-card-line"><i>[자체]</i>긴 글: {option.longText}</span>
+              <span className="model-card-line"><i>[자체]</i>근거 추출: {option.evidenceExtraction}</span>
+              <span className="model-card-line caution"><i>주의</i>{option.caution}</span>
+            </label>
+          ))}
+        </div>
+        <div className="model-dialog-actions">
+          <button className="secondary" onClick={() => closeModelDialog()}>취소</button>
+          <button className="primary" onClick={applyModel}>이 모델 사용</button>
+        </div>
+      </dialog>
 
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>

@@ -1,0 +1,8 @@
+{
+  "summaryDefault": true,
+  "sourceSplit": true,
+  "radios": true,
+  "escCloses": true,
+  "summaryUpdated": true,
+  "requestModelMatches": true
+}

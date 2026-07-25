@@ -517,7 +517,10 @@ test("enforces the Solar model allowlist", async () => {
   const page = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(page, /SOLAR_MODELS\.map/);
   assert.match(page, /model: modelId/);
-  assert.match(page, /aria-label="Solar 모델 선택"/);
+  // Gate 5(#41): native select → 카드형 다이얼로그(요약+변경 버튼, 공식/자체 구분)
+  assert.match(page, /aria-label="AI 분석 모델 선택"/);
+  assert.match(page, /모델 변경/);
+  assert.match(page, /평가 중/); // 검증 전 항목을 장점으로 꾸미지 않는 계약
 });
 
 test("fails closed when the Workers rate limit binding is unavailable", async () => {
