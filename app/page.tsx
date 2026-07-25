@@ -239,6 +239,8 @@ export default function HomePage() {
             <a key={item.href} href={item.href}>{item.label}</a>
           ))}
           <a href="/demo">데모</a>
+          <a href="/privacy">개인정보 처리방침</a>
+          <a href="/terms">이용약관</a>
         </nav>
         <p>취업 또는 적성 판정이 아닙니다</p>
       </footer>
