@@ -150,7 +150,7 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
   const sitemap = await fetchWorker(new Request("http://localhost/sitemap.xml"));
   assert.equal(sitemap.status, 200);
   const sitemapText = await sitemap.text();
-  for (const route of ["/about", "/guide", "/how-it-works", "/technology"]) {
+  for (const route of ["/why", "/who", "/about", "/guide", "/how-it-works", "/technology"]) {
     assert.ok(sitemapText.includes(`https://gapproof.forblune.com${route}`), `sitemap ${route}`);
   }
 
@@ -173,6 +173,8 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
 
 test("serves public information pages without the demo gate", async () => {
   const pages = [
+    ["/why", ["행동 증거 중심 원칙", "과장하지 않는 구조", "GapProof가 하지 않는 것"]],
+    ["/who", ["이런 분을 위해 만들었습니다", "대신 결정하지 않는 것", "상담 보조자료이며 자동판정이 아니에요"]],
     ["/about", ["만든 계기", "하지 않는 판단", "취업 가능성이나 적성을 판정하지 않습니다"]],
     ["/guide", ["사용 순서", "입력하지 않아도 되는 정보", "오류가 나면 이렇게 하세요"]],
     ["/how-it-works", ["파이프라인", "증거등급 기준", "원문 인용 검증"]],

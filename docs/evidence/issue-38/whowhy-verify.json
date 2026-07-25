@@ -1,0 +1,11 @@
+{
+  "overflow": {
+    "/why@360": "OK",
+    "/why@1440": "OK",
+    "/who@360": "OK",
+    "/who@1440": "OK"
+  },
+  "aboutTrimmed": true,
+  "aboutPointer": true,
+  "navCurrent": true
+}

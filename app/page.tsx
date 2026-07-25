@@ -12,10 +12,12 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
-  { href: "/about", label: "소개" },
+  { href: "/why", label: "왜 GapProof인가" },
+  { href: "/who", label: "누구를 위한가" },
   { href: "/guide", label: "이용 가이드" },
   { href: "/how-it-works", label: "작동 원리" },
   { href: "/technology", label: "기술과 검증" },
+  { href: "/about", label: "소개" },
 ] as const;
 
 const CASES = [
@@ -97,7 +99,7 @@ export default function HomePage() {
           <div className="home-card"><b>근거 없는 판정의 피로</b><p>적성·합격 가능성을 점수로 말하는 도구는 근거를 보여주지 못하고, 사람을 위축시켜요.</p></div>
           <div className="home-card"><b>멈춘 시작</b><p>“무엇이 부족한가”만 들으면 시작할 수 없어요. 가진 것의 증거에서 출발해야 해요.</p></div>
         </div>
-        <a className="home-more" href="/about">자세히 보기 →</a>
+        <a className="home-more" href="/why">자세히 보기 →</a>
       </section>
 
       {/* 3. 누구를 위한가 */}
@@ -112,7 +114,7 @@ export default function HomePage() {
           <li>AI와의 대화에 자기 경험이 쌓여 있는 분</li>
           <li>진로상담 전에 경험을 정리하고 싶은 분</li>
         </ul>
-        <a className="home-more" href="/about">자세히 보기 →</a>
+        <a className="home-more" href="/who">자세히 보기 →</a>
       </section>
 
       {/* 4. 어떤 경험을 입력할 수 있는가 */}
