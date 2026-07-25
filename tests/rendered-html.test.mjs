@@ -185,7 +185,9 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.match(page, /거절한 항목은 카드와 추천에서 빠집니다/);
   assert.match(page, /원문 공유는 직접 선택해요/);
   assert.match(page, /기록 삭제/);
-  assert.match(page, /setExperience\(""\)/);
+  // #35: 삭제·잠금은 공통 리셋 헬퍼로 입력을 비우고 draft도 함께 지운다
+  assert.match(page, /resetJourneyState\("", \[\]\)/);
+  assert.match(page, /clearDraft\(window\.localStorage\)/);
   assert.match(page, /원문 인용은 증거이므로 수정하지 않습니다/);
   assert.match(page, /claim\.id === id \? \{ \.\.\.claim, skill: nextSkill, status: "pending" \}/);
   assert.match(page, /confirmedClaims\.map\(\(claim\) => <li key=\{claim\.id\}>\{claim\.skill\}<\/li>\)/);
