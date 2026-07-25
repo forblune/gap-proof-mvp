@@ -472,3 +472,8 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
   .home-steps { grid-template-columns: 1fr; }
   .home-audience { grid-template-columns: 1fr; }
 }
+
+/* Gate 2b(#37): 샘플 체험 표시 */
+.sample-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; background: var(--yellow); color: var(--ink); font-size: 13px; padding: 9px 16px; text-align: center; }
+.sample-strip .text-button { color: var(--ink); font-weight: 800; text-decoration: underline; min-height: 32px; }
+.gate-actions { display: flex; flex-direction: column; gap: 10px; }
