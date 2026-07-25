@@ -56,6 +56,34 @@
 6. favicon·PWA·OG·카카오·네이버 동일 브랜드 계열 확인(등록 후 실물 대조)
 7. 자산 자체 제작·라이선스 상태: `applied-locations.md`에 기록 완료
 
+## PR #29 보완 — OG 중앙 1:1 크롭 보정 (2026-07-25)
+
+사용자 검토 지적: 기존 OG(좌상단 락업 배치)는 중앙 1:1 크롭(x285~915)에서 로고가 부분 잘림.
+
+- **수정 방식**: 로고 축소가 아닌 **중앙 정렬 재배치** — 락업(심볼 76px+워드마크 50px)·핵심 문구·설명 2줄·도메인을 세로 중앙 스택으로 배치하고, 필수 요소는 여유 안전영역 **x315~885(570px)** 안에 수납(실측 `og-crop-fix/essential-bounds.json`: lockup 446.8~753.2 / headline 383.4~816.6 / desc 394.5~805.5 / domain 473.6~726.4 — 전부 inSafe). 장식(전폭 아이보리 밴드+구분선)만 크롭 손실 허용 영역으로 확장해 1200×630 균형 유지. 문구·로고 형태 무변경, favicon·헤더·앱 아이콘 미수정
+- **크롭 검증**(`og-crop-fix/crop-board.png`, Before/After 비교 포함): 1:1(630)·4:3(840)·16:9(1120) 중앙 크롭 모두 심볼·GapProof·핵심 문구 잘림 없음, 1:1이 독립 브랜드 카드로 성립. 150px 썸네일·흐림 축소·밝은/어두운 UI 위에서 브랜드 식별 유지. 좌우 대칭 구성으로 비대칭·과도 여백 없음
+- **회귀**: 5뷰포트 overflow 0·console error 0(`og-crop-fix/regression-viewport-metrics.json`) · 인쇄 #26 동일(identity `rgb(23,36,61)`/흰 배경, PDF 2p) · lint 레거시 4건 외 신규 0 · tsc 레거시 2건 외 신규 0 · `npm test` 15/15 · build 성공 · `git diff --check` 통과. 변경은 `public/og.png` + 증거·워크로그뿐(코드 무변경)
+
+## manifest.ts 집중 검토 (읽기 전용 — 지정 13항목, 2026-07-25)
+
+| 항목 | 결과 |
+|---|---|
+| `/manifest.webmanifest` 응답 | **200** `application/manifest+json` (하네스 실측) |
+| name / short_name | "GapProof" / "GapProof" — 적절 |
+| start_url | "/" — 적절 |
+| display | "standalone" — 적절 |
+| background_color / theme_color | `#fffdf7`(=`--paper`) / `#17243d`(=`--ink`) — 토큰 일치 |
+| 192 아이콘 | `/icon-192.png`, sizes 192x192, type image/png — 실파일 IHDR 192×192 일치 |
+| 512 아이콘 | `/icon-512.png`, sizes 512x512, type image/png — IHDR 512×512 일치 |
+| maskable purpose | `icon-512-maskable.png`에만 `purpose: "maskable"` 지정 |
+| 일반/maskable 뒤바뀜 | 없음(일반 아이콘에 purpose 미지정) |
+| public 경로 일치 | 3개 파일 모두 존재·치수 일치 |
+| layout metadata 중복·충돌 | 없음 — layout `icons`는 `<link rel="icon">` 계열, manifest는 PWA 용도로 역할 분리 |
+| manifest 링크 주입 횟수 | 페이지당 **1회** (`/`·`/about` grep 실측) |
+| 존재하지 않는 파일 참조 | 없음 |
+
+→ **결함 없음 — 코드 무변경**, 검토 기록만 남김.
+
 ## 관련 커밋·PR
 
 - 커밋: `32d5b13` design: apply final A1 brand assets across site (#24)
