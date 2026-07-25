@@ -17,3 +17,4 @@
 | [issue-9-information-architecture.md](issue-9-information-architecture.md) | [#9 [FEAT] About·Guide·Pipeline·Technology 정보구조 구현](https://github.com/forblune/gap-proof-mvp/issues/9) |
 | [issue-10-seo-sharing.md](issue-10-seo-sharing.md) | [#10 [FEAT] SEO·Open Graph·Web Share·카카오톡 공유 구현](https://github.com/forblune/gap-proof-mvp/issues/10) |
 | [issue-12-local-preflight.md](issue-12-local-preflight.md) | [#12 [QA] Phase A 로컬 사전 검증](https://github.com/forblune/gap-proof-mvp/issues/12) |
+| [issue-26-print-contrast.md](issue-26-print-contrast.md) | [#26 [FIX] 인쇄 배경 미출력 시 가독성 + 대비](https://github.com/forblune/gap-proof-mvp/issues/26) |
