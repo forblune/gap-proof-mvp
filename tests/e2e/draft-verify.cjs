@@ -31,7 +31,7 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
   await page.goto(BASE + "/demo", { waitUntil: "networkidle" });
   await login();
   await page.locator(".check-row input").first().check();
-  await page.getByRole("button", { name: /샘플 여정 시작하기/ }).click();
+  await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
   await page.locator("#experience").fill(TEXT);
   await page.waitForTimeout(300);
   await page.reload({ waitUntil: "networkidle" });
@@ -39,7 +39,7 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
   r.reloadKeepsText = (await page.locator("#experience").inputValue()) === TEXT;
 
   // 2) 분석(샘플) → step2 → 새로고침 → 주장·단계 복원
-  await page.getByRole("button", { name: /역량 후보/ }).click();
+  await page.getByRole("button", { name: /가능성 찾기/ }).click();
   await page.waitForSelector(".claim-card", { timeout: 20000 });
   const claimCount = await page.locator(".claim-card").count();
   await page.getByRole("button", { name: /맞아요/ }).first().click();
@@ -53,7 +53,7 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
   // 3) 세션 만료: 쿠키 삭제 → 분석 클릭 → 게이트 + 만료 문구 + 상태 유지 → 재인증 → 그 자리 복귀
   await ctx.clearCookies();
   await page.getByRole("button", { name: /이전/ }).click(); // step1로
-  await page.getByRole("button", { name: /역량 후보/ }).click();
+  await page.getByRole("button", { name: /가능성 찾기/ }).click();
   await page.waitForSelector("#gate-code", { timeout: 8000 });
   const noticeText = await page.locator(".notice").textContent().catch(() => "");
   r.expiredNotice = (noticeText ?? "").includes("만료");
@@ -62,7 +62,7 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
   await page.screenshot({ path: path.join(OUT, `${ENGINE}-after-reauth.png`) });
 
   // 4) 잠금 → draft 소거 + 재인증 시 초기 상태
-  await page.getByRole("button", { name: /데모 잠금/ }).click();
+  await page.getByRole("button", { name: /데모 나가기/ }).click();
   await page.waitForSelector("#gate-code", { timeout: 8000 });
   r.lockClearsDraft = await page.evaluate(() => window.localStorage.getItem("gp_draft_v1") === null);
   await page.reload({ waitUntil: "networkidle" });
@@ -71,11 +71,11 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
 
   // 5) 진행 후 삭제 → draft 소거
   await page.locator(".check-row input").first().check();
-  await page.getByRole("button", { name: /샘플 여정 시작하기/ }).click();
+  await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
   await page.locator("#experience").fill(TEXT);
   await page.waitForTimeout(300);
   r.draftExistsBeforeDelete = await page.evaluate(() => window.localStorage.getItem("gp_draft_v1") !== null);
-  await page.getByRole("button", { name: /기록 삭제/ }).click();
+  await page.getByRole("button", { name: /새 분석 시작하기/ }).click();
   await page.locator(".confirm-bar button.danger").click();
   await page.waitForTimeout(300);
   r.deleteClearsDraft = await page.evaluate(() => window.localStorage.getItem("gp_draft_v1") === null);

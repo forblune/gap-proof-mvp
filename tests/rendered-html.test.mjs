@@ -121,13 +121,13 @@ test("server-renders the access gate for unauthenticated visitors", async () => 
   assert.match(html, /<html lang="ko">/i);
   assert.match(html, /<title>GapProof \| 공백을 증거로<\/title>/i);
   // 게이트 화면: 서비스 이름 + 짧은 설명 + 데모 코드임을 명시
-  assert.match(html, /데모 접근 확인/);
-  assert.match(html, /접근 코드를 입력해 주세요/);
+  assert.match(html, /심사·멘토링 데모/);
+  assert.match(html, /안내받은 데모 코드를 입력해 주세요/);
   assert.match(html, /계정 로그인이나 개인 비밀번호가 아니에요/);
   assert.match(html, /취업 가능성이나 적성을 판정하지 않아요/);
   // 비인증 HTML에는 메인 데모 흐름이 노출되지 않는다 (전체 데모 진입 게이트 정책)
   assert.doesNotMatch(html, /공백을 지우지 않고/);
-  assert.doesNotMatch(html, /경험 분석에 동의/);
+  assert.doesNotMatch(html, /\[필수\] 경험 분석을 위한 원문 처리/);
   assert.doesNotMatch(html, /Solar 샘플 데모/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });
@@ -195,7 +195,7 @@ test("serves public information pages without the demo gate", async () => {
     }
     // 공용 내비게이션 존재 + 메인 데모 흐름·게이트 입력은 미노출
     assert.ok(html.includes("이용 가이드"), `${path} nav`);
-    assert.ok(!html.includes("경험 분석에 동의"), `${path} must not expose the demo flow`);
+    assert.ok(!html.includes("[필수] 경험 분석을 위한 원문 처리"), `${path} must not expose the demo flow`);
     assert.ok(!html.includes('id="gate-code"'), `${path} must not render the gate input`);
   }
 });
@@ -212,7 +212,7 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.match(page, /AI의 제안보다 당신의 확인이 먼저예요/);
   assert.match(page, /거절한 항목은 카드와 추천에서 빠집니다/);
   assert.match(page, /원문 공유는 직접 선택해요/);
-  assert.match(page, /기록 삭제/);
+  assert.match(page, /새 분석 시작하기/); // Gate 9: 파괴적 작업 재명명
   // #35: 삭제·잠금은 공통 리셋 헬퍼로 입력을 비우고 draft도 함께 지운다
   assert.match(page, /resetJourneyState\("", \[\]\)/);
   assert.match(page, /clearDraft\(window\.localStorage\)/);
@@ -297,7 +297,7 @@ test("gate protects the analyze API with a signed HttpOnly session", async () =>
   assert.equal(unauthorized.status, 401);
   const unauthorizedBody = await unauthorized.json();
   assert.equal(unauthorizedBody.error, "unauthorized");
-  assert.ok(unauthorizedBody.message.includes("접근 코드"));
+  assert.ok(unauthorizedBody.message.includes("데모 코드"));
 
   // 2) 위조 쿠키 거부
   const forged = await fetchWorker(analyzeRequest(validExperience, "gp_gate=v1.9999999999.deadbeef"));
