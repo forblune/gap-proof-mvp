@@ -33,5 +33,5 @@
 
 ## 상태
 
-- PR: (생성 후 기입) — 제목에 "Phase B readiness", **Closes #12 미사용**(Phase B 실검증·실기기·배포가 남아 있으므로 이슈 유지)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/30 — 제목에 "Phase B readiness", **Closes #12 미사용**(Phase B 실검증·실기기·배포가 남아 있으므로 이슈 유지)
 - 다음 단계: 사용자 배포 승인 → deploy-plan.md 순서 실행(Phase B-1) → phase-b-matrix.md A~E 실검증 → 결과 기록 후 #12 종료 판단
