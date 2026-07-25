@@ -24,8 +24,10 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 .topbar { height: 76px; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(247, 243, 233, .94); position: sticky; top: 0; z-index: 20; backdrop-filter: blur(12px); }
 .brand { display: inline-flex; gap: 10px; align-items: center; color: var(--ink); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.04em; }
-.brand-mark { width: 35px; height: 35px; display: grid; place-items: center; background: var(--ink); color: var(--yellow); border-radius: 9px 9px 16px 9px; font-family: Georgia, serif; font-weight: 900; }
-.brand-mark.small { width: 28px; height: 28px; font-size: 14px; border-radius: 7px 7px 12px 7px; }
+.brand-mark { width: 35px; height: 35px; display: grid; place-items: center; background: var(--ink); color: var(--paper); border-radius: 9px 9px 16px 9px; }
+.brand-mark svg { width: 74%; height: 74%; display: block; }
+.brand-mark .mark-bridge { fill: var(--yellow); }
+.brand-mark.small { width: 28px; height: 28px; border-radius: 7px 7px 12px 7px; }
 .top-actions { display: flex; align-items: center; gap: 18px; }
 .sample-badge { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid #dfc35f; border-radius: 999px; background: #fff7d9; font-size: 13px; font-weight: 750; }
 .sample-badge i, .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 0 3px rgba(244, 200, 74, .25); }
@@ -408,6 +410,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
   .identity small { color: #4a5568 !important; }
   .identity p { color: #333f52 !important; }
   .brand-mark, .brand-mark.small { background: #fff !important; color: var(--ink) !important; border: 2px solid var(--ink); }
+  .brand-mark .mark-bridge { fill: var(--ink) !important; } /* 흰 배경 인쇄에서 노란 브리지 대비 확보 */
   .primary span { color: var(--ink) !important; }
 }
 
