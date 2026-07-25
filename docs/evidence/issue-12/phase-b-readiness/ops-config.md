@@ -17,19 +17,22 @@
 
 주의: 현재 라이브(gapproof.forblune.com)는 **소스 유실 전의 구버전 워커 배포**가 서비스 중. 같은 이름(`gapproof-mvp`)으로 배포하면 즉시 교체된다 → 롤백 목표(현 활성 버전 ID)를 배포 전에 대시보드에서 기록해야 함(`docs/evidence/live-baseline.md`의 [확인 필요 — 사용자] 항목).
 
-## 2. 환경 변수·시크릿 (이름만 — 값 미열람·미출력)
+## 2. 환경 변수 분류표 (이름만 — 값 미열람·미출력, 2026-07-25 보완 재분류)
 
-| 이름 | 구분 | 누락 시 동작 | 참조 코드 |
-|---|---|---|---|
-| `UPSTAGE_API_KEY` | **필수(실연결)** — 없어도 서비스는 뜨지만 전 분석이 샘플로 동작 | 규칙 기반 **샘플 폴백** + 명시 고지("Solar API 키가 없어…") — 오류 아님 | `app/api/analyze/route.ts` |
-| `GATE_ACCESS_CODE` | **필수** | **fail-closed 503** `gate_not_configured` (데모 입장 불가) | `app/lib/gate-session.ts`, `app/api/gate/route.ts:54` |
-| `GATE_SESSION_SECRET` | **필수** | **fail-closed** — 세션 발급·검증 전부 거부(401) | `app/lib/gate-session.ts` |
-| `SOLAR_MODEL` | 선택 | 기본값 `solar-pro3`(allowlist) 사용 | `app/lib/models.ts` |
-| `KAKAO_JS_KEY` | 선택 | 카카오 공유 버튼 미표시(다른 공유는 동작) | `app/api/share-config/route.ts` |
-| `RATE_LIMIT_TEST_MODE` | **테스트 전용 — production 등록 금지** | Workers 런타임에서는 무시(인메모리 카운터는 Node 테스트 하니스 전용) | `app/lib/rate-limit.ts` |
+| 변수명 | 코드 참조 위치 | 민감 여부 | 현재 배포 필수 | 누락 시 동작 | 등록 방식 | 이번 배포 |
+|---|---|---|---|---|---|---|
+| `GATE_ACCESS_CODE` | `app/lib/gate-session.ts:34`, `app/api/gate/route.ts` | **민감 secret** | **필수** | **fail-closed 503** `gate_not_configured`(입장 불가) | `wrangler secret put` | **등록** |
+| `GATE_SESSION_SECRET` | `app/lib/gate-session.ts:51,65` | **민감 secret**(HMAC 서명 키) | **필수** | **fail-closed** — 세션 발급·검증 전부 거부(401) | `wrangler secret put` | **등록** |
+| `UPSTAGE_API_KEY` | `app/api/analyze/route.ts:225` | **민감 secret**(유료 API 키) | **필수(실연결)** — 없어도 기동은 되나 전 분석이 샘플 | 명시 고지 **샘플 폴백**(오류 아님) | `wrangler secret put` | **등록** |
+| `SOLAR_MODEL` | `app/api/analyze/route.ts:227-229` | 비민감(모델 ID 문자열) | **불필요** — 코드 기본값 `DEFAULT_MODEL_ID="solar-pro3"` 존재(`app/lib/models.ts:14`), 우선순위는 사용자 선택 > env > 기본값이라 env 없이 완전 동작 | 기본 모델 사용(정상) | 필요 시 `wrangler.jsonc` **`vars`**(secret 아님) | **제외** |
+| `KAKAO_JS_KEY` | `app/api/share-config/route.ts` | 비민감 — **카카오 JavaScript SDK 플랫폼 키**(server secret 아님; `/api/share-config`가 클라이언트에 그대로 전달하는 공개 성격 키) | 불필요 — 공유 버튼(#10) 조건부 표시 용도(소셜 로그인 #11과 무관) | 카카오 공유 버튼 미표시(링크 복사·시스템 공유는 동작) | 등록 시 env/vars 계열 | **제외**(이번 제출에서 버튼 미표시. 후속 등록 시 버튼 활성화) |
+| `ONTONGYOUTH_API_KEY` | **코드 참조 0건**(app/·worker/·tests/·설정 전수 grep) — Worker Env 타입 선언에도 없음(`worker/index.ts` Env는 ASSETS/DB/IMAGES뿐), API 호출 구현 없음, 누락 시 동작 자체가 없음(어디서도 읽지 않음) | (값 미확인 — 이름만 취급) | **아님** | 영향 없음 | — | **제외** — **향후 기능용 로컬 보관 · 현재 배포 등록 대상 아님 · 운영 secret 등록 금지** |
+| `RATE_LIMIT_TEST_MODE` | `app/lib/rate-limit.ts` | 비민감 | **금지** | Workers 런타임에서 무시(인메모리 카운터는 Node 테스트 전용) | — | **제외(등록 금지)** |
 
-- 로컬은 `.dev.vars`(무추적) / production은 `wrangler secret put` — 역할 분리 문서화됨(`.dev.vars.example` 헤더). `.dev.vars`는 열람·출력·커밋 금지 유지.
-- 읽기 경로: `app/lib/server-env.ts` — `cloudflare:workers` env 우선, `process.env`는 Node 테스트 폴백 → production은 secret만 있으면 됨.
+**이번 배포 승인표 요약**: 필수 secret **3종**(GATE_ACCESS_CODE·GATE_SESSION_SECRET·UPSTAGE_API_KEY) / 일반 설정 등록 **0종**(SOLAR_MODEL은 코드 기본값으로 충분) / 제외 **4종+α**(KAKAO_JS_KEY·ONTONGYOUTH_API_KEY·RATE_LIMIT_TEST_MODE·#11/#13 관련 변수 일체 — 소셜 로그인·Supabase 미구현이므로 해당 변수 없음).
+
+- 로컬은 `.dev.vars`(**gitignore 확인: `git check-ignore` 매치 + `git ls-files` 0건 = 무추적**, 내용 미열람) / production 민감값은 `wrangler secret put` — 역할 분리(`.dev.vars.example` 헤더).
+- 읽기 경로: `app/lib/server-env.ts` — `cloudflare:workers` env 우선, `process.env`는 Node 테스트 폴백 → production은 secret/vars만 있으면 됨.
 
 ## 3. 바인딩
 

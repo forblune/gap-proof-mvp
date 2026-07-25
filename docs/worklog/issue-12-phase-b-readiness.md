@@ -31,6 +31,17 @@
 - `npx tsc --noEmit` 2건 — 전부 기존 레거시(worker Fetcher/D1Database), 신규 0
 - `git diff --check` 통과 · 실 Solar 호출 0건 · production 변경 0건
 
+## PR #30 보완 — 배포 계획 문서 수정 (2026-07-25, 사용자 검토 반영)
+
+1. **secret 재분류**: 등록 대상을 "5종 secret" → **민감 secret 3종만**(GATE_ACCESS_CODE·GATE_SESSION_SECRET·UPSTAGE_API_KEY)으로 수정. `SOLAR_MODEL`은 코드 기본값(`DEFAULT_MODEL_ID="solar-pro3"`, 우선순위 사용자 선택>env>기본값)이 있어 **등록 불필요·비민감 설정**(등록 시 vars). `KAKAO_JS_KEY`는 **카카오 JavaScript SDK 플랫폼 키**(클라이언트 전달용 공개 성격 — server secret 아님)로 정정하고, #11 미구현·버튼 미표시 방침에 따라 **이번 배포 제외**. 7열 분류표로 재작성(ops-config.md §2)
+2. **ONTONGYOUTH_API_KEY**: 코드 참조 **0건** 확인(app/·worker/·tests/·설정 전수 grep, Worker Env 타입 선언에도 없음, 호출 구현 없음) → 판정 A: **향후 기능용 로컬 보관 · 현재 배포 등록 대상 아님 · 운영 secret 등록 금지**. `.dev.vars`는 내용 미열람, `git check-ignore` 매치 + `git ls-files` 0건으로 무추적만 확인
+3. **무과금 429 검증으로 수정**: analyze 실행 순서 실측(게이트 401 → **rate limiter** → JSON 400 → 모델 400 → **길이 400/413** → 마스킹 → Solar) — 길이 미달 요청은 한도를 소모하되 Solar에 도달하지 않음. 매트릭스 D를 "20자 미만 본문 11회 → 400×10 + 429" + "게이트 오답 11회 → 429" 경로로 교체, **production 정상 분석 11회 반복 금지** 명시. 실제 Solar 호출은 C절 승인된 **최대 1회** 유지, 운영 부하 테스트는 제출 후 별도 staging으로 이연
+4. **workers.dev 표현 정정**: 단일 Worker에 Custom Domain이 붙는 구조라 배포 순간 두 URL에 **동시 적용** → workers.dev 확인은 "선검증"이 아닌 **배포 직후 smoke test**로 수정. staging/canary **부재** 명시, 이번 제출에서는 만들지 않고 즉시 롤백 절차로 위험 관리
+5. **/privacy·/terms 실측**: 빌드 산출물 하니스에서 `/about` 200·`/guide` 200·`/privacy` **404**·`/terms` **404** 확인(기존 기록이 정확 — 근거를 실측으로 보강). #11 제외 상태에서 제출 비차단 후속으로 분류
+6. **배포 승인표 분리**: 필수 secret 3종 / 일반 설정 등록 0종 / 제외(KAKAO_JS_KEY·ONTONGYOUTH_API_KEY·RATE_LIMIT_TEST_MODE·#11/#13 변수) — 실행 명령(§2)도 동일 분류로 일치화
+
+변경은 문서 4개(ops-config·deploy-plan·phase-b-matrix·본 워크로그)뿐 — 코드·배포·시크릿·외부 콘솔 무변경, 실 Solar 호출 0건.
+
 ## 상태
 
 - PR: https://github.com/forblune/gap-proof-mvp/pull/30 — 제목에 "Phase B readiness", **Closes #12 미사용**(Phase B 실검증·실기기·배포가 남아 있으므로 이슈 유지)

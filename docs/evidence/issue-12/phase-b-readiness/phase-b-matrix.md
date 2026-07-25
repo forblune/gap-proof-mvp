@@ -8,7 +8,8 @@
 - [ ] `https://gapproof-mvp.<서브도메인>.workers.dev`도 동일 동작(기본 URL)
 - [ ] www 등 다른 호스트: `www.forblune.com`·루트 도메인의 리다이렉트/무관 여부 확인(이 워커 대상 아님 — 현황만 기록)
 - [ ] `GET /` 200 — 비인증은 **게이트 화면만**(데모 본문 미노출, SSR 기준)
-- [ ] `/about` `/guide` `/how-it-works` `/technology` 200 (참고: `/privacy`·`/terms` 라우트는 현재 없음 — 4개 정보 페이지가 공개 IA 전부. 필요 시 후속 이슈)
+- [ ] `/about` `/guide` `/how-it-works` `/technology` 200 — 공개 정보 페이지 구현 경로는 `app/{about,guide,how-it-works,technology}/page.tsx` 4종이 전부
+- [ ] `/privacy`·`/terms` — **라우트 부재 실측 확인**(2026-07-25, 빌드 산출물 하니스에서 `/about` 200 · `/privacy` 404 · `/terms` 404). #11(소셜 로그인) 제외 상태에서는 **제출 비차단 후속**(#11 진행 시 개인정보 처리방침 선행 필요 — external-followups.md #3 연계)
 - [ ] `/manifest.webmanifest` 200 · `/favicon.svg` `/favicon.ico` 200 · `/og.png` 200(1200×630)
 - [ ] `/robots.txt` `/sitemap.xml` 200
 - [ ] 존재하지 않는 경로(`/no-such-page`) → 404 계열 명시 처리(빈 200 아님)
@@ -41,8 +42,10 @@
 
 - [ ] 잘못된 요청(빈 본문/짧은 입력/3001자) → 400/413 계열 명시 오류
 - [ ] 허용 외 모델 ID → 400 `model_not_allowed`(입력 반사 없음)
-- [ ] 11회 연속 분석 요청 → **429 + `retry-after: 60`** (엣지 rate limit 실동작)
+- [ ] **무과금 429 검증**(정상 분석 11회 반복 금지 — 유료 호출 방지): 인증 세션 + **20자 미만 본문** 11회 연속 → 1~10회 400 `input_too_short`, 11회째 **429 + `retry-after: 60`**. 근거: rate limiter가 본문 검증·Solar 호출보다 먼저 실행되고, 길이 미달은 Solar에 도달하지 않음(`analyze/route.ts:180→213→225` 순서) — 유료 호출 0회
+- [ ] (보조) 게이트 오답 11회 → 429 — GATE_RATE_LIMITER 실동작(Solar 무관)
 - [ ] 새 브라우저(다른 세션/IP 조건)와 동일 브라우저 비교 — 키 네임스페이스(ip:/session:) 분리 확인
+- [ ] 이 절 전체에서 실제 Solar 호출 증가 0회 유지(실호출은 C절의 승인된 1회가 전부)
 - [ ] 바인딩 누락 시나리오는 실서비스에서 유발 불가 — 코드 경로(fail-closed 503)는 Phase A 테스트로 갈음, 로그에서 `rate_limit_unavailable` 부재 확인
 - [ ] Solar API 오류(키 잘못 등) → 샘플 폴백 + 명시 notice(빈 화면·크래시 없음)
 - [ ] PII 입력(전화·이메일 포함 자기소개) → 인용·화면에 원문 PII 미노출(`[이메일]` 등 마스킹 표기)
