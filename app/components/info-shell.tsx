@@ -3,10 +3,12 @@
 import BrandGlyph from "./brand-mark";
 
 const NAV_ITEMS = [
-  { href: "/about", label: "소개" },
+  { href: "/why", label: "왜 GapProof인가" },
+  { href: "/who", label: "누구를 위한가" },
   { href: "/guide", label: "이용 가이드" },
   { href: "/how-it-works", label: "작동 원리" },
   { href: "/technology", label: "기술과 검증" },
+  { href: "/about", label: "소개" },
 ] as const;
 
 export type InfoPageKey = (typeof NAV_ITEMS)[number]["href"];
@@ -47,12 +49,18 @@ export function InfoShell({
         {children}
         <div className="info-cta">
           <a className="primary info-demo-link" href="/demo">GapProof 데모 시작하기 <span>→</span></a>
-          <small>데모는 심사·멘토링 공유용 접근 코드가 필요해요.</small>
+          <a className="secondary info-sample-link" href="/demo?sample=1">코드 없이 샘플 둘러보기</a>
+          <small>실제 분석은 심사·멘토링 공유용 데모 코드가 필요해요.</small>
         </div>
       </section>
 
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
+        <nav className="footer-nav" aria-label="정보 페이지">
+          {NAV_ITEMS.map((item) => (
+            <a key={item.href} href={item.href}>{item.label}</a>
+          ))}
+        </nav>
         <p>취업 또는 적성 판정이 아닙니다</p>
       </footer>
     </main>

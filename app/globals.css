@@ -477,3 +477,14 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .sample-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; background: var(--yellow); color: var(--ink); font-size: 13px; padding: 9px 16px; text-align: center; }
 .sample-strip .text-button { color: var(--ink); font-weight: 800; text-decoration: underline; min-height: 32px; }
 .gate-actions { display: flex; flex-direction: column; gap: 10px; }
+
+/* Gate 2c(#38): /who 카드 · 공통 노트 */
+.who-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 22px 0; }
+.who-card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+.who-card h2 { margin: 0 0 10px; font-family: Georgia, "Noto Serif KR", serif; font-size: 18px; }
+.who-card dt { color: var(--muted); font-weight: 800; font-size: 11.5px; letter-spacing: .04em; margin-top: 10px; }
+.who-card dd { margin: 2px 0 0; color: #333f52; font-size: 14px; line-height: 1.65; }
+.info-note { color: #5e687d; font-size: 13.5px; margin-top: 18px; }
+.info-note a { color: var(--green); font-weight: 800; }
+.info-sample-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: var(--ink); }
+@media (max-width: 720px) { .who-grid { grid-template-columns: 1fr; } }
