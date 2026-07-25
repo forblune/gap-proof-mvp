@@ -26,6 +26,15 @@ type Claim = {
   question: string;
   status: ClaimStatus;
   link?: string;
+  // Gate 4(#40) V2 — 전부 선택: 없으면 렌더하지 않는다(샘플·구버전 호환)
+  factStatus?: "확인됨" | "부분 확인" | "계획·관심";
+  context?: string;
+  behaviors?: string[];
+  signals?: ("반복" | "책임" | "문제 해결" | "몰입")[];
+  evidenceStrength?: "강함" | "보통" | "약함";
+  overclaimRisk?: string | null;
+  jobHypotheses?: { title: string; reason: string; missing: string }[];
+  smallStep?: string;
 };
 
 type Quiz = {
@@ -793,6 +802,34 @@ export default function Home() {
                   <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작해요"}</small>
                 </div>
                 <p className="follow-up"><b>더 확인하면 좋은 것</b>{claim.question}</p>
+                {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
+                  <div className="claim-v2">
+                    <div className="v2-badges">
+                      {claim.factStatus && <span className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}>{claim.factStatus}</span>}
+                      {claim.evidenceStrength && <span className="v2-badge">근거 {claim.evidenceStrength}</span>}
+                      {claim.signals?.map((signal) => <span className="v2-badge signal" key={signal}>{signal}</span>)}
+                    </div>
+                    {claim.context && <p className="v2-line"><b>상황</b>{claim.context}</p>}
+                    {claim.behaviors && claim.behaviors.length > 0 && (
+                      <p className="v2-line"><b>확인된 행동</b>{claim.behaviors.join(" · ")}</p>
+                    )}
+                    {claim.overclaimRisk && <p className="v2-line risk"><b>과장 주의</b>{claim.overclaimRisk}</p>}
+                    {claim.jobHypotheses && claim.jobHypotheses.length > 0 && (
+                      <div className="v2-hypo">
+                        <b>직업 가설 (판정 아님)</b>
+                        <ul>
+                          {claim.jobHypotheses.map((hypothesis) => (
+                            <li key={hypothesis.title}>
+                              <b>{hypothesis.title} (가설)</b> — {hypothesis.reason}
+                              <small>부족한 증거: {hypothesis.missing}</small>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {claim.smallStep && <p className="v2-line step"><b>이번 주 작은 실험</b>{claim.smallStep}</p>}
+                  </div>
+                )}
                 <div className="claim-actions">
                   <button className={claim.status === "rejected" ? "selected reject" : ""} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
                   <button onClick={() => startEditingClaim(claim)}>표현 수정</button>
