@@ -12,6 +12,7 @@ import {
 import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
 import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
+import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
 import BrandGlyph from "../components/brand-mark";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
@@ -107,6 +108,9 @@ export default function Home() {
   const [pendingModelId, setPendingModelId] = useState(modelId);
   const modelDialogRef = useRef<HTMLDialogElement | null>(null);
   const modelButtonRef = useRef<HTMLButtonElement | null>(null);
+  // Gate 6(#42): 파일 가져오기 — 브라우저 안에서 텍스트로만 읽는다(업로드·저장 없음)
+  const [importPreview, setImportPreview] = useState<{ name: string; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
   // Gate 1(#35): draft 저장은 사용자 상호작용(첫 상태 변화) 이후부터 시작한다.
@@ -333,6 +337,45 @@ export default function Home() {
     setNotice(null);
     setStep(next);
     scrollToTop();
+  };
+
+  // Gate 6(#42): 정리 프롬프트 복사
+  const copyAiPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(AI_ORGANIZE_PROMPT);
+      showNotice("정리 프롬프트를 복사했어요. 쓰던 AI에 붙여넣고, 받은 답을 여기로 가져오세요.", "success");
+    } catch {
+      showNotice("복사 권한이 없어 프롬프트를 복사하지 못했어요. 아래 내용을 직접 선택해 복사해 주세요.", "error");
+    }
+  };
+
+  // Gate 6(#42): 파일 선택 → 검증 → 텍스트 추출 → 미리보기(사용자 확인 전에는 입력에 넣지 않음)
+  const onImportFile = async (fileList: FileList | null) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    const verdict = validateImportFile({ name: file.name, type: file.type, size: file.size });
+    if (!verdict.ok) {
+      showNotice(verdict.reason, "error");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        showNotice("파일에서 읽을 텍스트가 없어요.", "error");
+      } else {
+        setImportPreview({ name: file.name, text });
+      }
+    } catch {
+      showNotice("파일을 읽지 못했어요. 다른 파일로 다시 시도해 주세요.", "error");
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+  const confirmImport = () => {
+    if (!importPreview) return;
+    setExperience((current) => (current.trim() ? current + "\n\n" + importPreview.text.trim() : importPreview.text.trim()));
+    setImportPreview(null);
+    showNotice("파일 내용을 입력에 추가했어요. 개인정보가 섞여 있지 않은지 확인하고 자유롭게 수정하세요.", "success");
   };
 
   const analyzeExperience = async () => {
@@ -773,6 +816,37 @@ export default function Home() {
                 <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘Solar로 역량 후보 찾기’ 버튼이 켜져요.</p>
               )}
               <p className="source-note">이런 경험도 좋아요 — 프로젝트, 수업·강의, 자격증, Notion·메모, 손글씨 기록, 일·아르바이트, 돌봄, 게임·커뮤니티, 쉬었던 시기.</p>
+
+              <div className="import-box">
+                <details>
+                  <summary>이미 사용하는 AI가 있나요? (ChatGPT·Claude·Gemini)</summary>
+                  <p className="import-guide">쓰던 AI에 아래 프롬프트를 붙여넣으면 대화 속 경험을 정리해 줘요. 받은 답을 이 입력창에 붙여넣으세요. <b>외부 AI의 답은 확정된 사실이 아니라 초안이에요 — 붙여넣은 뒤 직접 확인·수정하세요.</b> 붙여넣기 전에 이름·연락처 같은 개인정보가 섞이지 않았는지 확인해 주세요.</p>
+                  <pre className="import-prompt">{AI_ORGANIZE_PROMPT}</pre>
+                  <button type="button" className="secondary" onClick={copyAiPrompt}>정리 프롬프트 복사</button>
+                </details>
+                <details>
+                  <summary>메모 파일이 있나요? (TXT·MD 1개)</summary>
+                  <p className="import-guide">파일은 이 브라우저 안에서 텍스트로만 읽어요 — 서버로 올리거나 저장하지 않아요. 최대 200KB, PDF·DOCX는 다음 단계에서 준비 중이에요.</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.md,.markdown,text/plain,text/markdown"
+                    aria-label="TXT 또는 Markdown 파일 선택"
+                    onChange={(event) => onImportFile(event.target.files)}
+                  />
+                  {importPreview && (
+                    <div className="import-preview" role="region" aria-label="파일 미리보기">
+                      <b>{importPreview.name}</b>
+                      <p>{previewText(importPreview.text).preview}{previewText(importPreview.text).truncated ? "…" : ""}</p>
+                      <small>{importPreview.text.length.toLocaleString()}자 — 추가하기 전까지는 입력에 반영되지 않아요.</small>
+                      <div className="import-actions">
+                        <button type="button" className="secondary" onClick={() => setImportPreview(null)}>제외</button>
+                        <button type="button" className="primary" onClick={confirmImport}>입력에 추가</button>
+                      </div>
+                    </div>
+                  )}
+                </details>
+              </div>
             </div>
             <aside className="paper-card evidence-preview">
               <div className="card-kicker">입력 예시</div>
