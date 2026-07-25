@@ -488,3 +488,12 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .info-note a { color: var(--green); font-weight: 800; }
 .info-sample-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: var(--ink); }
 @media (max-width: 720px) { .who-grid { grid-template-columns: 1fr; } }
+
+/* Gate 3(#39): 입력 경험 — 초과 표시·경험 안내·장문 예시 */
+.count-over { color: var(--coral, #c0392b); }
+.length-hint.over { color: #a33a2a; font-weight: 700; }
+.source-note { margin-top: 12px; color: #5e687d; font-size: 13px; line-height: 1.6; }
+.long-examples { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.long-examples details { margin-top: 8px; }
+.long-examples summary { cursor: pointer; font-weight: 750; font-size: 13px; color: var(--ink); min-height: 32px; display: flex; align-items: center; }
+.long-examples details p { color: #4a5468; font-size: 13px; line-height: 1.7; white-space: pre-line; }

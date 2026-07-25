@@ -1,0 +1,10 @@
+{
+  "analyzeCalls": 1,
+  "emptyDefault": true,
+  "longExamples": true,
+  "noTruncate": true,
+  "overAlert": true,
+  "analyzeDisabled": true,
+  "exactOk": true,
+  "serverAccepts10k": true
+}

@@ -28,7 +28,7 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
   };
 
   // 1) step1에서 입력 → 새로고침 → 복원
-  await page.goto(BASE + "/", { waitUntil: "networkidle" });
+  await page.goto(BASE + "/demo", { waitUntil: "networkidle" });
   await login();
   await page.locator(".check-row input").first().check();
   await page.getByRole("button", { name: /샘플 여정 시작하기/ }).click();

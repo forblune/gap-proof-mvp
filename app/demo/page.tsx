@@ -11,6 +11,7 @@ import {
 } from "../lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS } from "../lib/models";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
+import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
 import BrandGlyph from "../components/brand-mark";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
@@ -57,46 +58,6 @@ const steps = ["시작", "경험", "역량 확인", "격차·행동", "GapProof"
 // 공유 문구는 상수로 고정 — 사용자의 경험 입력·분석 결과를 절대 포함하지 않는다.
 const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동으로 — GapProof 데모";
 
-const defaultExperience =
-  "항공물류를 전공했고, 집에서 AI 수학과 웹을 공부했습니다. Solar API를 연결해 한국어 상담 MVP인 MindHub를 만들었습니다.";
-
-const initialClaims: Claim[] = [
-  {
-    id: 1,
-    skill: "도메인과 기술을 연결한 문제 정의",
-    quote:
-      "항공물류 전공에서 배운 흐름을 바탕으로 AI가 상담의 반복 정리를 줄일 수 있다고 판단했다.",
-    source: "학교·프로젝트",
-    tier: 0,
-    confidence: "확인 필요",
-    question: "문제를 확인한 사용자나 상담사가 있었나요?",
-    status: "pending",
-    link: "",
-  },
-  {
-    id: 2,
-    skill: "AI API 기반 서비스 프로토타이핑",
-    quote: "Solar API를 연결해 한국어 상담 MVP인 MindHub를 만들었다.",
-    source: "프로젝트 링크",
-    tier: 0,
-    confidence: "확인 필요",
-    question: "직접 구현한 범위와 작동 링크를 추가해 주세요.",
-    status: "pending",
-    link: "",
-  },
-  {
-    id: 3,
-    skill: "AI 모델 개발",
-    quote: "집에서 AI 수학을 공부하고 관련 노트를 정리했다.",
-    source: "자기기록",
-    tier: 0,
-    confidence: "확인 필요",
-    question: "모델을 직접 학습·평가한 산출물이 있나요?",
-    status: "pending",
-    link: "",
-  },
-];
-
 function TierBadge({ tier }: { tier: number }) {
   const labels = ["자기기록", "근거 연결", "수행 확인", "기관 확인"];
   return (
@@ -110,8 +71,8 @@ export default function Home() {
   const [step, setStep] = useState(0);
   const [storeConsent, setStoreConsent] = useState(false);
   const [aggregateConsent, setAggregateConsent] = useState(false);
-  const [experience, setExperience] = useState(defaultExperience);
-  const [claims, setClaims] = useState(initialClaims);
+  const [experience, setExperience] = useState(""); // Gate 3(#39): 기본 예시 주입 제거 — 예시는 표시 전용
+  const [claims, setClaims] = useState<Claim[]>([]);
   const [roleId, setRoleId] = useState(ROLES[0].id);
   const [passedChecks, setPassedChecks] = useState<Record<string, boolean>>({});
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -140,6 +101,9 @@ export default function Home() {
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
   const journeyOpen = gateOpen || sampleMode;
+  const experienceLength = experience.length;
+  const OVER_LIMIT = experienceLength > 10000;
+
 
   // Gate 1(#35): 마지막 진행 상태 복원 — 인앱 브라우저 재시작·세션 만료 후 재인증해도
   // 원래 단계·입력·확인 상태로 복귀한다. draft는 이 기기 localStorage에만 존재한다.
@@ -149,6 +113,7 @@ export default function Home() {
     /* eslint-disable react-hooks/set-state-in-effect -- 마운트 1회성 진입 판정·복원(연쇄 렌더 없음) */
     if (new URLSearchParams(window.location.search).get("sample") === "1") {
       setSampleMode(true); // 샘플 체험은 draft를 읽지도 쓰지도 않는다
+      setExperience(SAMPLE_JOURNEY.experience); // Gate 3: 기본값 제거 이후에도 샘플은 원문이 채워진 상태로 시작
       return;
     }
     const draft = loadDraft(window.localStorage);
@@ -328,10 +293,10 @@ export default function Home() {
   };
 
   const analyzeExperience = async () => {
-    if (experience.trim().length < 20 || analysisSource === "loading") return;
+    if (experience.trim().length < 20 || experience.length > 10000 || analysisSource === "loading") return;
     if (sampleMode) {
       // 샘플 체험: 네트워크 요청 없이 미리 준비된 예시 결과를 보여준다(비용 0·명시 표시)
-      setClaims(initialClaims.map((claim) => ({ ...claim, status: "pending", link: "" })));
+      setClaims(SAMPLE_JOURNEY.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
       setAnalysisSource("sample");
       setAnalysisModel(null);
       setAnalysisNotice("샘플 체험 중이에요 — 실제 Solar 호출 없이 준비된 예시 결과예요.");
@@ -436,13 +401,13 @@ export default function Home() {
 
   // 샘플 체험 진입·초기화·종료 — 사용자의 실제 draft는 건드리지 않는다
   const enterSample = () => {
-    resetJourneyState(defaultExperience, initialClaims, { keepStoredDraft: true });
+    resetJourneyState(SAMPLE_JOURNEY.experience, [], { keepStoredDraft: true });
     setSampleMode(true);
     setNotice(null);
     scrollToTop();
   };
   const restartSample = () => {
-    resetJourneyState(defaultExperience, initialClaims, { keepStoredDraft: true });
+    resetJourneyState(SAMPLE_JOURNEY.experience, [], { keepStoredDraft: true });
     showNotice("체험을 처음부터 다시 시작해요.", "info");
     scrollToTop();
   };
@@ -468,7 +433,7 @@ export default function Home() {
   };
 
   const resetDemo = () => {
-    resetJourneyState(defaultExperience, initialClaims);
+    resetJourneyState(SAMPLE_JOURNEY.experience, []);
     showNotice("새 샘플을 준비했습니다.", "info");
     scrollToTop();
   };
@@ -756,21 +721,17 @@ export default function Home() {
           ) : (
           <div className="experience-layout">
             <div className="paper-card input-card">
-              <label htmlFor="experience"><b>무엇을 배우고, 하고, 만들어 봤나요?</b></label>
-              <p className="input-guide">꼭 처음부터 완벽히 정리하지 않아도 괜찮아요. 생각나는 대로 자세히 쓰고, 배우고 싶은 것이 있으면 그 바람도 적어 주세요.</p>
-              <textarea id="experience" maxLength={3000} placeholder="Notion·메모·손글씨 파일·자격증·들은 수업·프로젝트 등 무엇이든 좋아요. 예: 항공물류를 전공했고 집에서 AI를 독학했어요. 데이터 분석을 배우고 싶어요." value={experience} onChange={(event) => setExperience(event.target.value)} />
-              <div className="input-meta"><span>개인·가족 실명과 의료정보는 적지 않아도 돼요.</span><b>{experience.length.toLocaleString()}자 / 최소 20자 · 최대 3,000자</b></div>
+              <label htmlFor="experience"><b>경력이라고 생각하지 않았던 일까지 들려주세요.</b></label>
+              <p className="input-guide">학교, 일, 돌봄, 게임, 취미, SNS, 쉬었던 시기처럼 작아 보였던 경험도 괜찮습니다. 잘 정리하지 않아도 돼요.</p>
+              <textarea id="experience" placeholder="여기에 자유롭게 적어 주세요. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮아요." value={experience} onChange={(event) => setExperience(event.target.value)} />
+              <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 돼요.</span><b className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
+              {OVER_LIMIT && (
+                <p className="length-hint over" role="alert">10,000자를 넘었어요. 지금 내용은 그대로 남아 있으니 {(experienceLength - 10000).toLocaleString()}자만 줄이면 분석할 수 있어요. 자동으로 잘라내지 않아요.</p>
+              )}
               {experience.trim().length < 20 && (
                 <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘Solar로 역량 후보 찾기’ 버튼이 켜져요.</p>
               )}
-              <div className="source-list">
-                <button type="button" className="source active">프로젝트</button>
-                <button type="button" className="source">수업·강의</button>
-                <button type="button" className="source">자격증</button>
-                <button type="button" className="source">Notion·메모</button>
-                <button type="button" className="source">손글씨 파일</button>
-                <button type="button" className="source">일·아르바이트</button>
-              </div>
+              <p className="source-note">이런 경험도 좋아요 — 프로젝트, 수업·강의, 자격증, Notion·메모, 손글씨 기록, 일·아르바이트, 돌봄, 게임·커뮤니티, 쉬었던 시기.</p>
             </div>
             <aside className="paper-card evidence-preview">
               <div className="card-kicker">입력 예시</div>
@@ -778,12 +739,21 @@ export default function Home() {
               <div className="mini-evidence"><span>01</span><p><b>항공물류 전공</b><small>도메인 지식 · 학교</small></p></div>
               <div className="mini-evidence"><span>02</span><p><b>AI 수학·웹 독학</b><small>학습 기록 · 자기기록</small></p></div>
               <div className="mini-evidence"><span>03</span><p><b>MindHub 제작</b><small>작동 산출물 · 프로젝트</small></p></div>
+              <div className="long-examples">
+                <p className="card-kicker">정리 안 된 긴 예시 3가지 (표시용 — 입력에 넣지 않아요)</p>
+                {LONG_EXAMPLES.map((ex) => (
+                  <details key={ex.id}>
+                    <summary>{ex.label}</summary>
+                    <p>{ex.text}</p>
+                  </details>
+                ))}
+              </div>
             </aside>
           </div>
           )}
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(0)}>이전</button>
-            <button className="primary" disabled={experience.trim().length < 20 || analysisSource === "loading"} onClick={analyzeExperience}>
+            <button className="primary" disabled={experience.trim().length < 20 || OVER_LIMIT || analysisSource === "loading"} onClick={analyzeExperience}>
               {analysisSource === "loading" ? <><span className="spinner" />역량 후보를 찾는 중…</> : "Solar로 역량 후보 찾기"} <span>→</span>
             </button>
           </div>

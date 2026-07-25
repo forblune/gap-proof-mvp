@@ -1,0 +1,13 @@
+{
+  "analyzeCalls": 0,
+  "noGate": true,
+  "strip": true,
+  "sampleNotice": true,
+  "badgeSample": true,
+  "step4": true,
+  "restartLabel": true,
+  "draftUntouched": true,
+  "exitToGate": true,
+  "gateSampleButton": true,
+  "reenter": true
+}

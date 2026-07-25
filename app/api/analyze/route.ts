@@ -22,7 +22,7 @@ import { checkRateLimit, clientKey, RATE_LIMIT_WINDOW_SECONDS } from "../../lib/
 import { readServerEnv } from "../../lib/server-env";
 
 const SOLAR_URL = "https://api.upstage.ai/v1/chat/completions";
-const MAX_INPUT_LENGTH = 3000;
+const MAX_INPUT_LENGTH = 10000; // Gate 3(#39): 화면 카운터와 일치
 const SOLAR_TIMEOUT_MS = 12_000;
 
 const SYSTEM_PROMPT = `너는 GapProof의 역량 후보 추출 보조다.
@@ -214,7 +214,7 @@ export async function POST(request: Request) {
     return json({ error: "input_too_short", message: "경험을 20자 이상 적어 주세요." }, 400);
   }
   if (rawExperience.length > MAX_INPUT_LENGTH) {
-    return json({ error: "input_too_long", message: "경험은 3,000자 이내로 적어 주세요." }, 413);
+    return json({ error: "input_too_long", message: "경험은 10,000자 이내로 적어 주세요. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주세요." }, 413);
   }
 
   // PII 최소화: 마스킹된 텍스트가 이후 분석·인용 검증의 기준이 된다(원문은 전송하지 않음).
