@@ -204,19 +204,20 @@ export default function HomePage() {
           <div className="home-card">
             <b>지금 제공해요</b>
             <ul className="home-list">
-              <li>5단계 경험 분석 데모(데모 코드 입장)</li>
+              <li>코드 없는 샘플 체험 + 5단계 실분석(데모 코드)</li>
+              <li>최대 10,000자 입력·TXT/MD 파일 가져오기</li>
+              <li>AI 대화 정리 프롬프트로 기존 기록 옮겨오기</li>
               <li>Solar 모델 선택·실연결/샘플 구분</li>
-              <li>개인용 증거카드·상담사용 Gap Brief</li>
-              <li>인쇄·공유(개인 결과 미포함 링크)</li>
+              <li>개인용 증거카드·상담사용 Gap Brief·인쇄</li>
             </ul>
           </div>
           <div className="home-card">
             <b>다음 단계로 준비 중이에요</b>
             <ul className="home-list">
               <li>회원가입·내 기록 저장(법적 문서 정비와 함께)</li>
-              <li>더 긴 입력과 파일(TXT·MD) 첨부</li>
-              <li>AI 대화 기록 가져오기</li>
-              <li>삶의 경험 발견 분석 고도화</li>
+              <li>PDF·DOCX 파일 첨부</li>
+              <li>청년 정책·훈련 정보(온통청년) 연동 검토</li>
+              <li>발견 분석 품질의 운영 데이터 기반 고도화</li>
             </ul>
           </div>
         </div>

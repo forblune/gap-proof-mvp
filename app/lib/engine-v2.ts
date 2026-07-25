@@ -94,7 +94,7 @@ export function sanitizeClaimsV2(raw: unknown, source: string): ClaimV2[] {
       ? record.behaviors.map((behavior) => cleanString(behavior, 80)).filter(Boolean).slice(0, MAX_BEHAVIORS)
       : [];
     const signals = Array.isArray(record.signals)
-      ? (record.signals.filter((signal) => SIGNALS.includes(signal as Signal)) as Signal[]).slice(0, SIGNALS.length)
+      ? ([...new Set(record.signals.filter((signal) => SIGNALS.includes(signal as Signal)))] as Signal[]).slice(0, SIGNALS.length)
       : [];
     const overclaim = cleanString(record.overclaimRisk, 200);
 

@@ -55,7 +55,7 @@ export default function AboutPage() {
         <ul>
           <li>현재 버전은 서버에 경험 원문을 저장하지 않습니다.</li>
           <li>이메일·전화번호·주민등록번호로 보이는 표현은 분석 전에 가립니다.</li>
-          <li>기록 삭제 버튼으로 화면의 입력·결과를 한 번에 지울 수 있습니다.</li>
+          <li>&ldquo;새 분석 시작하기&rdquo; 버튼으로 화면의 입력·결과를 한 번에 지울 수 있습니다.</li>
           <li>자세한 보호 장치는 <a href="/technology">기술과 검증</a>에서 확인할 수 있습니다.</li>
         </ul>
       </section>

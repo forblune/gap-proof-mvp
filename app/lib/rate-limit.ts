@@ -75,15 +75,15 @@ async function sha256Hex(value: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// 제한 키(네임스페이스 구분):
-//   ip:<normalized>       — Cloudflare 엣지가 설정하는 CF-Connecting-IP만 신뢰
+// 제한 키(네임스페이스 구분) — 원본 IP·토큰을 키에 그대로 쓰지 않는다(privacy 방침과 1:1):
+//   ip:<digest16>         — CF-Connecting-IP의 SHA-256 digest 앞 16자
 //                           (X-Forwarded-For 등 사용자 제공 헤더는 사용하지 않음)
 //   session:<digest16>    — 세션 토큰의 비가역 SHA-256 digest 앞 16자(고정 길이).
 //                           원본 쿠키·서명 토큰을 키·로그에 그대로 쓰지 않는다.
 //   anonymous:shared      — 둘 다 없는 요청의 공용 버킷
 export async function clientKey(request: Request): Promise<string> {
   const ip = request.headers.get("cf-connecting-ip");
-  if (ip) return `ip:${ip.trim().toLowerCase()}`;
+  if (ip) return `ip:${(await sha256Hex(ip.trim().toLowerCase())).slice(0, 16)}`;
   const cookieHeader = request.headers.get("cookie") ?? "";
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${GATE_COOKIE_NAME}=([^;\\s]+)`));
   if (match) return `session:${(await sha256Hex(match[1])).slice(0, 16)}`;

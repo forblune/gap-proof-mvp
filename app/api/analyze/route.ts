@@ -274,7 +274,7 @@ export async function POST(request: Request) {
           { role: "user", content: experience },
         ],
         temperature: 0.2,
-        max_tokens: 700,
+        max_tokens: 2048, // V2 스키마(후보 3×행동·가설·질문 등 10필드 한국어 JSON)가 700에서 잘려 전부 샘플 폴백되는 문제 수정
         response_format: { type: "json_object" },
       }),
       signal: controller.signal,

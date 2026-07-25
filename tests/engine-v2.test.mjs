@@ -75,6 +75,12 @@ test("열거형 밖 값은 과장 방지 방향의 기본값으로 강등된다"
   assert.deepEqual(out[0].signals, ["반복"]);
 });
 
+test("signals 중복은 제거된다(렌더 key 충돌 방지)", () => {
+  const source = FIXTURES.game;
+  const out = sanitizeClaimsV2({ claims: [validClaim(source, { signals: ["반복", "반복", "책임"] })] }, source);
+  assert.deepEqual(out[0].signals, ["반복", "책임"]);
+});
+
 test("상한을 지킨다 — 후보 3·행동 3·가설 2", () => {
   const source = FIXTURES.mixed;
   const many = { claims: Array.from({ length: 6 }, (_, i) => validClaim(source, { skill: `후보 ${i}` })) };

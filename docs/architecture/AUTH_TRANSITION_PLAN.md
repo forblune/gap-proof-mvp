@@ -24,6 +24,7 @@
 - 카카오 로그인: **최소 수집** — 계정 생성에 필요한 식별자(+이메일은 실제 필요 시에만 동의 요청), 프로필 사진·닉네임 미요청(#13 지시 연계)
 - 세션 만료: 현행 draft 보존(#35)과 결합해 재로그인 후 이어서 진행
 - 무차별 대입: 초대 코드 시도는 audit_logs 기록 기반 횟수 제한 + 기존 엣지 rate limit 병행
+- **운영 적용 시 보강(독립 리뷰 발견)**: `redeem_invite`의 count-then-insert는 동시 요청에서 max_uses를 초과할 수 있다 — 운영 적용 전 advisory lock(`pg_advisory_xact_lock(hashtext(invite_id::text))`) 또는 사용 횟수 컬럼+체크 제약으로 원자화한다
 
 ## 3. 운영 전환 절차 (전부 Hard Stop 뒤)
 
