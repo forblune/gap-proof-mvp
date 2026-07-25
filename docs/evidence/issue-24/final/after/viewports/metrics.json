@@ -1,0 +1,367 @@
+{
+  "360x800": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 360,
+      "cw": 360
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 53,
+        "h": 44
+      },
+      "badgeRight": 283
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "INPUT.",
+      "INPUT.",
+      "A.",
+      "A.",
+      "A.",
+      "A."
+    ],
+    "overflow_step1": {
+      "sw": 360,
+      "cw": 360
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 360,
+      "cw": 360
+    },
+    "skeleton": {
+      "cols": 1,
+      "cardW": 324
+    },
+    "overflow_claims": {
+      "sw": 360,
+      "cw": 360
+    },
+    "touch": {
+      "claimAction": {
+        "w": 278,
+        "h": 44
+      },
+      "source": null,
+      "evidenceInputFont": "16px"
+    },
+    "editorBtn": {
+      "w": 49,
+      "h": 44
+    },
+    "notice": {
+      "left": 16,
+      "right": 344,
+      "w": 328,
+      "vw": 360
+    },
+    "overflow_notice": {
+      "sw": 360,
+      "cw": 360
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 44
+    },
+    "overflow_proof": {
+      "sw": 360,
+      "cw": 360
+    }
+  },
+  "390x844": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 390,
+      "cw": 390
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 53,
+        "h": 44
+      },
+      "badgeRight": 313
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "INPUT.",
+      "INPUT.",
+      "A.",
+      "A.",
+      "A.",
+      "A."
+    ],
+    "overflow_step1": {
+      "sw": 390,
+      "cw": 390
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 390,
+      "cw": 390
+    },
+    "skeleton": {
+      "cols": 1,
+      "cardW": 354
+    },
+    "overflow_claims": {
+      "sw": 390,
+      "cw": 390
+    },
+    "touch": {
+      "claimAction": {
+        "w": 308,
+        "h": 44
+      },
+      "source": null,
+      "evidenceInputFont": "16px"
+    },
+    "editorBtn": {
+      "w": 49,
+      "h": 44
+    },
+    "notice": {
+      "left": 16,
+      "right": 374,
+      "w": 358,
+      "vw": 390
+    },
+    "overflow_notice": {
+      "sw": 390,
+      "cw": 390
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 44
+    },
+    "overflow_proof": {
+      "sw": 390,
+      "cw": 390
+    }
+  },
+  "768x1024": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 768,
+      "cw": 768
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 61,
+        "h": 44
+      },
+      "badgeRight": 665
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "INPUT.",
+      "INPUT.",
+      "A.",
+      "A.",
+      "A.",
+      "A."
+    ],
+    "overflow_step1": {
+      "sw": 768,
+      "cw": 768
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 768,
+      "cw": 768
+    },
+    "skeleton": {
+      "cols": 1,
+      "cardW": 720
+    },
+    "overflow_claims": {
+      "sw": 768,
+      "cw": 768
+    },
+    "touch": {
+      "claimAction": {
+        "w": 209,
+        "h": 44
+      },
+      "source": null,
+      "evidenceInputFont": "16px"
+    },
+    "editorBtn": {
+      "w": 49,
+      "h": 44
+    },
+    "notice": {
+      "left": 171,
+      "right": 597,
+      "w": 426,
+      "vw": 768
+    },
+    "overflow_notice": {
+      "sw": 768,
+      "cw": 768
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 44
+    },
+    "overflow_proof": {
+      "sw": 768,
+      "cw": 768
+    }
+  },
+  "1024x768": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 61,
+        "h": 44
+      },
+      "badgeRight": 921
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "INPUT.",
+      "INPUT.",
+      "A.",
+      "A.",
+      "A.",
+      "A."
+    ],
+    "overflow_step1": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "skeleton": {
+      "cols": 1,
+      "cardW": 976
+    },
+    "overflow_claims": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "touch": {
+      "claimAction": {
+        "w": 290,
+        "h": 44
+      },
+      "source": null,
+      "evidenceInputFont": "16px"
+    },
+    "editorBtn": {
+      "w": 49,
+      "h": 44
+    },
+    "notice": {
+      "left": 299,
+      "right": 725,
+      "w": 426,
+      "vw": 1024
+    },
+    "overflow_notice": {
+      "sw": 1024,
+      "cw": 1024
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 44
+    },
+    "overflow_proof": {
+      "sw": 1024,
+      "cw": 1024
+    }
+  },
+  "1440x900": {
+    "errors": [],
+    "overflow_step0": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "header": {
+      "deleteVisible": true,
+      "deleteRect": {
+        "w": 61,
+        "h": 44
+      },
+      "badgeRight": 1325
+    },
+    "progressActiveLabelVisible": true,
+    "tabOrder": [
+      "INPUT.",
+      "INPUT.",
+      "A.",
+      "A.",
+      "A.",
+      "A."
+    ],
+    "overflow_step1": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "inputFonts": {
+      "textarea": "17px"
+    },
+    "overflow_skeleton": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "skeleton": {
+      "cols": 3,
+      "cardW": 446
+    },
+    "overflow_claims": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "touch": {
+      "claimAction": {
+        "w": 122,
+        "h": 44
+      },
+      "source": null,
+      "evidenceInputFont": "16px"
+    },
+    "editorBtn": {
+      "w": 49,
+      "h": 44
+    },
+    "notice": {
+      "left": 507,
+      "right": 933,
+      "w": 426,
+      "vw": 1440
+    },
+    "overflow_notice": {
+      "sw": 1440,
+      "cw": 1440
+    },
+    "roleBtn": {
+      "w": 118,
+      "h": 44
+    },
+    "overflow_proof": {
+      "sw": 1440,
+      "cw": 1440
+    }
+  }
+}

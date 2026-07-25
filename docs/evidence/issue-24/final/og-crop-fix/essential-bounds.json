@@ -1,0 +1,42 @@
+{
+  "square": "x285-915",
+  "safe": "x315-885",
+  "elements": [
+    {
+      "id": "lockup",
+      "left": 446.8,
+      "right": 753.2,
+      "top": 58,
+      "bottom": 134,
+      "inSquare": true,
+      "inSafe": true
+    },
+    {
+      "id": "headline",
+      "left": 383.4,
+      "right": 816.6,
+      "top": 213,
+      "bottom": 356.8,
+      "inSquare": true,
+      "inSafe": true
+    },
+    {
+      "id": "desc",
+      "left": 394.5,
+      "right": 805.5,
+      "top": 429.8,
+      "bottom": 494.9,
+      "inSquare": true,
+      "inSafe": true
+    },
+    {
+      "id": "domain",
+      "left": 473.6,
+      "right": 726.4,
+      "top": 518.9,
+      "bottom": 542.9,
+      "inSquare": true,
+      "inSafe": true
+    }
+  ]
+}

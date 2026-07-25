@@ -1,0 +1,38 @@
+{
+  "engine": "chromium",
+  "bgOn": {
+    "identityH2Color": "rgb(23, 36, 61)",
+    "identityBg": "rgb(255, 255, 255)",
+    "date": "2026.07.25",
+    "chromeHidden": {
+      "topbar": true,
+      "progress": true,
+      "actions": true,
+      "footer": true,
+      "notice": true,
+      "shareNote": true
+    },
+    "cards": {
+      "personal": true,
+      "brief": true
+    }
+  },
+  "bgOff": {
+    "identityH2Color": "rgb(23, 36, 61)",
+    "identityBg": "rgb(255, 255, 255)",
+    "date": "2026.07.25",
+    "chromeHidden": {
+      "topbar": true,
+      "progress": true,
+      "actions": true,
+      "footer": true,
+      "notice": true,
+      "shareNote": true
+    },
+    "cards": {
+      "personal": true,
+      "brief": true
+    }
+  },
+  "pdfPages": 2
+}

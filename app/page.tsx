@@ -10,6 +10,7 @@ import {
   makeCheck,
 } from "./lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS } from "./lib/models";
+import BrandGlyph from "./components/brand-mark";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
 
@@ -477,7 +478,7 @@ export default function Home() {
     <main>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="GapProof 처음으로">
-          <span className="brand-mark">G</span>
+          <span className="brand-mark"><BrandGlyph /></span>
           <span>GapProof</span>
         </a>
         {gateOpen && (
@@ -543,7 +544,7 @@ export default function Home() {
       {!gateOpen && (
         <section className="page-shell gate-page" aria-label="데모 접근 코드 확인">
           <div className="gate-card">
-            <div className="gate-brand"><span className="brand-mark">G</span><b>GapProof</b></div>
+            <div className="gate-brand"><span className="brand-mark"><BrandGlyph /></span><b>GapProof</b></div>
             <div className="card-kicker">데모 접근 확인</div>
             <h1>접근 코드를 입력해 주세요.</h1>
             <p className="gate-guide">
@@ -826,7 +827,7 @@ export default function Home() {
           <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있어요. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료예요.</p>
           <div className="proof-grid">
             <article className="proof-card personal-proof">
-              <div className="proof-header"><div><span className="brand-mark small">G</span><b>GapProof</b></div><span>개인용 증거카드</span></div>
+              <div className="proof-header"><div><span className="brand-mark small"><BrandGlyph /></span><b>GapProof</b></div><span>개인용 증거카드</span></div>
               <div className="identity"><small>목표직무</small><h2>{role.label}</h2><p>{role.blurb}</p></div>
               <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{passedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주세요."}”</blockquote></div>

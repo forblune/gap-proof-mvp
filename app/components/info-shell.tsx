@@ -1,5 +1,6 @@
 // 정보 페이지 공용 셸 (#9). 서버 컴포넌트 — 게이트 없이 공개 접근(#6 정책의 "공개 소개 페이지").
 // 메인 데모(5단계 흐름)는 렌더하지 않으며, 데모 진입은 항상 게이트를 거친다.
+import BrandGlyph from "./brand-mark";
 
 const NAV_ITEMS = [
   { href: "/about", label: "소개" },
@@ -27,7 +28,7 @@ export function InfoShell({
     <main>
       <header className="topbar info-bar">
         <a className="brand" href="/" aria-label="GapProof 데모로 이동">
-          <span className="brand-mark">G</span>
+          <span className="brand-mark"><BrandGlyph /></span>
           <span>GapProof</span>
         </a>
         <nav className="info-nav" aria-label="정보 페이지">
