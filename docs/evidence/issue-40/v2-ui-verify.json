@@ -1,0 +1,10 @@
+{
+  "v2Block": true,
+  "factBadge": true,
+  "strength": true,
+  "behaviors": true,
+  "overclaim": true,
+  "hypothesisLabeled": true,
+  "smallStep": true,
+  "overflow390": true
+}

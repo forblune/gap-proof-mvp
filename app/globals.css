@@ -497,3 +497,23 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .long-examples details { margin-top: 8px; }
 .long-examples summary { cursor: pointer; font-weight: 750; font-size: 13px; color: var(--ink); min-height: 32px; display: flex; align-items: center; }
 .long-examples details p { color: #4a5468; font-size: 13px; line-height: 1.7; white-space: pre-line; }
+
+/* Gate 4(#40): STEP2 V2 발견 블록 */
+.claim-v2 { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; }
+.v2-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.v2-badge { border: 1px solid var(--line); background: var(--ivory); border-radius: 999px; padding: 3px 10px; font-size: 11.5px; font-weight: 750; color: #414c60; }
+.v2-badge.status-done { background: var(--green-soft); color: var(--green); border-color: transparent; }
+.v2-badge.status-partial { background: #fdf3d7; color: #7a5c12; border-color: transparent; }
+.v2-badge.status-plan { background: #eef1f6; color: #505b6b; border-color: transparent; }
+.v2-badge.signal { background: var(--paper); }
+.v2-line { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: #333f52; }
+.v2-line b { display: inline-block; color: var(--muted); font-size: 11px; letter-spacing: .04em; margin-right: 8px; }
+.v2-line.risk { color: #7a3b2e; }
+.v2-line.risk b { color: #a33a2a; }
+.v2-hypo { margin-top: 8px; font-size: 12.5px; }
+.v2-hypo > b { color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+.v2-hypo ul { margin: 4px 0 0; padding-left: 16px; }
+.v2-hypo li { margin-top: 4px; line-height: 1.55; color: #333f52; }
+.v2-hypo li small { display: block; color: #5e687d; }
+.v2-line.step { color: var(--green); font-weight: 600; }
+.v2-line.step b { color: var(--green); }
