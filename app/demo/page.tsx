@@ -127,6 +127,8 @@ export default function Home() {
   const [proofDate, setProofDate] = useState<string | null>(null);
   // 전체 데모 진입 게이트: 인증 전에는 메인 5단계 흐름을 렌더하지 않는다.
   const [gateOpen, setGateOpen] = useState(false);
+  // Gate 2b(#37): 코드 없는 샘플 체험 — 실제 Solar 호출 없이 전체 흐름을 보여준다.
+  const [sampleMode, setSampleMode] = useState(false);
   const [gateCode, setGateCode] = useState("");
   const [gateBusy, setGateBusy] = useState(false);
   const [kakaoReady, setKakaoReady] = useState(false);
@@ -137,15 +139,20 @@ export default function Home() {
   const draftSaveArmed = useRef(false);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+  const journeyOpen = gateOpen || sampleMode;
 
   // Gate 1(#35): 마지막 진행 상태 복원 — 인앱 브라우저 재시작·세션 만료 후 재인증해도
   // 원래 단계·입력·확인 상태로 복귀한다. draft는 이 기기 localStorage에만 존재한다.
   // SSR 하이드레이션과 초기 HTML을 일치시키기 위해 복원은 반드시 effect에서 1회 수행한다
   // (useState 초기값에서 읽으면 서버·클라 첫 렌더가 달라져 hydration 오류가 난다).
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- 마운트 1회성 진입 판정·복원(연쇄 렌더 없음) */
+    if (new URLSearchParams(window.location.search).get("sample") === "1") {
+      setSampleMode(true); // 샘플 체험은 draft를 읽지도 쓰지도 않는다
+      return;
+    }
     const draft = loadDraft(window.localStorage);
     if (!draft) return;
-    /* eslint-disable react-hooks/set-state-in-effect -- 마운트 1회성 복원(연쇄 렌더 없음) */
     setStep(draft.step);
     setStoreConsent(draft.storeConsent);
     setAggregateConsent(draft.aggregateConsent);
@@ -169,6 +176,7 @@ export default function Home() {
       return;
     }
     if (analysisSource === "loading") return;
+    if (sampleMode) return; // 샘플 체험은 사용자 작성물이 아니므로 저장하지 않는다
     saveDraft(
       window.localStorage,
       {
@@ -188,7 +196,7 @@ export default function Home() {
       },
       new Date().toISOString(),
     );
-  }, [step, storeConsent, aggregateConsent, experience, claims, roleId, passedChecks, analysisSource, analysisModel, modelId, analysisNotice, selectedAction, proofDate]);
+  }, [sampleMode, step, storeConsent, aggregateConsent, experience, claims, roleId, passedChecks, analysisSource, analysisModel, modelId, analysisNotice, selectedAction, proofDate]);
 
   // 세션 쿠키는 HttpOnly라 클라이언트가 읽을 수 없으므로 서버에 상태를 물어본다(새로고침 후 세션 유지).
   useEffect(() => {
@@ -321,6 +329,15 @@ export default function Home() {
 
   const analyzeExperience = async () => {
     if (experience.trim().length < 20 || analysisSource === "loading") return;
+    if (sampleMode) {
+      // 샘플 체험: 네트워크 요청 없이 미리 준비된 예시 결과를 보여준다(비용 0·명시 표시)
+      setClaims(initialClaims.map((claim) => ({ ...claim, status: "pending", link: "" })));
+      setAnalysisSource("sample");
+      setAnalysisModel(null);
+      setAnalysisNotice("샘플 체험 중이에요 — 실제 Solar 호출 없이 준비된 예시 결과예요.");
+      moveTo(2);
+      return;
+    }
     setAnalysisSource("loading");
     setAnalysisNotice("");
     setNotice(null);
@@ -395,8 +412,8 @@ export default function Home() {
 
   // Gate 1(#35): 여정 상태 일괄 초기화 + draft 소거. 소거 직후 초기값이 draft로
   // 재저장되지 않도록 저장 가드를 해제한다(다음 사용자 상호작용부터 다시 저장).
-  const resetJourneyState = (nextExperience: string, nextClaims: Claim[]) => {
-    clearDraft(window.localStorage);
+  const resetJourneyState = (nextExperience: string, nextClaims: Claim[], options?: { keepStoredDraft?: boolean }) => {
+    if (!options?.keepStoredDraft) clearDraft(window.localStorage);
     draftSaveArmed.current = false;
     setStep(0);
     setStoreConsent(false);
@@ -415,6 +432,39 @@ export default function Home() {
     setProofDate(null);
     setConfirmingDelete(false);
     setModelId(DEFAULT_MODEL_ID);
+  };
+
+  // 샘플 체험 진입·초기화·종료 — 사용자의 실제 draft는 건드리지 않는다
+  const enterSample = () => {
+    resetJourneyState(defaultExperience, initialClaims, { keepStoredDraft: true });
+    setSampleMode(true);
+    setNotice(null);
+    scrollToTop();
+  };
+  const restartSample = () => {
+    resetJourneyState(defaultExperience, initialClaims, { keepStoredDraft: true });
+    showNotice("체험을 처음부터 다시 시작해요.", "info");
+    scrollToTop();
+  };
+  const exitSample = () => {
+    setSampleMode(false);
+    const draft = loadDraft(window.localStorage);
+    resetJourneyState(draft ? draft.experience : "", draft ? (draft.claims as Claim[]) : [], { keepStoredDraft: true });
+    if (draft) {
+      setStep(draft.step);
+      setStoreConsent(draft.storeConsent);
+      setAggregateConsent(draft.aggregateConsent);
+      setRoleId(draft.roleId);
+      setPassedChecks(draft.passedChecks);
+      setAnalysisSource(draft.analysisSource);
+      setAnalysisModel(draft.analysisModel);
+      setModelId(draft.modelId);
+      setAnalysisNotice(draft.analysisNotice);
+      setSelectedAction(draft.selectedAction);
+      setProofDate(draft.proofDate);
+    }
+    setNotice(null);
+    scrollToTop();
   };
 
   const resetDemo = () => {
@@ -532,7 +582,7 @@ export default function Home() {
           <span className="brand-mark"><BrandGlyph /></span>
           <span>GapProof</span>
         </a>
-        {gateOpen && (
+        {journeyOpen && (
           <div className="top-actions">
             <select
               className="model-select"
@@ -552,12 +602,19 @@ export default function Home() {
               className={`sample-badge ${analysisSource === "solar" ? "live" : ""}`}
               aria-label={analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}
             ><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
-            <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>기록 삭제</button>
+            {!sampleMode && <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>기록 삭제</button>}
           </div>
         )}
       </header>
 
-      {gateOpen && (
+      {sampleMode && journeyOpen && (
+        <div className="sample-strip" role="status">
+          <span><b>샘플 체험 중</b> — 실제 분석이 아니에요. 미리 준비된 예시로 전체 흐름을 볼 수 있어요.</span>
+          <button className="text-button" onClick={exitSample}>실제 분석으로 전환</button>
+        </div>
+      )}
+
+      {journeyOpen && (
         <section className="progress-wrap" aria-label="진행 단계">
           <ol className="progress">
             {steps.map((label, index) => (
@@ -592,7 +649,7 @@ export default function Home() {
         </div>
       )}
 
-      {!gateOpen && (
+      {!journeyOpen && (
         <section className="page-shell gate-page" aria-label="데모 접근 코드 확인">
           <div className="gate-card">
             <div className="gate-brand"><span className="brand-mark"><BrandGlyph /></span><b>GapProof</b></div>
@@ -619,7 +676,11 @@ export default function Home() {
               <button className="primary" disabled={!gateCode.trim() || gateBusy} onClick={submitGateCode}>
                 {gateBusy ? "확인 중…" : "데모 열기"}
               </button>
+              <button className="secondary" onClick={enterSample}>
+                코드 없이 샘플 둘러보기
+              </button>
             </div>
+            <small className="gate-hint">샘플 체험은 실제 Solar를 호출하지 않고, 예시 결과임을 화면에 항상 표시해요.</small>
             <nav className="gate-links" aria-label="서비스 소개 페이지">
               <a href="/about">소개</a>
               <a href="/guide">이용 가이드</a>
@@ -630,7 +691,7 @@ export default function Home() {
         </section>
       )}
 
-      {gateOpen && step === 0 && (
+      {journeyOpen && step === 0 && (
         <section className="hero page-shell" id="top">
           <div className="hero-copy">
             <span className="eyebrow">공백·전환 경험을 위한 AI 진로상담 지원</span>
@@ -675,7 +736,7 @@ export default function Home() {
         </section>
       )}
 
-      {gateOpen && step === 1 && (
+      {journeyOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어주세요.</h1></div>
@@ -729,7 +790,7 @@ export default function Home() {
         </section>
       )}
 
-      {gateOpen && step === 2 && (
+      {journeyOpen && step === 2 && (
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 2 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저예요.</h1></div>
@@ -778,7 +839,7 @@ export default function Home() {
         </section>
       )}
 
-      {gateOpen && step === 3 && (
+      {journeyOpen && step === 3 && (
         <section className="page-shell flow-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 3 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
@@ -869,7 +930,7 @@ export default function Home() {
         </section>
       )}
 
-      {gateOpen && step === 4 && (
+      {journeyOpen && step === 4 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
             <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼어요.</h1></div>
@@ -907,7 +968,7 @@ export default function Home() {
               <button className="secondary kakao-share" onClick={shareViaKakao}>카카오톡 공유</button>
             )}
             <button className="secondary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
-            <button className="primary" onClick={resetDemo}>새 샘플 시작 <span>↻</span></button>
+            <button className="primary" onClick={sampleMode ? restartSample : resetDemo}>{sampleMode ? "체험 처음부터 시작하기" : "새 샘플 시작"} <span>↻</span></button>
           </div>
           <p className="share-note">링크 공유에는 서비스 소개만 담겨요 — 내 경험 입력과 결과는 포함되지 않아요.</p>
         </section>
@@ -922,8 +983,8 @@ export default function Home() {
           <a href="/technology">기술과 검증</a>
         </nav>
         <p>{analysisSource === "solar" ? "Solar 실연결" : "샘플 데이터"} · 취업 또는 적성 판정이 아닙니다</p>
-        {gateOpen && (
-          <button className="text-button" onClick={lockDemo}>데모 잠금</button>
+        {journeyOpen && (
+          <button className="text-button" onClick={sampleMode ? exitSample : lockDemo}>{sampleMode ? "체험 나가기" : "데모 잠금"}</button>
         )}
       </footer>
     </main>

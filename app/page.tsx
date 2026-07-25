@@ -83,9 +83,9 @@ export default function HomePage() {
         </p>
         <div className="home-cta-row">
           <a className="primary" href="/demo">내 경험에서 가능성 찾기 →</a>
-          <a className="secondary" href="/demo">샘플로 둘러보기</a>
+          <a className="secondary" href="/demo?sample=1">샘플로 둘러보기</a>
         </div>
-        <p className="fine-print">현재 버전은 심사·멘토링용 데모 코드로 입장해요 · 취업 가능성이나 적성을 판정하지 않습니다.</p>
+        <p className="fine-print">샘플은 코드 없이 볼 수 있어요 · 실제 분석은 심사·멘토링용 데모 코드로 입장해요 · 취업 가능성이나 적성을 판정하지 않습니다.</p>
       </section>
 
       {/* 2. 왜 필요한가 */}
