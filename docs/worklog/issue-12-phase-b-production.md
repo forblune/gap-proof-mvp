@@ -45,5 +45,5 @@
 
 ## 관련 커밋·PR
 
-- 커밋: (커밋 후 기입)
-- PR: (생성 후 기입) — 제목 "Phase B production validation", Closes #12 미사용
+- 커밋: `a37348b` qa: record Phase B-1 production deployment validation (#12)
+- PR: https://github.com/forblune/gap-proof-mvp/pull/31 — 제목 "Phase B production validation", Closes #12 미사용
