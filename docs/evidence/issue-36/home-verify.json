@@ -1,0 +1,12 @@
+{
+  "overflow": {
+    "360": "OK",
+    "390": "OK",
+    "768": "OK",
+    "1024": "OK",
+    "1440": "OK"
+  },
+  "consoleErrors": [],
+  "demoGate": true,
+  "aboutCtaToDemo": true
+}
