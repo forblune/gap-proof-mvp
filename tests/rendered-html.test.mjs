@@ -222,8 +222,10 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.doesNotMatch(page, /연결 오류로 준비된 샘플 결과를 표시합니다/); // 입력 오류를 정적 샘플로 대체하지 않음
   assert.doesNotMatch(page, /2026\.07\.22/); // 카드 날짜 하드코딩 제거
   assert.match(page, /formatProofDate/); // 생성 시점 날짜 사용
-  assert.match(page, /maxLength=\{3000\}/); // 입력 초과 사전 방지
-  assert.match(page, /최소 20자 · 최대 3,000자/); // 길이 조건 안내
+  // Gate 3(#39): 자동 절삭 금지 — textarea에 maxLength를 두지 않고 초과를 명시 오류로 알린다
+  assert.doesNotMatch(page, /id="experience" maxLength/);
+  assert.match(page, /최소 20자 · 최대 10,000자/); // 길이 조건 안내(화면·서버 일치)
+  assert.match(page, /자동으로 잘라내지 않아요/); // 절삭 금지 계약
   assert.match(page, /role="alertdialog"/); // 기록 삭제 확인 절차
   assert.match(page, /아직 확인된 역량이 없어요/); // 확인 0개 가드 안내
   assert.match(page, /notice\.kind === "error" \? "alert" : "status"/); // 오류 알림 라이브 리전
@@ -257,12 +259,12 @@ test("returns a traceable sample when a Solar key is unavailable", async () => {
 
 test("rejects oversized experience before any model call", async () => {
   const cookie = await obtainGateCookie();
-  const response = await fetchWorker(analyzeRequest("가".repeat(3001), cookie));
+  const response = await fetchWorker(analyzeRequest("가".repeat(10001), cookie));
 
   assert.equal(response.status, 413);
   const body = await response.json();
   assert.equal(body.error, "input_too_long");
-  assert.equal(body.message, "경험은 3,000자 이내로 적어 주세요.");
+  assert.equal(body.message, "경험은 10,000자 이내로 적어 주세요. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주세요.");
 });
 
 test("enforces input boundaries with actionable user messages", async () => {
