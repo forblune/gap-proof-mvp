@@ -3,6 +3,8 @@
 // 사례는 전부 가상 인물이며 실존 개인정보를 사용하지 않는다.
 import type { Metadata } from "next";
 import BrandGlyph from "./components/brand-mark";
+import MobileDrawerNav from "./components/mobile-drawer-nav";
+import { NAV_ITEMS } from "./components/site-nav";
 
 export const metadata: Metadata = {
   title: "GapProof | 경험을 증거로 바꾸는 진로 탐색",
@@ -10,15 +12,6 @@ export const metadata: Metadata = {
     "돌봄, 아르바이트, 게임, 독학, 쉬었던 시간까지 — 삶에서 실제로 한 행동을 근거로 역량 후보를 찾고 다음 진로 탐색으로 연결합니다.",
   alternates: { canonical: "/" },
 };
-
-const NAV = [
-  { href: "/why", label: "왜 GapProof인가" },
-  { href: "/who", label: "누구를 위한가" },
-  { href: "/guide", label: "이용 가이드" },
-  { href: "/how-it-works", label: "작동 원리" },
-  { href: "/technology", label: "기술과 검증" },
-  { href: "/about", label: "소개" },
-] as const;
 
 const CASES = [
   {
@@ -68,11 +61,12 @@ export default function HomePage() {
           <span>GapProof</span>
         </a>
         <nav className="info-nav" aria-label="정보 페이지">
-          {NAV.map((item) => (
+          {NAV_ITEMS.map((item) => (
             <a key={item.href} href={item.href}>{item.label}</a>
           ))}
           <a className="nav-cta" href="/demo">데모 열기 →</a>
         </nav>
+        <MobileDrawerNav />
       </header>
 
       {/* 1. Hero */}
@@ -236,7 +230,7 @@ export default function HomePage() {
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
         <nav className="footer-nav" aria-label="정보 페이지">
-          {NAV.map((item) => (
+          {NAV_ITEMS.map((item) => (
             <a key={item.href} href={item.href}>{item.label}</a>
           ))}
           <a href="/demo">데모</a>

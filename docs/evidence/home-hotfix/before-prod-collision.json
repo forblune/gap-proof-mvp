@@ -1,0 +1,328 @@
+{
+  "chromium-360-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=577px²",
+      "eyebrow×cta=577px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-360-stress140": {
+    "fails": [
+      "nav[1]×eyebrow=7063px²",
+      "nav[2]×eyebrow=6129px²",
+      "nav[3]×eyebrow=1616px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[3]×h1=2867px²",
+      "nav[4]×h1=3382px²",
+      "nav[5]×h1=1670px²",
+      "nav[6]×h1=7310px²",
+      "h1×cta=7310px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 203,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-375-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=577px²",
+      "eyebrow×cta=577px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-375-stress140": {
+    "fails": [
+      "nav[1]×eyebrow=7063px²",
+      "nav[2]×eyebrow=6129px²",
+      "nav[3]×eyebrow=1616px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[3]×h1=2867px²",
+      "nav[4]×h1=3382px²",
+      "nav[5]×h1=1670px²",
+      "nav[6]×h1=7310px²",
+      "h1×cta=7310px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 203,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-390-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=577px²",
+      "eyebrow×cta=577px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-390-stress140": {
+    "fails": [
+      "nav[2]×eyebrow=6129px²",
+      "nav[3]×eyebrow=5195px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[6]×eyebrow=2045px²",
+      "nav[4]×h1=3382px²",
+      "nav[5]×h1=1670px²",
+      "nav[6]×h1=3628px²",
+      "eyebrow×cta=2045px²",
+      "h1×cta=3628px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 146,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-393-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=577px²",
+      "eyebrow×cta=577px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-393-stress140": {
+    "fails": [
+      "nav[2]×eyebrow=6129px²",
+      "nav[3]×eyebrow=5195px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[6]×eyebrow=2045px²",
+      "nav[4]×h1=3382px²",
+      "nav[5]×h1=1670px²",
+      "nav[6]×h1=3628px²",
+      "eyebrow×cta=2045px²",
+      "h1×cta=3628px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 146,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-430-normal": {
+    "fails": [
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=1472px²",
+      "eyebrow×cta=1472px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "chromium-430-stress140": {
+    "fails": [
+      "nav[2]×eyebrow=6129px²",
+      "nav[3]×eyebrow=5195px²",
+      "nav[4]×eyebrow=6129px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[6]×eyebrow=2045px²",
+      "nav[5]×h1=1670px²",
+      "nav[6]×h1=3628px²",
+      "eyebrow×cta=2045px²",
+      "h1×cta=3628px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 146,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-360-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=609px²",
+      "eyebrow×cta=609px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-360-stress140": {
+    "fails": [
+      "nav[1]×eyebrow=7054px²",
+      "nav[2]×eyebrow=6121px²",
+      "nav[3]×eyebrow=1616px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[3]×h1=2863px²",
+      "nav[4]×h1=3378px²",
+      "nav[5]×h1=1668px²",
+      "nav[6]×h1=7306px²",
+      "h1×cta=7306px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 203,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-375-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=609px²",
+      "eyebrow×cta=609px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-375-stress140": {
+    "fails": [
+      "nav[1]×eyebrow=7054px²",
+      "nav[2]×eyebrow=6121px²",
+      "nav[3]×eyebrow=1616px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[3]×h1=2863px²",
+      "nav[4]×h1=3378px²",
+      "nav[5]×h1=1668px²",
+      "nav[6]×h1=7306px²",
+      "h1×cta=7306px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 203,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-390-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=609px²",
+      "eyebrow×cta=609px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-390-stress140": {
+    "fails": [
+      "nav[2]×eyebrow=6121px²",
+      "nav[3]×eyebrow=5188px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[6]×eyebrow=2045px²",
+      "nav[4]×h1=3378px²",
+      "nav[5]×h1=1668px²",
+      "nav[6]×h1=3624px²",
+      "eyebrow×cta=2045px²",
+      "h1×cta=3624px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 146,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-393-normal": {
+    "fails": [
+      "nav[3]×eyebrow=1198px²",
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=609px²",
+      "eyebrow×cta=609px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-393-stress140": {
+    "fails": [
+      "nav[2]×eyebrow=6121px²",
+      "nav[3]×eyebrow=5188px²",
+      "nav[4]×eyebrow=1907px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[6]×eyebrow=2045px²",
+      "nav[4]×h1=3378px²",
+      "nav[5]×h1=1668px²",
+      "nav[6]×h1=3624px²",
+      "eyebrow×cta=2045px²",
+      "h1×cta=3624px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 146,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-430-normal": {
+    "fails": [
+      "nav[4]×eyebrow=1383px²",
+      "nav[5]×eyebrow=767px²",
+      "nav[6]×eyebrow=1472px²",
+      "eyebrow×cta=1472px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 69,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  },
+  "webkit-430-stress140": {
+    "fails": [
+      "nav[2]×eyebrow=6121px²",
+      "nav[3]×eyebrow=5188px²",
+      "nav[4]×eyebrow=6121px²",
+      "nav[5]×eyebrow=941px²",
+      "nav[6]×eyebrow=2045px²",
+      "nav[5]×h1=1668px²",
+      "nav[6]×h1=3624px²",
+      "eyebrow×cta=2045px²",
+      "h1×cta=3624px²"
+    ],
+    "headerSpill": 0,
+    "navSpill": 146,
+    "h1KeepAll": false,
+    "h1Clip": false,
+    "overflowX": 0
+  }
+}

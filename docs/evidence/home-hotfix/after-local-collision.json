@@ -1,0 +1,132 @@
+{
+  "chromium-320-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 178
+  },
+  "chromium-320-stress140": {
+    "fails": [],
+    "headerBottom": 246,
+    "eyebrowTop": 286
+  },
+  "chromium-360-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 178
+  },
+  "chromium-360-stress140": {
+    "fails": [],
+    "headerBottom": 246,
+    "eyebrowTop": 286
+  },
+  "chromium-375-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 178
+  },
+  "chromium-375-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "chromium-390-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 178
+  },
+  "chromium-390-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "chromium-393-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 178
+  },
+  "chromium-393-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "chromium-430-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 178
+  },
+  "chromium-430-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "chromium-1440-normal": {
+    "fails": [],
+    "headerBottom": 69,
+    "eyebrowTop": 139
+  },
+  "webkit-320-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 177
+  },
+  "webkit-320-stress140": {
+    "fails": [],
+    "headerBottom": 246,
+    "eyebrowTop": 286
+  },
+  "webkit-360-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 177
+  },
+  "webkit-360-stress140": {
+    "fails": [],
+    "headerBottom": 246,
+    "eyebrowTop": 286
+  },
+  "webkit-375-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 177
+  },
+  "webkit-375-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "webkit-390-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 177
+  },
+  "webkit-390-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "webkit-393-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 177
+  },
+  "webkit-393-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "webkit-430-normal": {
+    "fails": [],
+    "headerBottom": 132,
+    "eyebrowTop": 177
+  },
+  "webkit-430-stress140": {
+    "fails": [],
+    "headerBottom": 195,
+    "eyebrowTop": 235
+  },
+  "webkit-1440-normal": {
+    "fails": [],
+    "headerBottom": 69,
+    "eyebrowTop": 138
+  }
+}

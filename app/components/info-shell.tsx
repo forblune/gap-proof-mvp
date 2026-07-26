@@ -1,17 +1,10 @@
 // 정보 페이지 공용 셸 (#9). 서버 컴포넌트 — 게이트 없이 공개 접근(#6 정책의 "공개 소개 페이지").
 // 메인 데모(5단계 흐름)는 렌더하지 않으며, 데모 진입은 항상 게이트를 거친다.
 import BrandGlyph from "./brand-mark";
+import MobileDrawerNav from "./mobile-drawer-nav";
+import { NAV_ITEMS, type InfoPageKey } from "./site-nav";
 
-const NAV_ITEMS = [
-  { href: "/why", label: "왜 GapProof인가" },
-  { href: "/who", label: "누구를 위한가" },
-  { href: "/guide", label: "이용 가이드" },
-  { href: "/how-it-works", label: "작동 원리" },
-  { href: "/technology", label: "기술과 검증" },
-  { href: "/about", label: "소개" },
-] as const;
-
-export type InfoPageKey = (typeof NAV_ITEMS)[number]["href"];
+export type { InfoPageKey };
 
 export function InfoShell({
   active,
@@ -40,6 +33,7 @@ export function InfoShell({
             </a>
           ))}
         </nav>
+        <MobileDrawerNav active={active} />
       </header>
 
       <section className="page-shell info-shell">
