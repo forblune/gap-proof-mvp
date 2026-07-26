@@ -42,10 +42,10 @@ export async function POST(request: Request) {
 
   const code = typeof body.code === "string" ? body.code.trim() : "";
   if (!code) {
-    return json({ error: "code_required", message: "접근 코드를 입력해 주세요." }, 400);
+    return json({ error: "code_required", message: "데모 코드를 입력해 주세요." }, 400);
   }
   if (code.length > 64) {
-    return json({ error: "invalid_code", message: "접근 코드가 올바르지 않아요. 다시 확인해 주세요." }, 401);
+    return json({ error: "invalid_code", message: "코드가 올바르지 않아요. 안내받은 코드를 다시 확인해 주세요." }, 401);
   }
 
   const result = await verifyAccessCode(code);
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     return json({ error: "gate_not_configured", message: "데모 접근이 아직 준비되지 않았어요. 운영자에게 문의해 주세요." }, 503);
   }
   if (result === "invalid") {
-    return json({ error: "invalid_code", message: "접근 코드가 올바르지 않아요. 다시 확인해 주세요." }, 401);
+    return json({ error: "invalid_code", message: "코드가 올바르지 않아요. 안내받은 코드를 다시 확인해 주세요." }, 401);
   }
 
   const cookie = await createGateCookie(request);

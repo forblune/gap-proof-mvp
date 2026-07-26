@@ -80,16 +80,40 @@ async function fetchWorker(request) {
   );
 }
 
-async function render() {
+async function render(path = "/") {
   return fetchWorker(
-    new Request("http://localhost/", {
+    new Request(`http://localhost${path}`, {
       headers: { accept: "text/html" },
     }),
   );
 }
 
-test("server-renders the access gate for unauthenticated visitors", async () => {
+// Gate 2a(#36): 홈은 공개 제품 스토리 — 게이트·데모 폼 없이 핵심 질문에 답한다
+test("serves the public homepage without any gate", async () => {
   const response = await render();
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  for (const phrase of [
+    "경력이라고 생각하지 않았던 경험",   // Hero
+    "왜 필요한가",                        // 문제
+    "누구를 위한가",                      // 대상
+    "어떤 경험이 가능한가",               // 입력 범위
+    "어떻게 작동하는가",                  // 파이프라인 요약
+    "가상 사례",                          // Before/After (실존 아님 고지)
+    "AI 모델 선택",                       // 모델
+    "기술·안전·검증",                     // 기술
+    "현재와 다음 단계",                   // 구현/계획 구분
+    "취업 가능성이나 적성을 판정하지 않습니다", // 판정 아님
+  ]) {
+    assert.ok(html.includes(phrase), `home should include ${phrase}`);
+  }
+  assert.ok(!html.includes('id="gate-code"'), "home must not render the gate");
+  assert.ok(!html.includes('id="experience"'), "home must not render the demo form");
+  assert.ok(html.includes('href="/demo"'), "home links to the demo");
+});
+
+test("server-renders the access gate for unauthenticated visitors", async () => {
+  const response = await render("/demo");
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
@@ -97,13 +121,13 @@ test("server-renders the access gate for unauthenticated visitors", async () => 
   assert.match(html, /<html lang="ko">/i);
   assert.match(html, /<title>GapProof \| 공백을 증거로<\/title>/i);
   // 게이트 화면: 서비스 이름 + 짧은 설명 + 데모 코드임을 명시
-  assert.match(html, /데모 접근 확인/);
-  assert.match(html, /접근 코드를 입력해 주세요/);
+  assert.match(html, /심사·멘토링 데모/);
+  assert.match(html, /안내받은 데모 코드를 입력해 주세요/);
   assert.match(html, /계정 로그인이나 개인 비밀번호가 아니에요/);
   assert.match(html, /취업 가능성이나 적성을 판정하지 않아요/);
   // 비인증 HTML에는 메인 데모 흐름이 노출되지 않는다 (전체 데모 진입 게이트 정책)
   assert.doesNotMatch(html, /공백을 지우지 않고/);
-  assert.doesNotMatch(html, /경험 분석에 동의/);
+  assert.doesNotMatch(html, /\[필수\] 경험 분석을 위한 원문 처리/);
   assert.doesNotMatch(html, /Solar 샘플 데모/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton/);
 });
@@ -126,7 +150,7 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
   const sitemap = await fetchWorker(new Request("http://localhost/sitemap.xml"));
   assert.equal(sitemap.status, 200);
   const sitemapText = await sitemap.text();
-  for (const route of ["/about", "/guide", "/how-it-works", "/technology"]) {
+  for (const route of ["/why", "/who", "/about", "/guide", "/how-it-works", "/technology", "/privacy", "/terms"]) {
     assert.ok(sitemapText.includes(`https://gapproof.forblune.com${route}`), `sitemap ${route}`);
   }
 
@@ -140,7 +164,7 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
   assert.ok(about.includes("canonical"), "about canonical");
 
   // 공유 계약: 문구는 상수, 사용자 경험·결과는 페이로드에 미포함(소스 계약)
-  const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const pageSource = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(pageSource, /const SHARE_TEXT =/);
   assert.match(pageSource, /text: SHARE_TEXT/);
   assert.doesNotMatch(pageSource, /navigator\.share\([^)]*experience/s);
@@ -149,6 +173,10 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
 
 test("serves public information pages without the demo gate", async () => {
   const pages = [
+    ["/privacy", ["전문가(법률) 검토 전의 초안", "서버에 저장하지 않습니다", "만 14세 미만 이용"]],
+    ["/terms", ["전문가(법률) 검토 전의 초안", "판정하지 않으며", "AI 산출물의 한계"]],
+    ["/why", ["행동 증거 중심 원칙", "과장하지 않는 구조", "GapProof가 하지 않는 것"]],
+    ["/who", ["이런 분을 위해 만들었습니다", "대신 결정하지 않는 것", "상담 보조자료이며 자동판정이 아니에요"]],
     ["/about", ["만든 계기", "하지 않는 판단", "취업 가능성이나 적성을 판정하지 않습니다"]],
     ["/guide", ["사용 순서", "입력하지 않아도 되는 정보", "오류가 나면 이렇게 하세요"]],
     ["/how-it-works", ["파이프라인", "증거등급 기준", "원문 인용 검증"]],
@@ -167,14 +195,14 @@ test("serves public information pages without the demo gate", async () => {
     }
     // 공용 내비게이션 존재 + 메인 데모 흐름·게이트 입력은 미노출
     assert.ok(html.includes("이용 가이드"), `${path} nav`);
-    assert.ok(!html.includes("경험 분석에 동의"), `${path} must not expose the demo flow`);
+    assert.ok(!html.includes("[필수] 경험 분석을 위한 원문 처리"), `${path} must not expose the demo flow`);
     assert.ok(!html.includes('id="gate-code"'), `${path} must not render the gate input`);
   }
 });
 
 test("keeps AI claims bounded and user-confirmed", async () => {
   const [page, layout, packageJson, css] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -184,8 +212,10 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.match(page, /AI의 제안보다 당신의 확인이 먼저예요/);
   assert.match(page, /거절한 항목은 카드와 추천에서 빠집니다/);
   assert.match(page, /원문 공유는 직접 선택해요/);
-  assert.match(page, /기록 삭제/);
-  assert.match(page, /setExperience\(""\)/);
+  assert.match(page, /새 분석 시작하기/); // Gate 9: 파괴적 작업 재명명
+  // #35: 삭제·잠금은 공통 리셋 헬퍼로 입력을 비우고 draft도 함께 지운다
+  assert.match(page, /resetJourneyState\("", \[\]\)/);
+  assert.match(page, /clearDraft\(window\.localStorage\)/);
   assert.match(page, /원문 인용은 증거이므로 수정하지 않습니다/);
   assert.match(page, /claim\.id === id \? \{ \.\.\.claim, skill: nextSkill, status: "pending" \}/);
   assert.match(page, /confirmedClaims\.map\(\(claim\) => <li key=\{claim\.id\}>\{claim\.skill\}<\/li>\)/);
@@ -194,8 +224,10 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.doesNotMatch(page, /연결 오류로 준비된 샘플 결과를 표시합니다/); // 입력 오류를 정적 샘플로 대체하지 않음
   assert.doesNotMatch(page, /2026\.07\.22/); // 카드 날짜 하드코딩 제거
   assert.match(page, /formatProofDate/); // 생성 시점 날짜 사용
-  assert.match(page, /maxLength=\{3000\}/); // 입력 초과 사전 방지
-  assert.match(page, /최소 20자 · 최대 3,000자/); // 길이 조건 안내
+  // Gate 3(#39): 자동 절삭 금지 — textarea에 maxLength를 두지 않고 초과를 명시 오류로 알린다
+  assert.doesNotMatch(page, /id="experience" maxLength/);
+  assert.match(page, /최소 20자 · 최대 10,000자/); // 길이 조건 안내(화면·서버 일치)
+  assert.match(page, /자동으로 잘라내지 않아요/); // 절삭 금지 계약
   assert.match(page, /role="alertdialog"/); // 기록 삭제 확인 절차
   assert.match(page, /아직 확인된 역량이 없어요/); // 확인 0개 가드 안내
   assert.match(page, /notice\.kind === "error" \? "alert" : "status"/); // 오류 알림 라이브 리전
@@ -229,12 +261,12 @@ test("returns a traceable sample when a Solar key is unavailable", async () => {
 
 test("rejects oversized experience before any model call", async () => {
   const cookie = await obtainGateCookie();
-  const response = await fetchWorker(analyzeRequest("가".repeat(3001), cookie));
+  const response = await fetchWorker(analyzeRequest("가".repeat(10001), cookie));
 
   assert.equal(response.status, 413);
   const body = await response.json();
   assert.equal(body.error, "input_too_long");
-  assert.equal(body.message, "경험은 3,000자 이내로 적어 주세요.");
+  assert.equal(body.message, "경험은 10,000자 이내로 적어 주세요. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주세요.");
 });
 
 test("enforces input boundaries with actionable user messages", async () => {
@@ -265,7 +297,7 @@ test("gate protects the analyze API with a signed HttpOnly session", async () =>
   assert.equal(unauthorized.status, 401);
   const unauthorizedBody = await unauthorized.json();
   assert.equal(unauthorizedBody.error, "unauthorized");
-  assert.ok(unauthorizedBody.message.includes("접근 코드"));
+  assert.ok(unauthorizedBody.message.includes("데모 코드"));
 
   // 2) 위조 쿠키 거부
   const forged = await fetchWorker(analyzeRequest(validExperience, "gp_gate=v1.9999999999.deadbeef"));
@@ -484,10 +516,13 @@ test("enforces the Solar model allowlist", async () => {
   const models = await readFile(new URL("../app/lib/models.ts", import.meta.url), "utf8");
   assert.match(models, /solar-pro3/);
   assert.match(models, /isAllowedModel/);
-  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(page, /SOLAR_MODELS\.map/);
   assert.match(page, /model: modelId/);
-  assert.match(page, /aria-label="Solar 모델 선택"/);
+  // Gate 5(#41): native select → 카드형 다이얼로그(요약+변경 버튼, 공식/자체 구분)
+  assert.match(page, /aria-label="AI 분석 모델 선택"/);
+  assert.match(page, /모델 변경/);
+  assert.match(page, /평가 중/); // 검증 전 항목을 장점으로 꾸미지 않는 계약
 });
 
 test("fails closed when the Workers rate limit binding is unavailable", async () => {

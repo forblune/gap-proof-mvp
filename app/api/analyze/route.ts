@@ -1,3 +1,6 @@
+import { sanitizeClaimsV2, type ClaimV2 } from "../../lib/engine-v2";
+
+// Gate 4(#40): V2 필드는 전부 선택적 — 클라이언트는 없으면 렌더하지 않는다.
 type AnalysisClaim = {
   id: number;
   skill: string;
@@ -7,12 +10,14 @@ type AnalysisClaim = {
   confidence: "확인 필요";
   question: string;
   status: "pending";
-};
-
-type SolarClaim = {
-  skill?: unknown;
-  quote?: unknown;
-  question?: unknown;
+  factStatus?: ClaimV2["factStatus"];
+  context?: string;
+  behaviors?: string[];
+  signals?: ClaimV2["signals"];
+  evidenceStrength?: ClaimV2["evidenceStrength"];
+  overclaimRisk?: string | null;
+  jobHypotheses?: ClaimV2["jobHypotheses"];
+  smallStep?: string;
 };
 
 import { verifyGateSession } from "../../lib/gate-session";
@@ -22,16 +27,31 @@ import { checkRateLimit, clientKey, RATE_LIMIT_WINDOW_SECONDS } from "../../lib/
 import { readServerEnv } from "../../lib/server-env";
 
 const SOLAR_URL = "https://api.upstage.ai/v1/chat/completions";
-const MAX_INPUT_LENGTH = 3000;
+const MAX_INPUT_LENGTH = 10000; // Gate 3(#39): 화면 카운터와 일치
 const SOLAR_TIMEOUT_MS = 12_000;
 
-const SYSTEM_PROMPT = `너는 GapProof의 역량 후보 추출 보조다.
-사용자의 전공, 학습, 일, 프로젝트 경험에서 최대 3개의 역량 후보를 찾는다.
-적성, 취업 가능성, 숙련도, 성격을 판정하지 마라.
-quote는 반드시 사용자 원문에 연속해서 실제로 존재하는 문장을 그대로 복사하라.
-과장하거나 사용자가 하지 않은 행동을 추가하지 마라.
-각 후보는 skill, quote, question 세 필드만 가진다.
-question은 그 역량을 더 강한 증거로 바꾸기 위해 필요한 링크, 산출물, 기간, 역할 중 하나를 묻는다.
+const SYSTEM_PROMPT = `너는 GapProof의 "삶의 경험 발견" 보조다.
+학교·일뿐 아니라 돌봄, 게임, 커뮤니티, SNS, 취미, 독학, 쉬었던 시기의 경험에서 최대 3개의 역량 후보를 찾는다.
+
+절대 규칙:
+- 적성, 취업 가능성, 숙련도, 성격을 판정하지 마라.
+- 게임을 많이 했다는 사실만으로 게임 코치를, SNS를 많이 봤다는 사실만으로 마케팅 전문가를 단정하지 마라. 직업은 근거 있는 "가설"로만 제시한다.
+- quote는 반드시 사용자 원문에 연속해서 실제로 존재하는 문장을 그대로 복사하라.
+- 사용자가 하지 않은 행동을 만들지 마라. 원문에 근거가 없으면 그 항목은 비워라.
+
+각 후보 필드:
+- skill: 역량 후보 이름(과장 금지)
+- quote: 원문 그대로의 근거 문장
+- factStatus: "확인됨"(결과·산출물이 원문에 있음) | "부분 확인"(행동은 있으나 결과 불명) | "계획·관심"(하고 싶다는 서술)
+- context: 시간·상황 한 줄
+- behaviors: 원문에서 확인되는 실제 행동 1~3개
+- signals: ["반복","책임","문제 해결","몰입"] 중 원문 근거가 있는 것만
+- evidenceStrength: "강함"(산출물·수치) | "보통"(구체 행동) | "약함"(서술뿐)
+- overclaimRisk: 이 후보가 과장되기 쉬운 지점 한 문장(없으면 null)
+- question: 더 강한 증거로 바꾸기 위한 확인 질문 하나
+- jobHypotheses: 최대 2개. 각각 title(직업 가설), reason(원문 행동과의 연결 근거), missing(부족한 증거). 근거가 약하면 빈 배열.
+- smallStep: 이번 주에 가능한 작은 검증 행동 하나
+
 JSON 객체 {"claims":[...]}만 출력하라.`;
 
 function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
@@ -103,6 +123,10 @@ function fallbackClaims(experience: string): AnalysisClaim[] {
       confidence: "확인 필요",
       question: candidate.question,
       status: "pending",
+      // 규칙 기반 샘플은 단정하지 않는다: 상태·강도만 보수적으로, 가설은 비움
+      factStatus: "부분 확인",
+      evidenceStrength: "약함",
+      jobHypotheses: [],
     });
     if (claims.length === 3) break;
   }
@@ -124,36 +148,32 @@ function fallbackClaims(experience: string): AnalysisClaim[] {
 }
 
 function normalizeSolarClaims(experience: string, value: unknown): AnalysisClaim[] {
-  const rawClaims =
-    value && typeof value === "object" && Array.isArray((value as { claims?: unknown }).claims)
-      ? ((value as { claims: unknown[] }).claims as SolarClaim[])
-      : [];
-
-  const normalized: AnalysisClaim[] = [];
+  // Gate 4(#40): 검증(인용 정합·열거형 강등·가설 근거 필수·판정 어휘 차단)은 engine-v2가 담당
+  const v2 = sanitizeClaimsV2(value, experience);
   const seen = new Set<string>();
-
-  for (const raw of rawClaims.slice(0, 6)) {
-    const skill = trimText(raw?.skill, 80);
-    const quote = trimText(raw?.quote, 280);
-    const question = trimText(raw?.question, 160);
-
-    if (!skill || !quote || !question) continue;
-    if (!experience.includes(quote)) continue;
-    if (seen.has(skill)) continue;
-    seen.add(skill);
+  const normalized: AnalysisClaim[] = [];
+  for (const claim of v2) {
+    if (seen.has(claim.skill)) continue;
+    seen.add(claim.skill);
     normalized.push({
       id: normalized.length + 1,
-      skill,
-      quote,
+      skill: claim.skill,
+      quote: claim.quote,
       source: "사용자 입력",
       tier: 0,
       confidence: "확인 필요",
-      question,
+      question: claim.question,
       status: "pending",
+      factStatus: claim.factStatus,
+      context: claim.context,
+      behaviors: claim.behaviors,
+      signals: claim.signals,
+      evidenceStrength: claim.evidenceStrength,
+      overclaimRisk: claim.overclaimRisk,
+      jobHypotheses: claim.jobHypotheses,
+      smallStep: claim.smallStep,
     });
-    if (normalized.length === 3) break;
   }
-
   return normalized;
 }
 
@@ -170,7 +190,7 @@ export async function POST(request: Request) {
   // 인증을 가장 먼저 검사한다: 비인증 요청은 본문 파싱·폴백 생성·Solar 호출(비용 경로)에 도달하지 않는다.
   if (!(await verifyGateSession(request))) {
     return json(
-      { error: "unauthorized", message: "접근 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요." },
+      { error: "unauthorized", message: "데모 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요." },
       401,
     );
   }
@@ -214,7 +234,7 @@ export async function POST(request: Request) {
     return json({ error: "input_too_short", message: "경험을 20자 이상 적어 주세요." }, 400);
   }
   if (rawExperience.length > MAX_INPUT_LENGTH) {
-    return json({ error: "input_too_long", message: "경험은 3,000자 이내로 적어 주세요." }, 413);
+    return json({ error: "input_too_long", message: "경험은 10,000자 이내로 적어 주세요. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주세요." }, 413);
   }
 
   // PII 최소화: 마스킹된 텍스트가 이후 분석·인용 검증의 기준이 된다(원문은 전송하지 않음).
@@ -254,7 +274,7 @@ export async function POST(request: Request) {
           { role: "user", content: experience },
         ],
         temperature: 0.2,
-        max_tokens: 700,
+        max_tokens: 2048, // V2 스키마(후보 3×행동·가설·질문 등 10필드 한국어 JSON)가 700에서 잘려 전부 샘플 폴백되는 문제 수정
         response_format: { type: "json_object" },
       }),
       signal: controller.signal,
