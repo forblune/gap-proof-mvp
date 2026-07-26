@@ -173,13 +173,16 @@ body.drawer-open { overflow: hidden; }
 .info-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 13px; line-height: 1.6; }
 .info-table th, .info-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .info-table th { color: var(--muted); font-size: 11px; font-weight: 800; }
-.info-pipeline { margin: 0; padding-left: 20px; }
-.info-pipeline li { margin-bottom: 12px; font-size: 14px; }
+/* 번호 배지 — 홈 "어떻게 작동하는가"(.home-steps)와 동일한 패턴 재사용, 12단계 텍스트 나열을 스캔 가능하게 */
+.info-pipeline { counter-reset: pstep; margin: 0; padding-left: 0; list-style: none; }
+.info-pipeline li { counter-increment: pstep; position: relative; margin-bottom: 14px; padding-left: 42px; min-height: 26px; font-size: 14px; }
+.info-pipeline li::before { content: counter(pstep); position: absolute; top: 0; left: 0; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--ink); color: var(--yellow); font-weight: 800; font-size: 12px; }
 .info-pipeline li b { display: block; margin-bottom: 2px; }
 .info-pipeline li p { margin: 0; color: #596475; font-size: 13px; line-height: 1.6; }
 .info-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .info-cards li { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fffefa; font-size: 13px; }
-.info-cards li b { display: block; margin-bottom: 5px; color: var(--green); }
+.info-cards li b { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--green); }
+.info-cards li b svg { width: 16px; height: 16px; flex: 0 0 auto; }
 .info-cards li p { margin: 0; color: #596475; line-height: 1.6; }
 .info-cta { margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .info-demo-link { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 11px; border: 1px solid var(--ink); background: var(--ink); color: #fff; font-weight: 800; text-decoration: none; }
@@ -476,7 +479,7 @@ body.drawer-open { overflow: hidden; }
 
 /* Gate 2a(#36): 공개 홈 — 기존 토큰·클래스 재사용, 홈 전용 레이아웃만 추가 */
 .home { min-height: 100vh; background: var(--ivory); }
-.home .info-nav .nav-cta { background: var(--ink); color: #fff; font-weight: 800; }
+.home .info-nav .nav-cta { background: var(--ink); color: #fff; font-weight: 800; box-shadow: 0 4px 12px rgba(23, 36, 61, .22); margin-left: 4px; }
 .home .info-nav .nav-cta:hover { color: var(--yellow); }
 /* 히어로 — 전체 다크가 아니라 핵심 진입 구간만 다크 네이비(하이브리드). 실제 폭은 -inner에서 제한 */
 .home-hero { background: linear-gradient(165deg, #17243d 0%, #14213a 55%, #101a2d 100%); }
@@ -523,7 +526,8 @@ body.drawer-open { overflow: hidden; }
 .home-case dl { margin: 0; font-size: 13px; line-height: 1.6; }
 .home-case .fact { margin-top: 12px; }
 .home-case .fact:first-child { margin-top: 0; }
-.home-case dt { font-weight: 800; margin: 0; font-size: 11px; letter-spacing: .04em; }
+.home-case dt { display: flex; align-items: center; gap: 6px; font-weight: 800; margin: 0; font-size: 11px; letter-spacing: .04em; }
+.home-case dt svg { width: 14px; height: 14px; flex: 0 0 auto; }
 .home-case dd { margin: 2px 0 0; color: #333f52; }
 .home-case dd ul { margin: 0; padding-left: 16px; }
 /* 6개 정보 유형을 데모 STEP2에서 이미 검증된 색상 체계로 구분(새 색 도입 없이 기존 토큰 재사용) */
@@ -532,6 +536,19 @@ body.drawer-open { overflow: hidden; }
 .home-case .fact-caution dt { color: #a33a2a; }
 .home-case .fact-hypothesis dt { color: #315d91; }
 .home-case .fact-action dt { color: var(--green); font-weight: 900; }
+
+/* 기술·안전·검증 카드 아이콘 — 텍스트 벽을 줄이고 항목을 한눈에 식별 */
+.tech-card b { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+.tech-card b svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--green); }
+
+/* 현재/준비 중 상태 배지 — 색상+아이콘으로 이중 구분(색맹에도 아이콘 모양이 다름) */
+.status-card { border-top: 3px solid var(--line); }
+.status-badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; }
+.status-badge svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.status-live { border-top-color: var(--green); }
+.status-live .status-badge { background: var(--green-soft); color: var(--green); }
+.status-planned { border-top-color: #c9ad57; }
+.status-planned .status-badge { background: #fdf3d7; color: #7a5c12; }
 .home-final { background: linear-gradient(165deg, #17243d 0%, #14213a 55%, #101a2d 100%); border-top: none; text-align: left; padding: 0; max-width: none; margin: 0; }
 .home-final-inner { max-width: 980px; margin: 0 auto; padding: 56px 24px 64px; }
 .home-final h2 { color: #fff; font-weight: 600; }

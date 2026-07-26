@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { InfoShell } from "../components/info-shell";
+import { IconCheck, IconLock, IconClock, IconEyeOff, IconList } from "../components/fact-icons";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/technology" },
@@ -16,12 +17,12 @@ const STACK = [
 ];
 
 const SECURITY = [
-  { name: "접근 게이트", detail: "데모 코드를 서버가 검증하고 서명된 HttpOnly 쿠키 세션을 발급해요. 환경변수가 없으면 데모가 열리지 않는 fail-closed 방식이에요. 공유용 데모 보호 장치일 뿐, 개인 계정 인증은 아니에요." },
-  { name: "API 키 보호", detail: "Solar API 키는 서버 환경에만 있고 브라우저로 전달되지 않아요." },
-  { name: "요청 한도", detail: "분석·코드 입력 모두 60초에 10회로 제한해 과다 요청과 무차별 대입을 막아요. 한도 확인이 불가능하면 요청을 거절해요." },
-  { name: "개인정보 가리기", detail: "이메일·전화번호·주민등록번호로 보이는 표현은 Solar로 보내기 전에 가리고, 가린 사실을 화면에 알려요." },
-  { name: "모델 허용 목록", detail: "서버에 등록된 Solar 모델만 사용할 수 있어요. 목록 밖 요청은 거부돼요." },
-  { name: "무저장 원칙", detail: "경험 원문을 서버에 저장하지 않아요. &ldquo;새 분석 시작하기&rdquo;는 화면의 모든 상태를 지워요." },
+  { name: "접근 게이트", Icon: IconCheck, detail: "데모 코드를 서버가 검증하고 서명된 HttpOnly 쿠키 세션을 발급해요. 환경변수가 없으면 데모가 열리지 않는 fail-closed 방식이에요. 공유용 데모 보호 장치일 뿐, 개인 계정 인증은 아니에요." },
+  { name: "API 키 보호", Icon: IconLock, detail: "Solar API 키는 서버 환경에만 있고 브라우저로 전달되지 않아요." },
+  { name: "요청 한도", Icon: IconClock, detail: "분석·코드 입력 모두 60초에 10회로 제한해 과다 요청과 무차별 대입을 막아요. 한도 확인이 불가능하면 요청을 거절해요." },
+  { name: "개인정보 가리기", Icon: IconEyeOff, detail: "이메일·전화번호·주민등록번호로 보이는 표현은 Solar로 보내기 전에 가리고, 가린 사실을 화면에 알려요." },
+  { name: "모델 허용 목록", Icon: IconList, detail: "서버에 등록된 Solar 모델만 사용할 수 있어요. 목록 밖 요청은 거부돼요." },
+  { name: "무저장 원칙", Icon: IconLock, detail: "경험 원문을 서버에 저장하지 않아요. &ldquo;새 분석 시작하기&rdquo;는 화면의 모든 상태를 지워요." },
 ];
 
 const CLASS_APPLIED = [
@@ -56,7 +57,7 @@ export default function TechnologyPage() {
         <h2>보안·개인정보 설계</h2>
         <ul className="info-cards">
           {SECURITY.map((item) => (
-            <li key={item.name}><b>{item.name}</b><p>{item.detail}</p></li>
+            <li key={item.name}><b><item.Icon />{item.name}</b><p>{item.detail}</p></li>
           ))}
         </ul>
       </section>

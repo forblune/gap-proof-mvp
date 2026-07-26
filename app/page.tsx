@@ -5,6 +5,18 @@ import type { Metadata } from "next";
 import BrandGlyph from "./components/brand-mark";
 import MobileDrawerNav from "./components/mobile-drawer-nav";
 import { NAV_ITEMS } from "./components/site-nav";
+import {
+  IconCheck,
+  IconSpark,
+  IconQuestion,
+  IconWarning,
+  IconCompass,
+  IconChecklist,
+  IconLock,
+  IconEyeOff,
+  IconQuote,
+  IconClock,
+} from "./components/fact-icons";
 
 export const metadata: Metadata = {
   title: "GapProof | 경험을 증거로 바꾸는 진로 탐색",
@@ -150,27 +162,27 @@ export default function HomePage() {
               <blockquote>{c.raw}</blockquote>
               <dl className="case-facts">
                 <div className="fact fact-evidence">
-                  <dt>확인된 행동</dt>
+                  <dt><IconCheck />확인된 행동</dt>
                   <dd><ul>{c.actions.map((a) => <li key={a}>{a}</li>)}</ul></dd>
                 </div>
                 <div className="fact fact-candidate">
-                  <dt>역량 후보</dt>
+                  <dt><IconSpark />역량 후보</dt>
                   <dd><b>{c.candidate}</b> — 근거: “{c.quote}”</dd>
                 </div>
                 <div className="fact fact-verify">
-                  <dt>더 확인할 것</dt>
+                  <dt><IconQuestion />더 확인할 것</dt>
                   <dd>{c.verify}</dd>
                 </div>
                 <div className="fact fact-caution">
-                  <dt>과장하지 않기</dt>
+                  <dt><IconWarning />과장하지 않기</dt>
                   <dd>{c.risk}</dd>
                 </div>
                 <div className="fact fact-hypothesis">
-                  <dt>직업 가설</dt>
+                  <dt><IconCompass />직업 가설</dt>
                   <dd>{c.hypothesis}</dd>
                 </div>
                 <div className="fact fact-action">
-                  <dt>이번 주 작은 실험</dt>
+                  <dt><IconChecklist />이번 주 작은 실험</dt>
                   <dd>{c.smallStep}</dd>
                 </div>
               </dl>
@@ -196,10 +208,10 @@ export default function HomePage() {
         <p className="eyebrow">기술·안전·검증</p>
         <h2 id="home-tech">쓴 기술만 말하고, 검증한 만큼만 주장합니다.</h2>
         <div className="home-grid four">
-          <div className="home-card"><b>무저장 원칙</b><p>경험 원문을 서버에 저장하지 않아요.</p></div>
-          <div className="home-card"><b>개인정보 가리기</b><p>이메일·전화번호는 분석 전에 자동으로 가려요.</p></div>
-          <div className="home-card"><b>원문 인용 검증</b><p>입력에 없는 문장은 근거로 쓰지 않아요.</p></div>
-          <div className="home-card"><b>요청 한도</b><p>과다 요청은 1분 단위로 제한해요.</p></div>
+          <div className="home-card tech-card"><b><IconLock />무저장 원칙</b><p>경험 원문을 서버에 저장하지 않아요.</p></div>
+          <div className="home-card tech-card"><b><IconEyeOff />개인정보 가리기</b><p>이메일·전화번호는 분석 전에 자동으로 가려요.</p></div>
+          <div className="home-card tech-card"><b><IconQuote />원문 인용 검증</b><p>입력에 없는 문장은 근거로 쓰지 않아요.</p></div>
+          <div className="home-card tech-card"><b><IconClock />요청 한도</b><p>과다 요청은 1분 단위로 제한해요.</p></div>
         </div>
         <a className="home-more" href="/technology">기술과 검증 전체 보기 →</a>
       </section>
@@ -209,8 +221,8 @@ export default function HomePage() {
         <p className="eyebrow">현재와 다음 단계</p>
         <h2 id="home-now">지금 되는 것과 앞으로 할 것을 구분해서 말해요.</h2>
         <div className="home-grid two">
-          <div className="home-card">
-            <b>지금 제공해요</b>
+          <div className="home-card status-card status-live">
+            <span className="status-badge"><IconCheck />지금 제공해요</span>
             <ul className="home-list">
               <li>코드 없는 샘플 체험 + 5단계 실분석(데모 코드)</li>
               <li>최대 10,000자 입력·TXT/MD 파일 가져오기</li>
@@ -219,8 +231,8 @@ export default function HomePage() {
               <li>개인용 증거카드·상담사용 Gap Brief·인쇄</li>
             </ul>
           </div>
-          <div className="home-card">
-            <b>다음 단계로 준비 중이에요</b>
+          <div className="home-card status-card status-planned">
+            <span className="status-badge"><IconClock />다음 단계로 준비 중이에요</span>
             <ul className="home-list">
               <li>회원가입·내 기록 저장(법적 문서 정비와 함께)</li>
               <li>PDF·DOCX 파일 첨부</li>
