@@ -14,6 +14,7 @@ import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft"
 import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
 import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
 import BrandGlyph from "../components/brand-mark";
+import MobileActionsMenu from "../components/mobile-actions-menu";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
 
@@ -127,7 +128,13 @@ export default function Home() {
   };
   const closeModelDialog = (viaHistory = false) => {
     setModelDialogOpen(false);
-    modelButtonRef.current?.focus();
+    // 모바일은 헤더의 "모델 변경" 버튼이 display:none이라(hidden 요소는 focus 불가) 액션 메뉴
+    // 토글로 대신 복귀한다.
+    if (modelButtonRef.current && modelButtonRef.current.offsetParent !== null) {
+      modelButtonRef.current.focus();
+    } else {
+      document.querySelector<HTMLButtonElement>(".actions-toggle")?.focus();
+    }
     if (!viaHistory) {
       try { if (window.history.state?.gpModelDialog) window.history.back(); } catch { /* 무시 */ }
     }
@@ -615,7 +622,13 @@ export default function Home() {
   const requestDelete = () => setConfirmingDelete(true);
   const cancelDelete = () => {
     setConfirmingDelete(false);
-    deleteButtonRef.current?.focus();
+    // 데스크톱은 헤더의 "새 분석 시작하기" 버튼, 모바일은 그 버튼이 display:none이라
+    // (hidden 요소는 focus 불가) 액션 메뉴 토글로 대신 복귀한다.
+    if (deleteButtonRef.current && deleteButtonRef.current.offsetParent !== null) {
+      deleteButtonRef.current.focus();
+    } else {
+      document.querySelector<HTMLButtonElement>(".actions-toggle")?.focus();
+    }
   };
   const confirmDelete = () => {
     setConfirmingDelete(false);
@@ -649,6 +662,16 @@ export default function Home() {
             ><i /> <span className="sample-badge-text">{analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}</span></span>
             {!sampleMode && <button className="text-button" ref={deleteButtonRef} onClick={requestDelete}>새 분석 시작하기</button>}
           </div>
+        )}
+        {journeyOpen && (
+          <MobileActionsMenu
+            modelLabel={`${findModel(modelId).fullName}${modelId === DEFAULT_MODEL_ID ? " · 기본" : ""}`}
+            onChangeModel={openModelDialog}
+            modelDisabled={analysisSource === "loading"}
+            connectionLabel={analysisSource === "solar" ? `Solar 실연결 · ${analysisModel}` : "Solar 샘플 데모"}
+            connectionLive={analysisSource === "solar"}
+            onNewAnalysis={sampleMode ? null : requestDelete}
+          />
         )}
       </header>
 
