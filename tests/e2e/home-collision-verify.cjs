@@ -58,8 +58,10 @@ async function inspect(page, stress) {
     // ⑦ 가로 overflow(기존 기준 유지)
     const ov = document.documentElement.scrollWidth - document.documentElement.clientWidth;
     if (ov > 0) fails.push(`overflowX=${ov}`);
-    // ⑧ 터치 목표: 내비 링크 44px 유지
-    const short = navItems.filter((n) => r(n).height < 43.5).length;
+    // ⑧ 터치 목표: 실제 렌더되는(보이는) 내비 링크만 44px 검사(#68: 모바일은 .info-nav가 숨겨지고
+    // 드로어가 대체 — 드로어 자체의 44px는 drawer-verify.cjs가 별도로 검증한다)
+    const visibleNav = navItems.filter((n) => n.offsetParent !== null);
+    const short = visibleNav.filter((n) => r(n).height < 43.5).length;
     if (short) fails.push(`touchUnder44=${short}`);
     return { fails, headerBottom: hb ? Math.round(hb.bottom) : null, eyebrowTop: eb ? Math.round(eb.top) : null };
   });

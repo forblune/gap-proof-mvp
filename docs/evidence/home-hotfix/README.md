@@ -14,3 +14,15 @@
 - `after-local-collision.json` — `tests/e2e/home-collision-verify.cjs` 26케이스(7뷰포트 × 2엔진 × 확대 모드) 전부 교차 0·스필 0·클리핑 0
 
 측정 방법: `getBoundingClientRect` 교차 면적(1px 초과를 겹침으로 판정). 기존 qa-sweep의 overflow-x 검사는 세로 스필 겹침을 검출하지 못해 이 검사를 e2e로 영구 추가함.
+
+## 2차 수정 — 햄버거 + 왼쪽 드로어 (2026-07-26)
+
+여러 줄로 랩되는 내비 대신 모바일에서 로고+햄버거 한 줄만 남기고, 6개 메뉴+"데모 열기"를 왼쪽 슬라이드 드로어로 이동.
+
+- `drawer/open-{375,390,430}-webkit.png` — 드로어 열림 상태(배경 딤·닫기 버튼·6개 메뉴+CTA 세로 배치)
+- `drawer/desktop-1440-webkit-regression.png` — 데스크톱 1440px 무변화 확인(스티키 내비 그대로)
+
+검증: `tests/e2e/drawer-verify.cjs`(신규) — 320~430px × Chromium/WebKit에서 닫힌 상태 교차 0, 열기/닫기 5종 트리거(햄버거·배경 클릭·닫기 버튼·메뉴 링크·브라우저 뒤로가기), focus trap 순환·복귀, body 스크롤 잠금, 44px 터치 목표, 텍스트 확대 시 클리핑 0, 데스크톱 1440 회귀 0 — 전부 PASS. `home-collision-verify.cjs`도 갱신(모바일에서 숨겨진 `.info-nav` 대신 실제 렌더되는 요소만 터치 목표 검사) 후 26/26 PASS.
+
+기술 노트: `.topbar`의 `backdrop-filter`가 `position:fixed` 자손의 containing block을 헤더 박스로 축소시키는 브라우저 표준 동작이 있어, 드로어를 `createPortal`로 `document.body`에 렌더링해 우회함.
+
