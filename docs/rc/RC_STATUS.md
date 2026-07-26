@@ -17,6 +17,11 @@
 | 10 | Cross-browser & Real-device QA | #46 | **자동화 PASS / 실기기 수동 대기** | PR #61 — qa-sweep 16항목 |
 | 11 | Professor Package | #47 | **REVIEW** | 본 브랜치 — RC 상태와 일치 재작성 |
 
+## 배포 완료 (2026-07-26)
+
+- PR #63 병합(`c017772`) + 타임아웃 핫픽스(`b8c79d5`) → 운영 버전 **`c856ee58`** 활성
+- 운영 smoke 14/14 · 실 Solar 검증 성공(V2 7필드) · rollback 목표 `cece759c` 유지(미사용)
+
 ## 남은 사용자 항목 (RC 최종 판정·공개 전제)
 
 1. 실기기 수동 검증(iPhone·Android·카카오 인앱·인쇄·VoiceOver — issue-46 워크로그 체크리스트)

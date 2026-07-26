@@ -1,0 +1,19 @@
+{
+  "analyzeCalls": 0,
+  "consoleErrors": [],
+  "sampleNoGate": true,
+  "v2Cards": true,
+  "sampleStep4": true,
+  "overflow390": true,
+  "exitStripsQuery": true,
+  "draftStepKept": true,
+  "draftTextKept": true,
+  "modelKept": true,
+  "importWorks": true,
+  "backOk": true,
+  "draftAfterBack": true,
+  "resetWorks": true,
+  "draftCleared": true,
+  "lockOk": true,
+  "consoleCount": 0
+}
