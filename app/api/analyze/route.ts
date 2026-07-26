@@ -28,7 +28,7 @@ import { readServerEnv } from "../../lib/server-env";
 
 const SOLAR_URL = "https://api.upstage.ai/v1/chat/completions";
 const MAX_INPUT_LENGTH = 10000; // Gate 3(#39): 화면 카운터와 일치
-const SOLAR_TIMEOUT_MS = 12_000;
+const SOLAR_TIMEOUT_MS = 30_000; // V2(최대 1,600토큰) 생성 시간 반영 — 12초는 V1(700토큰) 기준이라 운영에서 전부 타임아웃 폴백됐다
 
 const SYSTEM_PROMPT = `너는 GapProof의 "삶의 경험 발견" 보조다.
 학교·일뿐 아니라 돌봄, 게임, 커뮤니티, SNS, 취미, 독학, 쉬었던 시기의 경험에서 최대 3개의 역량 후보를 찾는다.
@@ -52,7 +52,7 @@ const SYSTEM_PROMPT = `너는 GapProof의 "삶의 경험 발견" 보조다.
 - jobHypotheses: 최대 2개. 각각 title(직업 가설), reason(원문 행동과의 연결 근거), missing(부족한 증거). 근거가 약하면 빈 배열.
 - smallStep: 이번 주에 가능한 작은 검증 행동 하나
 
-JSON 객체 {"claims":[...]}만 출력하라.`;
+JSON 객체 {"claims":[...]}만, 불필요한 공백·줄바꿈 없이 압축해 출력하라.`;
 
 function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
@@ -274,7 +274,7 @@ export async function POST(request: Request) {
           { role: "user", content: experience },
         ],
         temperature: 0.2,
-        max_tokens: 2048, // V2 스키마(후보 3×행동·가설·질문 등 10필드 한국어 JSON)가 700에서 잘려 전부 샘플 폴백되는 문제 수정
+        max_tokens: 1600, // V2 3후보 압축 JSON에 충분하면서 생성 시간을 30초 한도 안에 두는 균형값(700은 잘림, 2048은 12초 타임아웃 유발)
         response_format: { type: "json_object" },
       }),
       signal: controller.signal,

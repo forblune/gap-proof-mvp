@@ -72,7 +72,7 @@ export default function HowItWorksPage() {
       <section className="info-section">
         <h2>실패에 대비한 폴백</h2>
         <ul>
-          <li>Solar 키가 없거나 12초 안에 응답하지 않으면 입력 원문 기반의 규칙 샘플로 전환해요.</li>
+          <li>Solar 키가 없거나 30초 안에 응답하지 않으면 입력 원문 기반의 규칙 샘플로 전환해요.</li>
           <li>응답 JSON이 잘못됐거나 원문과 일치하는 인용이 없어도 샘플로 전환해요.</li>
           <li>어느 경우든 화면 배지와 안내문이 <b>실제 Solar 연결인지 샘플인지</b> 구분해서 보여줘요.</li>
         </ul>
