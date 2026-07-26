@@ -1,6 +1,6 @@
 // #68: 모바일 햄버거+드로어 검증 — 열기/닫기 트리거 4종, focus trap·복귀, 뒤로가기,
 // body 스크롤 잠금, 44px 터치 목표, safe-area, 200%/텍스트 확대 시 클리핑 0, 데스크톱 회귀 0.
-const { chromium, webkit } = require("playwright");
+const { chromium, webkit, firefox } = require("playwright");
 const fs = require("fs");
 const BASE = "http://localhost:3100";
 const OUT = process.argv[2];
@@ -33,17 +33,27 @@ async function closedStateChecks(page, fails, label) {
     const toggle = document.querySelector(".nav-toggle");
     const hero = document.querySelector(".home-hero .eyebrow");
     const infoNav = document.querySelector(".info-nav");
+    const spanRects = toggle ? [...toggle.querySelectorAll("span")].map((s) => s.getBoundingClientRect()) : [];
     return {
       toggleRect: rect(toggle),
       toggleVisible: toggle ? getComputedStyle(toggle).display !== "none" : false,
       heroRect: rect(hero),
       infoNavDisplay: infoNav ? getComputedStyle(infoNav).display : null,
       overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      spanRects: spanRects.map((r) => ({ top: r.top, left: r.left, width: r.width })),
     };
   });
   if (!r.toggleVisible) fails.push(`${label}:toggleNotVisible`);
   if (r.toggleRect && (r.toggleRect.width < 44 || r.toggleRect.height < 44)) fails.push(`${label}:toggleUnder44=${Math.round(r.toggleRect.width)}x${Math.round(r.toggleRect.height)}`);
   if (r.infoNavDisplay !== "none") fails.push(`${label}:infoNavStillVisible`);
+  // 햄버거 3줄이 세로로 쌓이는지(가로로 나란히 배치되면 "☰" 대신 "—‗‗"처럼 보임 — 실기기 확인된 버그)
+  if (r.spanRects.length === 3) {
+    const sameX = Math.abs(r.spanRects[0].left - r.spanRects[1].left) < 1 && Math.abs(r.spanRects[1].left - r.spanRects[2].left) < 1;
+    const stacked = r.spanRects[1].top > r.spanRects[0].top + 1 && r.spanRects[2].top > r.spanRects[1].top + 1;
+    if (!sameX || !stacked) fails.push(`${label}:hamburgerBarsNotStacked`);
+  } else {
+    fails.push(`${label}:hamburgerBarCountUnexpected=${r.spanRects.length}`);
+  }
   const headerOverlap = rectsOverlap(r.toggleRect, r.heroRect);
   if (headerOverlap) fails.push(`${label}:closedHeaderXhero=${headerOverlap}`);
   if (r.overflowX > 0) fails.push(`${label}:closedOverflowX=${r.overflowX}`);
@@ -101,7 +111,7 @@ async function focusTrapCheck(page, fails, label) {
   if (OUT) fs.mkdirSync(OUT, { recursive: true });
   const fails = [];
 
-  for (const [engineName, engine] of [["chromium", chromium], ["webkit", webkit]]) {
+  for (const [engineName, engine] of [["chromium", chromium], ["webkit", webkit], ["firefox", firefox]]) {
     const browser = await engine.launch();
 
     for (const vp of MOBILE_VIEWPORTS) {
