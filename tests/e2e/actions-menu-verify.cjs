@@ -1,6 +1,6 @@
 // #69: 데모 헤더 모바일 액션 메뉴("⋯" + 우상단 팝오버) 검증 — 열기/닫기 트리거,
 // focus trap·복귀, 뒤로가기, body 스크롤 잠금, 44px, 텍스트 클리핑 0, 데스크톱 회귀 0.
-const { chromium, webkit } = require("playwright");
+const { chromium, webkit, firefox } = require("playwright");
 const fs = require("fs");
 const BASE = "http://localhost:3100";
 const OUT = process.argv[2];
@@ -84,7 +84,7 @@ async function openStateChecks(page, fails, label) {
   if (OUT) fs.mkdirSync(OUT, { recursive: true });
   const fails = [];
 
-  for (const [engineName, engine] of [["chromium", chromium], ["webkit", webkit]]) {
+  for (const [engineName, engine] of [["chromium", chromium], ["webkit", webkit], ["firefox", firefox]]) {
     const browser = await engine.launch();
 
     for (const vp of MOBILE_VIEWPORTS) {

@@ -2,7 +2,7 @@
 // qa-sweep의 overflow-x 검사는 세로 스필로 인한 요소 겹침을 못 본다(실기기 iPhone Safari FAIL의 원인).
 // 뷰포트 5종(+200% 확대 근사 320px) × Chromium/WebKit × iOS 텍스트 확대 근사(내비·eyebrow 1.4배)로
 // 교차 면적 0 · 헤더 스필 0 · 단어 내 줄바꿈 위험 0 · overflow 0 · 44px 터치 목표 · 콘솔 오류 0을 강제한다.
-const { chromium, webkit } = require("playwright");
+const { chromium, webkit, firefox } = require("playwright");
 const fs = require("fs");
 const BASE = "http://localhost:3100";
 const OUT = process.argv[2];
@@ -71,7 +71,7 @@ async function inspect(page, stress) {
   if (OUT) fs.mkdirSync(OUT, { recursive: true });
   const results = {};
   const failures = [];
-  for (const [engineName, engine] of [["chromium", chromium], ["webkit", webkit]]) {
+  for (const [engineName, engine] of [["chromium", chromium], ["webkit", webkit], ["firefox", firefox]]) {
     const browser = await engine.launch();
     for (const [w, h] of VIEWPORTS) {
       const page = await browser.newPage({ viewport: { width: w, height: h } });
