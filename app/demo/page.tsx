@@ -13,6 +13,7 @@ import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
 import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
 import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
+import { IconCheck, IconQuestion, IconWarning, IconCompass, IconChecklist } from "../components/fact-icons";
 import BrandGlyph from "../components/brand-mark";
 import MobileActionsMenu from "../components/mobile-actions-menu";
 
@@ -926,7 +927,7 @@ export default function Home() {
                   <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="GitHub·수료증·노트 URL" onChange={(event) => attachLink(claim.id, event.target.value)} />
                   <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작해요"}</small>
                 </div>
-                <p className="follow-up"><b>더 확인하면 좋은 것</b>{claim.question}</p>
+                <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
                   <div className="claim-v2">
                     <div className="v2-badges">
@@ -936,12 +937,12 @@ export default function Home() {
                     </div>
                     {claim.context && <p className="v2-line"><b>상황</b>{claim.context}</p>}
                     {claim.behaviors && claim.behaviors.length > 0 && (
-                      <p className="v2-line"><b>확인된 행동</b>{claim.behaviors.join(" · ")}</p>
+                      <p className="v2-line"><b><IconCheck />확인된 행동</b>{claim.behaviors.join(" · ")}</p>
                     )}
-                    {claim.overclaimRisk && <p className="v2-line risk"><b>과장 주의</b>{claim.overclaimRisk}</p>}
+                    {claim.overclaimRisk && <p className="v2-line risk"><b><IconWarning />과장 주의</b>{claim.overclaimRisk}</p>}
                     {claim.jobHypotheses && claim.jobHypotheses.length > 0 && (
                       <div className="v2-hypo">
-                        <b>직업 가설 (판정 아님)</b>
+                        <b><IconCompass />직업 가설 (판정 아님)</b>
                         <ul>
                           {claim.jobHypotheses.map((hypothesis) => (
                             <li key={hypothesis.title}>
@@ -952,7 +953,7 @@ export default function Home() {
                         </ul>
                       </div>
                     )}
-                    {claim.smallStep && <p className="v2-line step"><b>이번 주 작은 실험</b>{claim.smallStep}</p>}
+                    {claim.smallStep && <p className="v2-line step"><b><IconChecklist />이번 주 작은 실험</b>{claim.smallStep}</p>}
                   </div>
                 )}
                 <div className="claim-actions">
