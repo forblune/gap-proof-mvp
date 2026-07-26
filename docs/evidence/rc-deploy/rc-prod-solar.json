@@ -1,0 +1,20 @@
+{
+  "analyzeCalls": 1,
+  "badge": "Solar 실연결 · solar-pro3",
+  "solarLive": true,
+  "requestModel": "solar-pro3",
+  "badgeModelMatch": true,
+  "notSampleNotice": true,
+  "claims": 2,
+  "v2": {
+    "factStatus": true,
+    "behaviors": true,
+    "strength": true,
+    "overclaim": true,
+    "hypotheses": true,
+    "missing": true,
+    "smallStep": true
+  },
+  "quoteInSource": true,
+  "step4Footer": true
+}
