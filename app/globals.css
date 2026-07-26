@@ -23,7 +23,7 @@ button { color: inherit; }
 button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid rgba(31, 112, 95, .35); outline-offset: 3px; }
 
 .topbar { height: 76px; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(247, 243, 233, .94); position: sticky; top: 0; z-index: 20; backdrop-filter: blur(12px); }
-.brand { display: inline-flex; gap: 10px; align-items: center; color: var(--ink); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.04em; }
+.brand { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; color: var(--ink); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.04em; }
 .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; background: var(--ink); color: var(--paper); border-radius: 9px 9px 16px 9px; }
 .brand-mark svg { width: 74%; height: 74%; display: block; }
 .brand-mark .mark-bridge { fill: var(--yellow); }
@@ -89,7 +89,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .check-row b { font-size: 14px; }
 .check-row small { color: var(--muted); line-height: 1.5; }
 .check-row.optional { opacity: .82; }
-.fine-print { display: block; margin-top: 14px; color: var(--muted); text-align: center; }
+.fine-print { display: block; margin-top: 14px; color: #5a6377; text-align: center; } /* design-loop-03: --muted(4.49:1)는 크림 배경에서 WCAG AA 근소 미달 — 5.4:1대로 조정 */
 
 .primary, .secondary { min-height: 48px; padding: 0 20px; border-radius: 11px; font-weight: 800; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease; }
 .primary { border: 1px solid var(--ink); background: var(--ink); color: white; box-shadow: 0 8px 20px rgba(23, 36, 61, .16); }
@@ -116,7 +116,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 /* 데모 접근 게이트 */
 .gate-page { display: flex; justify-content: center; }
-.gate-brand { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 19px; font-weight: 850; letter-spacing: -.04em; }
+.gate-brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; margin-bottom: 14px; font-size: 19px; font-weight: 850; letter-spacing: -.04em; }
 .gate-card { width: 100%; max-width: 460px; margin: 34px auto; padding: 30px 28px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
 .gate-card h1 { margin: 10px 0 12px; font-family: Georgia, "Noto Serif KR", serif; font-size: clamp(26px, 4vw, 34px); letter-spacing: -.03em; line-height: 1.2; }
 .gate-guide { margin: 0 0 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
@@ -166,10 +166,13 @@ body.drawer-open { overflow: hidden; }
 .info-shell h1 { margin: 10px 0 14px; font-family: Georgia, "Noto Serif KR", serif; font-size: clamp(30px, 4.5vw, 44px); letter-spacing: -.04em; line-height: 1.18; }
 .info-lead { margin: 0 0 26px; color: #4c576a; font-size: 16px; line-height: 1.7; word-break: keep-all; }
 .info-section { margin: 22px 0; padding: 22px 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
-.info-section h2 { margin: 0 0 12px; font-family: Georgia, "Noto Serif KR", serif; font-size: 21px; }
+.info-section h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; font-family: Georgia, "Noto Serif KR", serif; font-size: 21px; }
+.info-section h2 svg { width: 19px; height: 19px; flex: 0 0 auto; color: var(--green); }
 .info-section p { margin: 0 0 10px; color: #445066; font-size: 14px; line-height: 1.7; }
 .info-section ul { margin: 0; padding-left: 18px; color: #445066; font-size: 14px; line-height: 1.75; }
 .table-scroll { overflow-x: auto; }
+.scroll-hint { display: none; margin: 6px 0 0; color: var(--muted); font-size: 11.5px; text-align: center; }
+@media (max-width: 640px) { .scroll-hint { display: block; } } /* design-loop-03: 표가 뷰포트보다 넓을 때 가로 스크롤 힌트 제공 */
 .info-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 13px; line-height: 1.6; }
 .info-table th, .info-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .info-table th { color: var(--muted); font-size: 11px; font-weight: 800; }
@@ -492,7 +495,7 @@ body.drawer-open { overflow: hidden; }
 .home-cta-row a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .home-cta-row .secondary { color: var(--ink); }
 .home-hero .fine-print, .home-final .fine-print { text-align: left; }
-.home-hero .fine-print { color: rgba(255, 255, 255, .64); }
+.home-hero .fine-print, .home-final .fine-print { color: rgba(255, 255, 255, .64); } /* design-loop-03 fix: .home-final도 다크 배경이라 동일 대비 보정 필요 (놓쳤던 회귀) */
 .home-hero .primary, .home-final .primary { background: var(--paper); border-color: var(--paper); color: var(--ink); }
 .home-hero .primary span, .home-final .primary span { color: var(--green); }
 .home-hero .primary:hover:not(:disabled), .home-final .primary:hover:not(:disabled) { box-shadow: 0 12px 28px rgba(0, 0, 0, .35); }

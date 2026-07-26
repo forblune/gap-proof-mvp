@@ -51,6 +51,7 @@ export default function TechnologyPage() {
             </tbody>
           </table>
         </div>
+        <p className="scroll-hint">← 좌우로 밀어 전체 표를 볼 수 있어요 →</p>
       </section>
 
       <section className="info-section">
