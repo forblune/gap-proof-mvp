@@ -11,26 +11,33 @@ const OUT = process.argv[2];
   await p.goto("http://localhost:3100/demo", { waitUntil: "networkidle" });
   await p.fill("#gate-code", "e2e-demo-code");
   await p.getByRole("button", { name: "데모 열기" }).click();
-  await p.waitForSelector(".model-summary", { timeout: 8000 });
-  r.summaryDefault = (await p.locator(".model-summary-text b").textContent()).includes("Solar Pro 3");
+  // #69: 390px에서는 .top-actions가 감춰지고 "⋯" 액션 메뉴로 대체된다
+  await p.waitForSelector(".actions-toggle", { timeout: 8000 });
+  await p.click(".actions-toggle");
+  await p.waitForSelector(".actions-model-row b", { timeout: 8000 });
+  r.summaryDefault = (await p.locator(".actions-model-row b").textContent()).includes("Solar Pro 3");
 
   // 열기 → 바텀시트 + 공식/자체/평가 중 구분 + 라디오
-  await p.getByRole("button", { name: "모델 변경" }).click();
+  await p.click(".actions-model-row button");
   await p.waitForSelector(".model-dialog[open]", { timeout: 5000 });
   const dtext = await p.locator(".model-dialog").innerText();
   r.sourceSplit = dtext.includes("[공식]") && dtext.includes("[자체]") && dtext.includes("평가 중");
   r.radios = (await p.locator('.model-card input[type="radio"]').count()) === 3;
   await p.screenshot({ path: `${OUT}/model-sheet-390.png` });
 
-  // Esc 닫기(네이티브 focus trap 계열) → 재열기 → Mini 선택 적용
+  // Esc 닫기(네이티브 focus trap 계열) → 재열기(액션 메뉴부터) → Mini 선택 적용
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);
   r.escCloses = !(await p.locator(".model-dialog[open]").count());
-  await p.getByRole("button", { name: "모델 변경" }).click();
+  await p.click(".actions-toggle");
+  await p.click(".actions-model-row button");
   await p.getByText("Solar Mini", { exact: false }).first().click();
   await p.getByRole("button", { name: "이 모델 사용" }).click();
   await p.waitForTimeout(300);
-  r.summaryUpdated = (await p.locator(".model-summary-text b").textContent()).includes("Solar Mini");
+  await p.click(".actions-toggle");
+  r.summaryUpdated = (await p.locator(".actions-model-row b").textContent()).includes("Solar Mini");
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(300);
 
   // 선택값이 API 요청 본문과 일치(무과금: 키 없음 → 서버 샘플 폴백)
   await p.locator(".check-row input").first().check();

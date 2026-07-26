@@ -75,13 +75,16 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
   await page.locator("#experience").fill(TEXT);
   await page.waitForTimeout(300);
   r.draftExistsBeforeDelete = await page.evaluate(() => window.localStorage.getItem("gp_draft_v1") !== null);
+  // #69: 390px에서는 .top-actions가 감춰지고 "⋯" 액션 메뉴 안에 있다
+  await page.click(".actions-toggle");
   await page.getByRole("button", { name: /새 분석 시작하기/ }).click();
   await page.locator(".confirm-bar button.danger").click();
   await page.waitForTimeout(300);
   r.deleteClearsDraft = await page.evaluate(() => window.localStorage.getItem("gp_draft_v1") === null);
 
-  // 의도적으로 유발한 401(세션 만료 시나리오)의 브라우저 네트워크 로그는 앱 오류가 아니므로 제외
-  const appErrors = errors.filter((t) => !/Failed to load resource: .*401/.test(t));
+  // 의도적으로 유발한 401(세션 만료 시나리오)과 로컬 하네스 전용 CORS 잡음은 앱 오류가 아니므로 제외
+  const LOCAL_ARTIFACT = /Failed to load resource: .*401|Access-Control-Allow-Origin/;
+  const appErrors = errors.filter((t) => !LOCAL_ARTIFACT.test(t));
   r.consoleErrors = appErrors.length;
   r.consoleErrorTexts = appErrors.slice(0, 5);
   r.expected401NetworkLogs = errors.length - appErrors.length;

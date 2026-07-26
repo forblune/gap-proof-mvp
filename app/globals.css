@@ -29,6 +29,26 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .brand-mark .mark-bridge { fill: var(--yellow); }
 .brand-mark.small { width: 28px; height: 28px; border-radius: 7px 7px 12px 7px; }
 .top-actions { display: flex; align-items: center; gap: 18px; }
+/* #69: 데모 헤더 모바일 액션 메뉴 — 모델 요약·연결 배지·새 분석 시작하기가 좁은 폭에 욱여넣어져
+   텍스트가 단어 내에서 줄바꿈되던 문제("Solar Pro\n3" 등)를 "⋯" + 우상단 소형 팝오버로 대체 */
+.actions-toggle { display: none; width: 44px; height: 44px; align-items: center; justify-content: center; border: none; background: transparent; padding: 0; margin: 0; cursor: pointer; font-size: 20px; line-height: 1; color: var(--ink); flex: 0 0 auto; }
+.actions-panel {
+  position: absolute; top: max(10px, env(safe-area-inset-top) + 6px); right: max(10px, env(safe-area-inset-right) + 6px);
+  width: min(86vw, 300px); background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
+  padding: 4px; opacity: 0; transform: translateY(-10px) scale(.98); transition: opacity .18s ease, transform .18s ease; pointer-events: none;
+}
+.drawer-root.actions-root.open .actions-panel { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.actions-root .drawer-backdrop { background: transparent; } /* 소형 유틸리티 메뉴 — 전체 화면 딤 없이 바깥 클릭만 감지 */
+.actions-panel .drawer-head { justify-content: space-between; gap: 8px; padding: 6px 6px 4px 10px; }
+.actions-panel-body { display: flex; flex-direction: column; gap: 12px; padding: 2px 12px 12px; }
+.actions-model-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.actions-model-row small { color: var(--muted); font-size: 11px; letter-spacing: .02em; }
+.actions-model-row b { font-size: 14px; word-break: keep-all; }
+.actions-model-row button { min-height: 40px; }
+.actions-reset { min-height: 44px; padding: 0 4px; justify-content: flex-start; }
+/* 좁은 가로 한 줄용 압축(모바일 .top-actions)이 넓은 세로 패널까지 새어들지 않도록 복원 */
+.actions-panel .sample-badge { font-size: 13px; padding: 8px 12px; max-width: none; }
+.actions-panel .sample-badge-text { display: inline; }
 .sample-badge { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid #dfc35f; border-radius: 999px; background: #fff7d9; font-size: 13px; font-weight: 750; }
 .sample-badge i, .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 0 3px rgba(244, 200, 74, .25); }
 .sample-badge.live { border-color: #8fc2b4; background: var(--green-soft); color: var(--green); }
@@ -329,7 +349,10 @@ body.drawer-open { overflow: hidden; }
      고정 64px·sticky가 다시 안전해진다(다중 행 스필 원천 차단). 데모 topbar(.info-bar 아님)는 그대로. */
   .info-nav { display: none; }
   .nav-toggle { display: inline-flex; }
-  .top-actions { gap: 6px; }
+  /* 데모 헤더(#69): 모델 요약·연결 배지·새 분석 시작하기를 한 줄에 욱여넣던 .top-actions를 감추고
+     "⋯" 액션 메뉴로 대체 — 위 내비와 동일하게 헤더를 로고+버튼 한 줄로 고정한다. */
+  .top-actions { display: none; }
+  .actions-toggle { display: inline-flex; }
   .text-button { font-size: 12px; padding: 12px 4px; }
   .model-select { font-size: 11px; padding: 0 5px; }
   .sample-badge { font-size: 10px; padding: 6px 8px; max-width: 30vw; }
