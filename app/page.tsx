@@ -69,19 +69,21 @@ export default function HomePage() {
         <MobileDrawerNav />
       </header>
 
-      {/* 1. Hero */}
+      {/* 1. Hero — 하이브리드 방향: 핵심 진입 구간은 다크 네이비로 무게감을 준다 */}
       <section className="home-hero" aria-labelledby="home-hero-title">
-        <p className="eyebrow">삶의 경험 → 확인된 증거 → 이번 주 한 걸음</p>
-        <h1 id="home-hero-title">경력이라고 생각하지 않았던 경험에서<br /><em>다음 가능성</em>을 발견하세요.</h1>
-        <p className="lead">
-          돌봄, 아르바이트, 게임, 취미, 독학, 쉬었던 시간까지. GapProof는 삶에서 실제로 한 행동을
-          근거로 역량 후보를 찾고, 확인 질문과 작은 실험을 통해 다음 진로 탐색으로 연결합니다.
-        </p>
-        <div className="home-cta-row">
-          <a className="primary" href="/demo">내 경험에서 가능성 찾기 →</a>
-          <a className="secondary" href="/demo?sample=1">샘플로 둘러보기</a>
+        <div className="home-hero-inner">
+          <p className="eyebrow">삶의 경험 → 확인된 증거 → 이번 주 한 걸음</p>
+          <h1 id="home-hero-title">경력이라고 생각하지 않았던 경험에서<br /><em>다음 가능성</em>을 발견하세요.</h1>
+          <p className="lead">
+            돌봄, 아르바이트, 게임, 취미, 독학, 쉬었던 시간까지. GapProof는 삶에서 실제로 한 행동을
+            근거로 역량 후보를 찾고, 확인 질문과 작은 실험을 통해 다음 진로 탐색으로 연결합니다.
+          </p>
+          <div className="home-cta-row">
+            <a className="primary" href="/demo">내 경험에서 가능성 찾기 →</a>
+            <a className="secondary" href="/demo?sample=1">샘플로 둘러보기</a>
+          </div>
+          <p className="fine-print">샘플은 코드 없이 볼 수 있어요 · 실제 분석은 심사·멘토링용 데모 코드로 입장해요 · 취업 가능성이나 적성을 판정하지 않습니다.</p>
         </div>
-        <p className="fine-print">샘플은 코드 없이 볼 수 있어요 · 실제 분석은 심사·멘토링용 데모 코드로 입장해요 · 취업 가능성이나 적성을 판정하지 않습니다.</p>
       </section>
 
       {/* 2. 왜 필요한가 */}
@@ -146,19 +148,31 @@ export default function HomePage() {
             <article className="home-case" key={c.id} aria-label={`가상 사례: ${c.tag}`}>
               <p className="case-tag">{c.tag}</p>
               <blockquote>{c.raw}</blockquote>
-              <dl>
-                <dt>확인된 행동</dt>
-                <dd><ul>{c.actions.map((a) => <li key={a}>{a}</li>)}</ul></dd>
-                <dt>역량 후보</dt>
-                <dd><b>{c.candidate}</b> — 근거: “{c.quote}”</dd>
-                <dt>더 확인할 것</dt>
-                <dd>{c.verify}</dd>
-                <dt>과장하지 않기</dt>
-                <dd>{c.risk}</dd>
-                <dt>직업 가설</dt>
-                <dd>{c.hypothesis}</dd>
-                <dt>이번 주 작은 실험</dt>
-                <dd>{c.smallStep}</dd>
+              <dl className="case-facts">
+                <div className="fact fact-evidence">
+                  <dt>확인된 행동</dt>
+                  <dd><ul>{c.actions.map((a) => <li key={a}>{a}</li>)}</ul></dd>
+                </div>
+                <div className="fact fact-candidate">
+                  <dt>역량 후보</dt>
+                  <dd><b>{c.candidate}</b> — 근거: “{c.quote}”</dd>
+                </div>
+                <div className="fact fact-verify">
+                  <dt>더 확인할 것</dt>
+                  <dd>{c.verify}</dd>
+                </div>
+                <div className="fact fact-caution">
+                  <dt>과장하지 않기</dt>
+                  <dd>{c.risk}</dd>
+                </div>
+                <div className="fact fact-hypothesis">
+                  <dt>직업 가설</dt>
+                  <dd>{c.hypothesis}</dd>
+                </div>
+                <div className="fact fact-action">
+                  <dt>이번 주 작은 실험</dt>
+                  <dd>{c.smallStep}</dd>
+                </div>
               </dl>
             </article>
           ))}
@@ -217,14 +231,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 10. CTA */}
+      {/* 10. CTA — 히어로와 같은 다크 네이비로 마무리해 열고 닫는 구조를 만든다 */}
       <section className="home-section home-final" aria-labelledby="home-cta">
-        <h2 id="home-cta">공백을 지우지 않고, 증거로 바꿉니다.</h2>
-        <div className="home-cta-row">
-          <a className="primary" href="/demo">내 경험에서 가능성 찾기 →</a>
-          <a className="secondary" href="/guide">이용 가이드 먼저 보기</a>
+        <div className="home-final-inner">
+          <h2 id="home-cta">공백을 지우지 않고, 증거로 바꿉니다.</h2>
+          <div className="home-cta-row">
+            <a className="primary" href="/demo">내 경험에서 가능성 찾기 →</a>
+            <a className="secondary" href="/guide">이용 가이드 먼저 보기</a>
+          </div>
+          <p className="fine-print">GapProof는 취업 가능성이나 적성을 판정하지 않습니다.</p>
         </div>
-        <p className="fine-print">GapProof는 취업 가능성이나 적성을 판정하지 않습니다.</p>
       </section>
 
       <footer className="site-footer">
