@@ -211,3 +211,62 @@ Explore 서브에이전트로 조사한 결과:
 2. 학습확인 퀴즈 2문항 통과=Lv.2 수행 확인 부여 로직 재검토 필요(이전 기록 유지, 이슈 미생성).
 3. (신규, 비차단) `tests/e2e/pre-merge-verification.spec.ts`의 STEP5 도달 구간에서 `/api/share-config`(카카오 SDK) 호출이 모킹되지 않음 — try/catch로 무해하게 무시되지만 완전한 네트워크 격리를 원하면 후속에서 모킹 권장.
 
+---
+
+## PR #76 Squash Merge & 운영 배포
+
+- 목표: PR #76을 안전하게 squash merge하고 GapProof 운영(https://gapproof.forblune.com)에 배포한 뒤 프로덕션 검증까지 완료. 실패 시 즉시 이전 Worker 버전으로 롤백. 최대 8턴/2시간.
+- 시작 상태 복원 확인: `pwd`=worktree, `git status`=clean, HEAD=`d1e0691`(예상 SHA와 정확히 일치), `origin/main`=`fcc5be1`(예상과 일치), PR #76=OPEN·Ready for review·MERGEABLE·mergeStateStatus=CLEAN. Cloudflare 계정 인증 확인(운영 계정과 일치). 운영 URL `/` 사전 확인 200. 예상과 다른 점 없음, 다른 사용자 변경 없음 — 진행.
+
+### 병합 전 최종 게이트
+
+`npm test`(46/46) · `npm run lint`(신규 오류 0, 기존 4건 main 사전 오류와 구분) 재확인. `npx playwright test`(183/183, Chromium·Firefox·WebKit)는 직전 루프(같은 HEAD `d1e0691`)에서 이미 완전히 검증되어 코드 변경이 전혀 없는 상태이므로 8턴 예산 안에서 중복 재실행하지 않고 그 결과를 그대로 인용함(투명하게 기록).
+
+### Squash Merge
+
+`gh pr merge 76 --squash --delete-branch=false`(브랜치 보존, force-push·다른 PR 병합 없음). 병합 직전 PR head SHA(`d1e0691...`)를 재조회해 예상과 일치함을 재확인한 뒤 실행.
+
+- **squash merge commit SHA**: `98f9f9b59c62378caa88f12f9f39cc5f0e3df7dc`
+- 로컬 `main`(원본 체크아웃 `/Users/gh/gap-proof-mvp`, 이 워크트리와 별개) 상태 확인: clean, `fcc5be1`에서 뒤처짐 1커밋 → `git pull --ff-only origin main`으로 **fast-forward** 성공(reset 불필요, 로컬 변경 없었음) → 로컬 main HEAD = `98f9f9b`(merge commit과 일치), `git status` clean.
+
+### 배포
+
+기존 Runbook(`docs/deployment/GAPPROOF_RELEASE_RUNBOOK.md`) 절차 그대로 사용: `npm run build && npx vinext deploy`. Worker 이름·설정·binding·secret·DNS 변경 없음(4개 binding: ASSETS·IMAGES·ANALYZE_RATE_LIMITER·GATE_RATE_LIMITER, 배포 로그로 불변 확인).
+
+- **배포 전 활성 Worker version(롤백 목표)**: `5e15cd88-18e1-4ac8-826f-c9eb900d554c`(2026-07-27T15:04 배포분)
+- **배포 결과**: `npx vinext deploy`가 "Uploaded gapproof-mvp" 이후 workers.dev 서브도메인 미등록 관련 사후 체크에서 exit code 1을 반환(Runbook이 "무해"라 기록한 그 경고가, 현재 wrangler 4.92.0 버전에서는 non-interactive 환경에서 하드 에러로 승격됨 — 실제 업로드·바인딩 반영은 그 이전에 완료됨). `npx wrangler deployments list`와 운영 URL 실측 HTTP 200 응답으로 **실제 배포 성공을 직접 확인**(도구 종료 코드만으로 판단하지 않음). 진단을 위해 `vinext deploy`를 1회 더 실행(동일 커밋, 변경 없음)해 새 버전이 한 번 더 생성됨 — 무해하나 향후에는 exit code 대신 `deployments list`로 먼저 확인 후 재시도 여부를 결정할 것을 기록.
+- **새(최종) 활성 Worker version**: `c18e56c4-4248-443d-8612-b1b3a925b8d4`(2026-07-27T21:37 배포분, 100%)
+- Supabase migration·DDL·RLS·Auth·Edge Function 변경 0. Solar 실제 분석 호출 0(배포 절차 자체에 분석 호출 없음).
+
+### 운영 스모크 테스트
+
+`tests/e2e/production-smoke.spec.ts`(신규, 로컬에만 존재 — main에는 커밋하지 않음, 아래 참고)를 `PLAYWRIGHT_BASE_URL=https://gapproof.forblune.com`으로 실행(chromium). curl로 9개 페이지 HTTP 상태 우선 확인:
+
+| 페이지 | 상태 |
+|---|---|
+| `/` `/demo?sample=1` `/about` `/guide` `/how-it-works` `/technology` `/privacy` `/terms` | 200 |
+| `/contact` | **404 — 사전 존재하지 않는 라우트**(`npm run build` 라우트 목록에 애초에 없음, 이번 PR과 무관한 기존 상태. "핵심 페이지 5xx" 롤백 조건에 해당하지 않음) |
+
+Playwright 16/16 통과:
+- 정보 페이지 7종(`/about`·`/guide`·`/how-it-works`·`/technology`·`/privacy`·`/terms`·`/`) 200·console error 0·hydration error 0
+- 320/375/430/1440px에서 `/`·`/demo` 가로 스크롤 0
+- **STEP3 목표직무 선택기가 자료보다 먼저 노출**, 데이터 분석가 선택 시 역량·검색어 즉시 갱신(AI 서비스 기획자 전용 자료 혼입 0), **STEP4 role-chip·STEP5 결과까지 동일 직무 유지**
+- **AI 가설과 선택 목표직무 문구 구분**(`AI 가설: ...` 표시 확인), 외부 링크(YouTube·K-MOOC·고용24·온통청년) 전부 `https`+`target="_blank"`+`rel="noopener noreferrer"`, YouTube 검색어에 사용자 원문("엑셀") 미포함·역량 키워드만 확인, 실제 외부 API 요청 0(youtube·kmooc·work24·youthcenter·upstage 요청 캡처 0건)
+- **퀴즈 자동 시작 없음**(STEP3에 `.check-panel` 0개, STEP4 진입 직후 `.check-q` 0개) + 건너뛰기 가능(퀴즈 없이 GapProof 만들기 버튼 활성)
+- STEP3 axe(wcag2a/aa) serious/critical 0
+- 접근코드 게이트(오류 코드 처리)·샘플 모드 우회 기존 동작 회귀 0
+
+### 최종 판단: KEEP — 롤백 불필요
+
+롤백 조건(핵심 페이지 5xx·데모 진행 불가·STEP3·4·5 직무 불일치·hydration/런타임 오류·모바일 CTA 사용 불가·개인정보 외부 URL 노출·기존 기능 회귀) 전부 미해당. 운영 배포를 최종 상태로 확정.
+
+### Git/PR 정리
+
+- `production-smoke.spec.ts`는 이번 세션 검증 전용 스크립트로 **main에도, 이 브랜치에도 커밋하지 않음**("다른 기능 수정 금지" 범위를 넘지 않기 위함 — 이미 병합된 브랜치에 사후 커밋을 추가하는 것도 최소화). 로컬 main(`/Users/gh/gap-proof-mvp`)은 병합 커밋 `98f9f9b` 그대로 `git status` clean 유지.
+- 이 devlog 갱신은 (이미 병합된) `feat/learn-before-check-resources` 브랜치에 커밋 후 push — main에는 직접 커밋하지 않음(표준 원칙 유지). 브랜치는 삭제하지 않음.
+- force-push·다른 PR 병합·Secret/binding/DNS 변경·Supabase 변경 전혀 없음.
+
+### 남은 P1 (변경 없음)
+
+기존 두 항목(STEP4 라벨 부재, 퀴즈 Lv.2 로직 재검토) 유지. 신규: `npx vinext deploy`가 workers.dev 관련 사후 체크에서 exit 1을 반환하는 현상(실제 배포는 성공) — 다음 배포 시 exit code만으로 실패 판단하지 말고 `wrangler deployments list`로 직접 확인할 것.
+
