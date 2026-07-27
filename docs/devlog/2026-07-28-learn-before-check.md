@@ -155,5 +155,59 @@ Explore 서브에이전트로 조사한 결과:
 
 - 브랜치: `feat/learn-before-check-resources`(기존 유지) · PR #76(기존 유지, main 대상, **Draft·미병합** 상태 유지).
 - 새 PR 생성 없음, main 직접 커밋 없음, force-push/reset --hard/브랜치 삭제 없음, 운영 배포·Cloudflare·Supabase·Secret 변경 없음.
-- 커밋 예정: `fix: align learn-before-check resources with selected role`, `test: cover role selection and draft consistency`(role-personalization spec), `docs: record independent PR review and remediation`(본 항목).
+- 커밋: `fix: align learn-before-check resources with selected role`(`b2cd423`), `docs: record independent PR review and remediation`(본 항목, `b2cd423`에 포함).
+
+---
+
+## PR #76 병합 전 최종 검증 (Ready for review 게이트)
+
+- 목표: PR #76을 병합 전 최종 검증하고, 문제가 없으면 Draft→Ready for review 전환. main 병합·운영 배포는 하지 않음. 최대 6턴/3시간.
+- 시작 상태 복원 확인: `pwd`=worktree, `git status`=clean, 브랜치=`feat/learn-before-check-resources`, HEAD=`b2cd423`(목표에서 예상한 SHA와 일치), `origin/main`=`fcc5be1`, PR #76=OPEN·DRAFT·MERGEABLE. 예상과 실제 일치, 다른 사용자 변경 없음.
+
+### 필수 검증 1 — draft 새로고침 복원 E2E (일반 모드)
+
+이 테스트 환경에는 유효한 `GATE_ACCESS_CODE`(시크릿)가 설정돼 있지 않아 실제 게이트 로그인을 거칠 수 없음을 확인(`.dev.vars` 부재, 기존 `gate.spec.ts`도 성공 로그인 케이스를 다루지 않음). 목표 지시("안전한 브라우저 localStorage fixture 사용, 실제 draft 계약 그대로 검증")에 따라: `page.route("**/api/gate", ...)`로 로컬 게이트 확인 엔드포인트의 GET 응답만 `{authorized:true}`로 모킹(Solar·Supabase와 무관한 순수 클라이언트 인증 체크, 실제로 호출하지도 않음)하고, `page.addInitScript`로 `DraftV1` 스키마와 정확히 일치하는 fixture(`roleId:"data_analyst"`, `step:3`, 확인된 claim 1개)를 `localStorage`에 심은 뒤 `/demo`(비-샘플)로 진입 → 실제 `page.reload()`까지 수행. `tests/e2e/pre-merge-verification.spec.ts` 신규 작성.
+
+결과: STEP3 "먼저 알아보기"로 정상 복원, 데이터 분석가 라디오 선택 상태·역량("데이터 수집·정제") 확인, AI 서비스 기획자 전용 자료("문제 정의·도메인 연결") 혼입 0. 새로고침 후에도 유지. STEP4의 `.role-chip`, STEP5 결과 카드 모두 "데이터 분석가" 기준으로 일관. Engineering Code Reviewer가 fixture를 `parseDraft` 로직과 필드 단위로 대조해 "복원 실패 시 조용히 기본값(AI 서비스 기획자)으로 빠져 테스트가 잘못된 이유로 통과하는" 가능성까지 배제했음을 확인(우연한 통과 아님).
+
+### 필수 검증 2 — 시각·UX
+
+- 320/375/430/768/1440px에서 STEP3·STEP4 모두 가로 스크롤 0(신규 테스트, 접힌 "제도 확인하기" 콘텐츠 펼친 상태 포함).
+- 키보드(`ArrowRight`)만으로 라디오 선택·포커스 이동 확인 — Accessibility Auditor가 코드 전체에서 `onKeyDown`/`ArrowRight` 핸들러가 RoleSelect에 전혀 없음을 grep으로 확인해 "네이티브 브라우저 라디오그룹 동작을 그대로 검증한 것"임을 재확인(가짜 통과 아님).
+- STEP3 진입 시 `<h1>` 포커스 이동 확인(`toBeFocused()`).
+- STEP3→4→3 왕복 후 선택 유지, 재선택 시 이전 직무 잔존 자료 0 — 직전 루프의 `role-personalization.spec.ts`가 이미 커버.
+- STEP4 라디오 위 시각적 라벨 부재(기존 P1)는 UX Researcher가 "바로 옆 `.role-chip`이 현재 선택 직무를 이미 표시하고 있어 이해 실패는 아니며, 사소한 발견성 개선 여지 — 병합 차단 사유 아님"으로 재확인. 이번 PR에서 수정하지 않음(취향 수준 판단, devlog 유지).
+
+### 필수 검증 3 — 링크와 개인정보
+
+기존 `tests/resources.test.mjs`(YouTube·K-MOOC URL이 선택 직무의 우선 역량 키워드만 포함, 고용24·온통청년은 고정 공식 URL, `experience`/`quote` 미참조)와 `tests/e2e/learn-before-check.spec.ts`(https·`target=_blank`+`rel="noopener noreferrer"`·외부 API 요청 0 네트워크 캡처 검증)로 이미 전부 커버됨을 재확인 — 신규 코드 추가 없음(회귀 없음, `lookIntoComp.label`이 역할 변경과 무관하게 항상 카탈로그 문자열만 사용).
+
+### 전체 테스트 결과
+
+- `npm test` → **46/46 통과**(build 포함).
+- `npm run lint` → 신규 오류 0(기존 4건 main 사전 오류, 무관).
+- `npx playwright test`(chromium+firefox+webkit) → **183/183 통과**(신규 `pre-merge-verification.spec.ts` 12개 포함).
+- 일회성 하이드레이션 콘솔 경고(`ThemeToggle`의 `disabled` 속성, webServer 로그)가 1회 관측됐으나, 해당 테스트를 3회 격리 반복 실행(`--repeat-each=3`)해도 재현되지 않았고, 재실행한 전체 스위트(183/183)에서도 재현되지 않음. `ThemeToggle`/`layout.tsx`는 이번 세션에서 전혀 수정하지 않은 파일이며, dev 서버(HMR) 특유의 비결정적 타이밍으로 판단 — 조용히 넘기지 않고 여기 기록함. 프로덕션 게이트인 `npm run build`는 별도로 매번 통과.
+- Solar 실제 호출 0 / Supabase 읽기·쓰기 0 — 변경 없음(코드에 Supabase 클라이언트 자체가 없음, Solar는 `/api/analyze` 사용자 클릭 경로에만 연결되어 있고 이번 신규 테스트 어디에서도 트리거되지 않음, Engineering 재확인).
+
+### 독립 리뷰 (4명 병렬, 최종 병합 게이트)
+
+| 역할 | 판정 | 핵심 근거 |
+|---|---|---|
+| Product Manager(리드) | **KEEP** | 의사결정 이력 일관, 신규 테스트가 실제 격차를 메움(대충 통과하는 테스트 아님), Ready for review 승인 |
+| UX Researcher | **KEEP WITH MINOR NOTES** | STEP4 라벨 부재는 `.role-chip`이 상쇄해 병합 차단 아님, STEP3 픽커가 게이트처럼 느껴지지 않음("건너뛰어도 됩니다" 등 문구가 이미 마찰 방지), STEP3 "이번에 알아볼 목표직무" vs STEP4 "대표 목표직무" 표현 차이는 사소한 후속 카피 정리 여지로만 기록 |
+| Accessibility Auditor | **KEEP WITH MINOR NOTES** | radiogroup이 순수 네이티브 동작(커스텀 키보드 핸들러 0건 확인)임을 코드로 실증, 포커스 테스트는 필요하나 스크린리더 실기 확인은 인간 리뷰어 몫으로 남김(자동화 한계 인정) |
+| Code Reviewer(엔지니어링) | **KEEP** | draft fixture가 `parseDraft` 전체 검증 로직을 통과함을 필드 단위로 추적 확인, `/api/gate` 모킹이 Solar·Supabase를 우회·은폐하지 않음을 코드 경로로 확인, git 상태 정합 확인 |
+
+**NEEDS REWORK 0건. 최종 결정: KEEP — Ready for review 전환 승인.**
+
+### 최종 merge gate 판단
+
+모든 완료 조건 충족(draft reload E2E PASS, STEP3·4·5 role 일관성 PASS, 시각 검증 PASS, 개인정보 외부 전달 0, 전체 테스트 PASS, 독립 리뷰 NEEDS REWORK 0). PR #76을 **Draft → Ready for review**로 전환. main 병합·운영 배포는 수행하지 않음(사람 검토 대기).
+
+### 남은 P1 (변경 없음, 코드 미수정)
+
+1. STEP4 역할 선택기 시각적 라벨 부재 — 이번 루프에서 "사소함" 재확인, 병합 차단 아님.
+2. 학습확인 퀴즈 2문항 통과=Lv.2 수행 확인 부여 로직 재검토 필요(이전 기록 유지, 이슈 미생성).
+3. (신규, 비차단) `tests/e2e/pre-merge-verification.spec.ts`의 STEP5 도달 구간에서 `/api/share-config`(카카오 SDK) 호출이 모킹되지 않음 — try/catch로 무해하게 무시되지만 완전한 네트워크 격리를 원하면 후속에서 모킹 권장.
 
