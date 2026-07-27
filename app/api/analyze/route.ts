@@ -84,22 +84,22 @@ function fallbackClaims(experience: string): AnalysisClaim[] {
     {
       keywords: ["프로젝트", "만들", "개발", "웹", "API", "아두이노"],
       skill: "디지털 프로젝트를 시도한 경험",
-      question: "직접 만든 범위와 작동 화면 또는 링크를 추가할 수 있나요?",
+      question: "직접 만든 범위와 작동 화면 또는 링크를 추가할 수 있습니까?",
     },
     {
       keywords: ["공부", "학습", "강의", "수료", "독학", "수학"],
       skill: "필요한 지식을 스스로 학습한 경험",
-      question: "학습 기간과 이를 적용한 과제 또는 결과물이 있나요?",
+      question: "학습 기간과 이를 적용한 과제 또는 결과물이 있습니까?",
     },
     {
       keywords: ["전공", "학교", "대학", "과"],
       skill: "전공 경험을 새로운 분야와 연결한 시도",
-      question: "전공 지식을 실제 문제 해결에 사용한 사례가 있나요?",
+      question: "전공 지식을 실제 문제 해결에 사용한 사례가 있습니까?",
     },
     {
       keywords: ["일", "업무", "아르바이트", "회사"],
       skill: "업무 경험에서 얻은 실행 역량 후보",
-      question: "담당 역할과 결과를 보여주는 기록이 있나요?",
+      question: "담당 역할과 결과를 보여주는 기록이 있습니까?",
     },
   ];
 
@@ -190,7 +190,7 @@ export async function POST(request: Request) {
   // 인증을 가장 먼저 검사한다: 비인증 요청은 본문 파싱·폴백 생성·Solar 호출(비용 경로)에 도달하지 않는다.
   if (!(await verifyGateSession(request))) {
     return json(
-      { error: "unauthorized", message: "데모 코드 확인이 필요해요. 시작 화면에서 코드를 입력해 주세요." },
+      { error: "unauthorized", message: "데모 코드 확인이 필요합니다. 시작 화면에서 코드를 입력해 주십시오." },
       401,
     );
   }
@@ -200,13 +200,13 @@ export async function POST(request: Request) {
   const rateDecision = await checkRateLimit("ANALYZE_RATE_LIMITER", await clientKey(request));
   if (rateDecision === "unavailable") {
     return json(
-      { error: "rate_limit_unavailable", message: "요청 한도 확인이 불가해 분석을 잠시 멈췄어요. 잠시 후 다시 시도해 주세요." },
+      { error: "rate_limit_unavailable", message: "요청 한도 확인이 불가해 분석을 잠시 멈췄습니다. 잠시 후 다시 시도해 주십시오." },
       503,
     );
   }
   if (rateDecision === "limited") {
     return json(
-      { error: "rate_limited", message: "요청이 잠시 몰렸어요. 1분 뒤에 다시 시도해 주세요." },
+      { error: "rate_limited", message: "요청이 잠시 몰렸습니다. 1분 뒤에 다시 시도해 주십시오." },
       429,
       { "retry-after": String(RATE_LIMIT_WINDOW_SECONDS) },
     );
@@ -216,7 +216,7 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as { experience?: unknown; model?: unknown };
   } catch {
-    return json({ error: "invalid_json", message: "요청 형식을 확인해 주세요." }, 400);
+    return json({ error: "invalid_json", message: "요청 형식을 확인해 주십시오." }, 400);
   }
 
   // 모델 allowlist: 등록된 모델만 허용. 임의 문자열은 안전한 400으로 거부하며
@@ -224,17 +224,17 @@ export async function POST(request: Request) {
   const requestedModel = typeof body.model === "string" ? body.model.trim() : "";
   if (requestedModel && !isAllowedModel(requestedModel)) {
     return json(
-      { error: "model_not_allowed", message: "선택한 모델은 사용할 수 없어요. 목록에서 다시 선택해 주세요." },
+      { error: "model_not_allowed", message: "선택한 모델은 사용할 수 없습니다. 목록에서 다시 선택해 주십시오." },
       400,
     );
   }
 
   const rawExperience = trimText(body.experience, MAX_INPUT_LENGTH + 1);
   if (rawExperience.length < 20) {
-    return json({ error: "input_too_short", message: "경험을 20자 이상 적어 주세요." }, 400);
+    return json({ error: "input_too_short", message: "경험을 20자 이상 적어 주십시오." }, 400);
   }
   if (rawExperience.length > MAX_INPUT_LENGTH) {
-    return json({ error: "input_too_long", message: "경험은 10,000자 이내로 적어 주세요. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주세요." }, 413);
+    return json({ error: "input_too_long", message: "경험은 10,000자 이내로 적어 주십시오. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주십시오." }, 413);
   }
 
   // PII 최소화: 마스킹된 텍스트가 이후 분석·인용 검증의 기준이 된다(원문은 전송하지 않음).

@@ -323,7 +323,7 @@ export default function Home() {
   const saveClaimSkill = (id: number) => {
     const nextSkill = editingSkill.trim().slice(0, 80);
     if (nextSkill.length < 3) {
-      showNotice("역량 표현을 3자 이상 적어 주세요.", "error");
+      showNotice("역량 표현을 3자 이상 적어 주십시오.", "error");
       return;
     }
     setClaims((current) =>
@@ -333,7 +333,7 @@ export default function Home() {
     );
     setEditingClaimId(null);
     setEditingSkill("");
-    showNotice("역량 표현을 수정했습니다. 원문 근거는 바뀌지 않았으니 다시 확인해 주세요.", "success");
+    showNotice("역량 표현을 수정했습니다. 원문 근거는 바뀌지 않았으니 다시 확인해 주십시오.", "success");
   };
 
   const scrollToTop = () => {
@@ -351,9 +351,9 @@ export default function Home() {
   const copyAiPrompt = async () => {
     try {
       await navigator.clipboard.writeText(AI_ORGANIZE_PROMPT);
-      showNotice("정리 프롬프트를 복사했어요. 쓰던 AI에 붙여넣고, 받은 답을 여기로 가져오세요.", "success");
+      showNotice("정리 프롬프트를 복사했습니다. 쓰던 AI에 붙여넣고, 받은 답을 여기로 가져오십시오.", "success");
     } catch {
-      showNotice("복사 권한이 없어 프롬프트를 복사하지 못했어요. 아래 내용을 직접 선택해 복사해 주세요.", "error");
+      showNotice("복사 권한이 없어 프롬프트를 복사하지 못했습니다. 아래 내용을 직접 선택해 복사해 주십시오.", "error");
     }
   };
 
@@ -370,12 +370,12 @@ export default function Home() {
     try {
       const text = await file.text();
       if (!text.trim()) {
-        showNotice("파일에서 읽을 텍스트가 없어요.", "error");
+        showNotice("파일에서 읽을 텍스트가 없습니다.", "error");
       } else {
         setImportPreview({ name: file.name, text });
       }
     } catch {
-      showNotice("파일을 읽지 못했어요. 다른 파일로 다시 시도해 주세요.", "error");
+      showNotice("파일을 읽지 못했습니다. 다른 파일로 다시 시도해 주십시오.", "error");
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -383,7 +383,7 @@ export default function Home() {
     if (!importPreview) return;
     setExperience((current) => (current.trim() ? current + "\n\n" + importPreview.text.trim() : importPreview.text.trim()));
     setImportPreview(null);
-    showNotice("파일 내용을 입력에 추가했어요. 개인정보가 섞여 있지 않은지 확인하고 자유롭게 수정하세요.", "success");
+    showNotice("파일 내용을 입력에 추가했습니다. 개인정보가 섞여 있지 않은지 확인하고 자유롭게 수정하십시오.", "success");
   };
 
   const analyzeExperience = async () => {
@@ -393,7 +393,7 @@ export default function Home() {
       setClaims(SAMPLE_JOURNEY.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
       setAnalysisSource("sample");
       setAnalysisModel(null);
-      setAnalysisNotice("샘플 체험 중이에요 — 실제 Solar 호출 없이 준비된 예시 결과예요.");
+      setAnalysisNotice("샘플 체험 중입니다 — 실제 Solar 호출 없이 준비된 예시 결과입니다.");
       moveTo(2);
       return;
     }
@@ -413,7 +413,7 @@ export default function Home() {
         // draft 저장(#35)이 있으므로 "이어서 진행" 안내가 실제 동작과 일치한다.
         setAnalysisSource("idle");
         setGateOpen(false);
-        showNotice("데모 이용 시간이 만료되었어요. 작성한 내용은 이 기기에 잠시 보관했습니다. 다시 인증하면 이어서 진행할 수 있어요.", "error");
+        showNotice("데모 이용 시간이 만료되었습니다. 작성한 내용은 이 기기에 잠시 보관했습니다. 다시 인증하면 이어서 진행할 수 있습니다.", "error");
         scrollToTop();
         return;
       }
@@ -421,7 +421,7 @@ export default function Home() {
         // 400·413 등 입력 오류: 서버가 준 사용자용 메시지를 그대로 보여주고,
         // 입력을 유지한 채 현재 단계에 머문다. 샘플 결과로 대체하지 않는다.
         setAnalysisSource("idle");
-        showNotice(data.message || "요청을 처리하지 못했어요. 입력을 확인한 뒤 다시 시도해 주세요.", "error");
+        showNotice(data.message || "요청을 처리하지 못했습니다. 입력을 확인한 뒤 다시 시도해 주십시오.", "error");
         return;
       }
       if (!Array.isArray(data.claims) || !data.claims.length) {
@@ -436,7 +436,7 @@ export default function Home() {
       // 네트워크·서버 장애: 입력과 단계를 유지하고 재시도를 안내한다.
       // 사용자 입력과 무관한 정적 샘플로 대체하지 않는다(샘플 폴백은 서버가 원문 기반으로 제공).
       setAnalysisSource("idle");
-      showNotice("연결 오류로 분석하지 못했어요. 입력은 그대로 남아 있으니 잠시 후 같은 버튼으로 다시 시도해 주세요.", "error");
+      showNotice("연결 오류로 분석하지 못했습니다. 입력은 그대로 남아 있으니 잠시 후 같은 버튼으로 다시 시도해 주십시오.", "error");
     }
   };
 
@@ -451,19 +451,19 @@ export default function Home() {
   const submitCheck = () => {
     if (!quiz) return;
     if (quiz.picks.some((p) => p === null)) {
-      showNotice("모든 문항에 답해 주세요.", "error");
+      showNotice("모든 문항에 답해 주십시오.", "error");
       return;
     }
     const ok = quiz.questions.every((qq, i) => quiz.picks[i] === qq.answer);
     if (ok) {
       setPassedChecks((prev) => ({ ...prev, [quiz.compId]: true }));
       setQuiz({ ...quiz, status: "passed" });
-      showNotice("학습확인 통과 · 수행 확인(Lv.2)으로 기록했어요.", "success");
+      showNotice("학습확인 통과 · 수행 확인(Lv.2)으로 기록했습니다.", "success");
     } else if (quiz.attempt >= 3) {
       setQuiz({ ...quiz, status: "locked" });
     } else {
       setQuiz({ ...quiz, attempt: quiz.attempt + 1, picks: [null, null] });
-      showNotice("오답이 있어요. 다시 시도해 보세요.", "error");
+      showNotice("오답이 있습니다. 다시 시도해 보십시오.", "error");
     }
   };
   const retryCheck = () => setQuiz((q) => (q ? { ...q, attempt: 1, picks: [null, null], status: "open" } : q));
@@ -502,7 +502,7 @@ export default function Home() {
   };
   const restartSample = () => {
     resetJourneyState(SAMPLE_JOURNEY.experience, [], { keepStoredDraft: true });
-    showNotice("체험을 처음부터 다시 시작해요.", "info");
+    showNotice("체험을 처음부터 다시 시작합니다.", "info");
     scrollToTop();
   };
   const exitSample = () => {
@@ -530,7 +530,7 @@ export default function Home() {
 
   const deleteRecords = () => {
     resetJourneyState("", []);
-    showNotice("이전 내용을 모두 지웠어요. 새 분석을 시작할 수 있어요.", "success");
+    showNotice("이전 내용을 모두 지웠습니다. 새 분석을 시작할 수 있습니다.", "success");
     scrollToTop();
   };
 
@@ -546,7 +546,7 @@ export default function Home() {
       });
       const data = (await response.json().catch(() => ({}))) as { authorized?: boolean; message?: string };
       if (!response.ok) {
-        showNotice(data.message || "데모 코드를 확인하지 못했어요. 다시 시도해 주세요.", "error");
+        showNotice(data.message || "데모 코드를 확인하지 못했습니다. 다시 시도해 주십시오.", "error");
         return;
       }
       setNotice(null);
@@ -554,7 +554,7 @@ export default function Home() {
       setGateCode("");
       scrollToTop();
     } catch {
-      showNotice("연결 오류로 데모 코드를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+      showNotice("연결 오류로 데모 코드를 확인하지 못했습니다. 잠시 후 다시 시도해 주십시오.", "error");
     } finally {
       setGateBusy(false);
     }
@@ -571,7 +571,7 @@ export default function Home() {
     resetJourneyState("", []);
     setGateOpen(false);
     setGateCode("");
-    showNotice("데모에서 나왔어요. 다시 보려면 데모 코드를 입력해 주세요.", "info");
+    showNotice("데모에서 나왔습니다. 다시 보려면 데모 코드를 입력해 주십시오.", "info");
     scrollToTop();
   };
 
@@ -580,9 +580,9 @@ export default function Home() {
   const copyShareLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl());
-      showNotice("링크를 복사했어요. 어디든 붙여넣어 공유할 수 있어요.", "success");
+      showNotice("링크를 복사했습니다. 어디든 붙여넣어 공유할 수 있습니다.", "success");
     } catch {
-      showNotice("복사 권한이 없어 링크를 복사하지 못했어요. 주소창의 주소를 직접 복사해 주세요.", "error");
+      showNotice("복사 권한이 없어 링크를 복사하지 못했습니다. 주소창의 주소를 직접 복사해 주십시오.", "error");
     }
   };
 
@@ -598,9 +598,9 @@ export default function Home() {
     }
     try {
       await navigator.clipboard.writeText(shareUrl());
-      showNotice("이 브라우저는 바로 공유를 지원하지 않아 링크를 복사했어요.", "info");
+      showNotice("이 브라우저는 바로 공유를 지원하지 않아 링크를 복사했습니다.", "info");
     } catch {
-      showNotice("공유를 지원하지 않는 브라우저예요. 주소창의 주소를 복사해 주세요.", "error");
+      showNotice("공유를 지원하지 않는 브라우저입니다. 주소창의 주소를 복사해 주십시오.", "error");
     }
   };
 
@@ -678,7 +678,7 @@ export default function Home() {
 
       {sampleMode && journeyOpen && (
         <div className="sample-strip" role="status">
-          <span><b>샘플 체험 중</b> — 실제 분석이 아니에요. 미리 준비된 예시로 전체 흐름을 볼 수 있어요.</span>
+          <span><b>샘플 체험 중</b> — 실제 분석이 아닙니다. 미리 준비된 예시로 전체 흐름을 볼 수 있습니다.</span>
           <button className="text-button" onClick={exitSample}>실제 분석으로 전환</button>
         </div>
       )}
@@ -710,7 +710,7 @@ export default function Home() {
           aria-label="새 분석 시작 확인"
           onKeyDown={(event) => { if (event.key === "Escape") cancelDelete(); }}
         >
-          <p>새 분석을 시작할까요? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
+          <p>새 분석을 시작하시겠습니까? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
           <div>
             <button autoFocus onClick={cancelDelete}>계속 작성하기</button>
             <button className="danger" onClick={confirmDelete}>새 분석 시작</button>
@@ -725,9 +725,9 @@ export default function Home() {
             <div className="card-kicker">심사·멘토링 데모</div>
             <h1>안내받은 데모 코드를 입력해 주세요.</h1>
             <p className="gate-guide">
-              공백·전환 경험을 역량 증거와 이번 주 행동으로 바꾸는 <b>Solar 기반 진로 탐색 데모</b>예요.
-              현재 버전은 제한된 테스트를 위해 운영되며, 심사·멘토링 공유용 <b>데모 코드</b>가 필요하고, 계정 로그인이나 개인 비밀번호가 아니에요.
-              코드는 안내받은 채널에서 확인할 수 있어요.
+              공백·전환 경험을 역량 증거와 이번 주 행동으로 바꾸는 <b>Solar 기반 진로 탐색 데모</b>입니다.
+              현재 버전은 제한된 테스트를 위해 운영되며, 심사·멘토링 공유용 <b>데모 코드</b>가 필요하고, 계정 로그인이나 개인 비밀번호가 아닙니다.
+              코드는 안내받은 채널에서 확인할 수 있습니다.
             </p>
             <label htmlFor="gate-code">데모 코드</label>
             <input
@@ -740,7 +740,7 @@ export default function Home() {
               onChange={(event) => setGateCode(event.target.value)}
               onKeyDown={(event) => { if (event.key === "Enter") submitGateCode(); }}
             />
-            <small className="gate-hint">GapProof는 취업 가능성이나 적성을 판정하지 않아요.</small>
+            <small className="gate-hint">GapProof는 취업 가능성이나 적성을 판정하지 않습니다.</small>
             <div className="gate-actions">
               <button className="primary" disabled={!gateCode.trim() || gateBusy} onClick={submitGateCode}>
                 {gateBusy ? "확인 중…" : "데모 열기"}
@@ -749,7 +749,7 @@ export default function Home() {
                 코드 없이 샘플 둘러보기
               </button>
             </div>
-            <small className="gate-hint">샘플 체험은 실제 Solar를 호출하지 않고, 예시 결과임을 화면에 항상 표시해요.</small>
+            <small className="gate-hint">샘플 체험은 실제 Solar를 호출하지 않고, 예시 결과임을 화면에 항상 표시합니다.</small>
             <nav className="gate-links" aria-label="서비스 소개 페이지">
               <a href="/about">소개</a>
               <a href="/guide">이용 가이드</a>
@@ -771,9 +771,9 @@ export default function Home() {
               상담사 없이 바로 추천을 받고, 원하면 상담사·기관이 검토와 K-MOOC·직업훈련 연계로 도와줍니다.
             </p>
             <div className="principles" aria-label="서비스 원칙">
-              <span>AI가 진로를 단정하지 않아요</span>
-              <span>근거 없는 역량은 인정하지 않아요</span>
-              <span>원문 공유는 직접 선택해요</span>
+              <span>AI가 진로를 단정하지 않습니다</span>
+              <span>근거 없는 역량은 인정하지 않습니다</span>
+              <span>원문 공유는 직접 선택합니다</span>
             </div>
           </div>
 
@@ -787,7 +787,7 @@ export default function Home() {
                 checked={storeConsent}
                 onChange={(event) => setStoreConsent(event.target.checked)}
               />
-              <span><b>[필수] 경험 분석을 위한 원문 처리</b><small>분석 요청에만 사용하며 현재 버전은 서버에 원문을 저장하지 않아요.</small></span>
+              <span><b>[필수] 경험 분석을 위한 원문 처리</b><small>분석 요청에만 사용하며 현재 버전은 서버에 원문을 저장하지 않습니다.</small></span>
             </label>
             <label className="check-row optional">
               <input
@@ -795,7 +795,7 @@ export default function Home() {
                 checked={aggregateConsent}
                 onChange={(event) => setAggregateConsent(event.target.checked)}
               />
-              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 핵심 기능을 모두 쓸 수 있어요 · 현재 버전은 통계를 실제로 수집하지 않으며, 이 선택은 Gap Brief의 기관 공유 범위 표시에만 반영돼요.</small></span>
+              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 핵심 기능을 모두 쓸 수 있습니다 · 현재 버전은 통계를 실제로 수집하지 않으며, 이 선택은 Gap Brief의 기관 공유 범위 표시에만 반영됩니다.</small></span>
             </label>
             <button className="primary full" disabled={!storeConsent} onClick={() => moveTo(1)}>
               {sampleMode ? "샘플로 둘러보기" : "내 경험에서 시작하기"} <span>→</span>
@@ -825,28 +825,28 @@ export default function Home() {
           ) : (
           <div className="experience-layout">
             <div className="paper-card input-card">
-              <label htmlFor="experience"><b>경력이라고 생각하지 않았던 일까지 들려주세요.</b></label>
-              <p className="input-guide">학교, 일, 돌봄, 게임, 취미, SNS, 쉬었던 시기처럼 작아 보였던 경험도 괜찮습니다. 잘 정리하지 않아도 돼요.</p>
-              <textarea id="experience" placeholder="여기에 자유롭게 적어 주세요. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮아요." value={experience} onChange={(event) => setExperience(event.target.value)} />
-              <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 돼요.</span><b className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
+              <label htmlFor="experience"><b>경력이라고 생각하지 않았던 일까지 들려주십시오.</b></label>
+              <p className="input-guide">학교, 일, 돌봄, 게임, 취미, SNS, 쉬었던 시기처럼 작아 보였던 경험도 괜찮습니다. 잘 정리하지 않아도 됩니다.</p>
+              <textarea id="experience" placeholder="여기에 자유롭게 적어 주십시오. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮습니다." value={experience} onChange={(event) => setExperience(event.target.value)} />
+              <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 됩니다.</span><b className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
               {OVER_LIMIT && (
-                <p className="length-hint over" role="alert">10,000자를 넘었어요. 지금 내용은 그대로 남아 있으니 {(experienceLength - 10000).toLocaleString()}자만 줄이면 분석할 수 있어요. 자동으로 잘라내지 않아요.</p>
+                <p className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있으니 {(experienceLength - 10000).toLocaleString()}자만 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
               )}
               {experience.trim().length < 20 && (
-                <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜져요.</p>
+                <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜집니다.</p>
               )}
-              <p className="source-note">이런 경험도 좋아요 — 프로젝트, 수업·강의, 자격증, Notion·메모, 손글씨 기록, 일·아르바이트, 돌봄, 게임·커뮤니티, 쉬었던 시기.</p>
+              <p className="source-note">이런 경험도 좋습니다 — 프로젝트, 수업·강의, 자격증, Notion·메모, 손글씨 기록, 일·아르바이트, 돌봄, 게임·커뮤니티, 쉬었던 시기.</p>
 
               <div className="import-box">
                 <details>
-                  <summary>이미 사용하는 AI가 있나요? (ChatGPT·Claude·Gemini)</summary>
-                  <p className="import-guide">쓰던 AI에 아래 프롬프트를 붙여넣으면 대화 속 경험을 정리해 줘요. 받은 답을 이 입력창에 붙여넣으세요. <b>외부 AI의 답은 확정된 사실이 아니라 초안이에요 — 붙여넣은 뒤 직접 확인·수정하세요.</b> 붙여넣기 전에 이름·연락처 같은 개인정보가 섞이지 않았는지 확인해 주세요.</p>
+                  <summary>이미 사용하는 AI가 있습니까? (ChatGPT·Claude·Gemini)</summary>
+                  <p className="import-guide">쓰던 AI에 아래 프롬프트를 붙여넣으면 대화 속 경험을 정리해 줍니다. 받은 답을 이 입력창에 붙여넣으십시오. <b>외부 AI의 답은 확정된 사실이 아니라 초안입니다 — 붙여넣은 뒤 직접 확인·수정하십시오.</b> 붙여넣기 전에 이름·연락처 같은 개인정보가 섞이지 않았는지 확인해 주십시오.</p>
                   <pre className="import-prompt">{AI_ORGANIZE_PROMPT}</pre>
                   <button type="button" className="secondary" onClick={copyAiPrompt}>정리 프롬프트 복사</button>
                 </details>
                 <details>
-                  <summary>메모 파일이 있나요? (TXT·MD 1개)</summary>
-                  <p className="import-guide">파일은 이 브라우저 안에서 텍스트로만 읽어요 — 서버로 올리거나 저장하지 않아요. 최대 200KB, PDF·DOCX는 다음 단계에서 준비 중이에요.</p>
+                  <summary>메모 파일이 있습니까? (TXT·MD 1개)</summary>
+                  <p className="import-guide">파일은 이 브라우저 안에서 텍스트로만 읽습니다 — 서버로 올리거나 저장하지 않습니다. 최대 200KB, PDF·DOCX는 다음 단계에서 준비 중입니다.</p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -858,7 +858,7 @@ export default function Home() {
                     <div className="import-preview" role="region" aria-label="파일 미리보기">
                       <b>{importPreview.name}</b>
                       <p>{previewText(importPreview.text).preview}{previewText(importPreview.text).truncated ? "…" : ""}</p>
-                      <small>{importPreview.text.length.toLocaleString()}자 — 추가하기 전까지는 입력에 반영되지 않아요.</small>
+                      <small>{importPreview.text.length.toLocaleString()}자 — 추가하기 전까지는 입력에 반영되지 않습니다.</small>
                       <div className="import-actions">
                         <button type="button" className="secondary" onClick={() => setImportPreview(null)}>제외</button>
                         <button type="button" className="primary" onClick={confirmImport}>입력에 추가</button>
@@ -875,7 +875,7 @@ export default function Home() {
               <div className="mini-evidence"><span>02</span><p><b>AI 수학·웹 독학</b><small>학습 기록 · 자기기록</small></p></div>
               <div className="mini-evidence"><span>03</span><p><b>MindHub 제작</b><small>작동 산출물 · 프로젝트</small></p></div>
               <div className="long-examples">
-                <p className="card-kicker">정리 안 된 긴 예시 3가지 (표시용 — 입력에 넣지 않아요)</p>
+                <p className="card-kicker">정리 안 된 긴 예시 3가지 (표시용 — 입력에 넣지 않습니다)</p>
                 {LONG_EXAMPLES.map((ex) => (
                   <details key={ex.id}>
                     <summary>{ex.label}</summary>
@@ -898,12 +898,12 @@ export default function Home() {
       {journeyOpen && step === 2 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 2 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저예요.</h1></div>
-            <div className="legend"><i /> 입력 문장을 근거로 인용해요 · 개인정보가 감지되면 가려서 표시돼요</div>
+            <div><span className="eyebrow">STEP 2 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저입니다.</h1></div>
+            <div className="legend"><i /> 입력 문장을 근거로 인용합니다 · 개인정보가 감지되면 가려서 표시됩니다</div>
           </div>
           <div className="explain-strip">
             <b>{analysisSource === "solar" ? `Solar ${analysisModel} 분석 완료` : "안전한 샘플 분석 완료"}</b>
-            <span>{analysisNotice} 과장되거나 맥락이 다른 후보는 거절하세요. 거절한 항목은 카드와 추천에서 빠집니다.</span>
+            <span>{analysisNotice} 과장되거나 맥락이 다른 후보는 거절하십시오. 거절한 항목은 카드와 추천에서 빠집니다.</span>
           </div>
           <div className="claims">
             {claims.map((claim) => (
@@ -925,7 +925,7 @@ export default function Home() {
                 <div className="evidence-link">
                   <label htmlFor={`claim-link-${claim.id}`}>근거 링크 (선택)</label>
                   <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="GitHub·수료증·노트 URL" onChange={(event) => attachLink(claim.id, event.target.value)} />
-                  <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작해요"}</small>
+                  <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작합니다"}</small>
                 </div>
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
@@ -965,7 +965,7 @@ export default function Home() {
             ))}
           </div>
           <div className="footer-actions sticky-actions">
-            <div><b>{confirmedClaims.length}개 확인됨</b><span>최소 1개를 확인해 주세요.</span></div>
+            <div><b>{confirmedClaims.length}개 확인됨</b><span>최소 1개를 확인해 주십시오.</span></div>
             <button className="secondary" onClick={() => moveTo(1)}>이전</button>
             <button className="primary" disabled={confirmedClaims.length === 0} onClick={() => moveTo(3)}>격차와 다음 행동 보기 <span>→</span></button>
           </div>
@@ -986,7 +986,7 @@ export default function Home() {
           <div className="map-grid">
             <section className="paper-card strengths">
               <div className="card-kicker">확인된 현재 역량</div>
-              <h2>이미 출발점이 있어요.</h2>
+              <h2>이미 출발점이 있습니다.</h2>
               {confirmedClaims.length || passedComps.length ? (
                 <>
                   {confirmedClaims.map((claim) => (
@@ -1000,18 +1000,18 @@ export default function Home() {
             </section>
             <section className="paper-card gaps">
               <div className="card-kicker coral">우선 격차</div>
-              <h2>더 필요한 것은 이만큼이에요.</h2>
+              <h2>더 필요한 것은 이만큼입니다.</h2>
               {gaps.length ? gaps.slice(0, 3).map((gap) => (
                 <div className="gap-row" key={gap.id}>
                   <div><b>{gap.label}</b><small>필요 증거: {gap.proof} · Lv.{gap.current}/{gap.required}</small></div>
                   <div className="bar"><i style={{ width: `${gap.percent}%` }} /></div>
                   <strong>{gap.score}</strong>
                 </div>
-              )) : <p>선택한 직무의 필수 역량을 이미 확인했어요. 다른 직무로 바꿔 격차를 확인해 보세요.</p>}
+              )) : <p>선택한 직무의 필수 역량을 이미 확인했습니다. 다른 직무로 바꿔 격차를 확인해 보십시오.</p>}
             </section>
           </div>
           <div className="action-section">
-            <div className="action-title"><div><span className="eyebrow">격차를 낮추는 행동</span><h2>이번 주에는 하나만 선택해요.</h2></div><p>중요도 × 격차 × 실행가능성 순으로 골랐어요.</p></div>
+            <div className="action-title"><div><span className="eyebrow">격차를 낮추는 행동</span><h2>이번 주에는 하나만 선택합니다.</h2></div><p>중요도 × 격차 × 실행가능성 순으로 골랐습니다.</p></div>
             <div className="action-grid">
               {recommended.map((action) => (
                 <button key={action.id} className={`action-card ${selectedAction === action.id ? "selected" : ""}`} onClick={() => setSelectedAction(action.id)}>
@@ -1028,13 +1028,13 @@ export default function Home() {
               const comp = role.competencies.find((c) => c.id === quiz.compId);
               const label = comp?.label ?? "";
               if (quiz.status === "passed") return (
-                <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 수행 확인 완료</h3><div className="check-result pass">Lv.2 수행 확인으로 기록했어요. 위 격차 지도에서 이 역량이 닫힌 것을 확인하세요.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+                <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 수행 확인 완료</h3><div className="check-result pass">Lv.2 수행 확인으로 기록했습니다. 위 격차 지도에서 이 역량이 닫힌 것을 확인하십시오.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               if (quiz.status === "locked") return (
-                <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">등급을 올리지 않았어요. 추천 학습을 완료한 뒤 다시 확인해 주세요.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+                <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">등급을 올리지 않았습니다. 추천 학습을 완료한 뒤 다시 확인해 주십시오.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               return (
-                <div className="check-panel"><div className="card-kicker">학습확인 · 통과 시 Lv.2 수행 확인</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. 통과하면 이 역량의 격차가 닫혀요.</p>
+                <div className="check-panel"><div className="card-kicker">학습확인 · 통과 시 Lv.2 수행 확인</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. 통과하면 이 역량의 격차가 닫힙니다.</p>
                   {quiz.questions.map((qq, qi) => (
                     <div className="check-q" key={qi}><p>Q{qi + 1}. {qq.q}</p><div className="check-opts">{qq.options.map((op, oi) => (<button key={oi} className={`check-opt ${quiz.picks[qi] === oi ? "picked" : ""}`} onClick={() => pickAnswer(qi, oi)}>{op}</button>))}</div></div>
                   ))}
@@ -1044,11 +1044,11 @@ export default function Home() {
             }
             if (!gaps.length) return null;
             return (
-              <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인하고, 통과하면 수행 확인(Lv.2)으로 기록해요.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
+              <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인하고, 통과하면 수행 확인(Lv.2)으로 기록합니다.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
             );
           })()}
           {confirmedClaims.length === 0 && passedComps.length === 0 && (
-            <div className="zero-note" role="status">아직 확인된 역량이 없어요. ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주세요.</div>
+            <div className="zero-note" role="status">아직 확인된 역량이 없습니다. ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주십시오.</div>
           )}
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(2)}>이전</button>
@@ -1066,16 +1066,16 @@ export default function Home() {
       {journeyOpen && step === 4 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼어요.</h1></div>
+            <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼습니다.</h1></div>
             <span className="complete-badge">{analysisSource === "solar" ? "✓ 분석 여정 완료" : "✓ 샘플 여정 완료"}</span>
           </div>
-          <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있어요. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료예요.</p>
+          <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있습니다. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료입니다.</p>
           <div className="proof-grid">
             <article className="proof-card personal-proof">
               <div className="proof-header"><div><span className="brand-mark small"><BrandGlyph /></span><b>GapProof</b></div><span>개인용 증거카드</span></div>
               <div className="identity"><small>목표직무</small><h2>{role.label}</h2><p>{role.blurb}</p></div>
               <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{passedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
-              <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주세요."}”</blockquote></div>
+              <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주십시오."}”</blockquote></div>
               <div className="chosen-action"><span>이번 주 다음 행동</span><b>{chosenAction?.title}</b><small>{chosenAction?.rule}</small></div>
               <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>{proofDate}</b></footer>
             </article>
@@ -1087,7 +1087,7 @@ export default function Home() {
                 <div><span>현재 강점</span><ul>{confirmedClaims.map((claim) => <li key={claim.id}>{claim.skill}</li>)}</ul></div>
                 <div><span>우선 격차</span><ul>{gaps.slice(0, 3).map((gap) => <li key={gap.id}>{gap.label} (Lv.{gap.current}/{gap.required})</li>)}</ul></div>
               </div>
-              <div className="brief-section questions"><span>다음 상담 질문</span><ol>{confirmedClaims.slice(0, 2).map((claim) => <li key={claim.id}>{claim.question}</li>)}<li>이 행동을 끝냈다고 판단할 증거는 무엇인가요?</li></ol></div>
+              <div className="brief-section questions"><span>다음 상담 질문</span><ol>{confirmedClaims.slice(0, 2).map((claim) => <li key={claim.id}>{claim.question}</li>)}<li>이 행동을 끝냈다고 판단할 증거는 무엇입니까?</li></ol></div>
               <div className="privacy-note"><b>기관 공유 범위</b><p>{aggregateConsent ? "익명 격차 항목 공유에 동의 · 개인 원문 제외" : "익명 통계 공유 안 함 · 개인 카드만 사용"}</p></div>
               <footer><span>상담 보조자료 · 자동판정 아님</span><b>검토 필요</b></footer>
             </article>
@@ -1103,7 +1103,7 @@ export default function Home() {
             <button className="secondary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
             <button className="primary" onClick={sampleMode ? restartSample : requestDelete}>{sampleMode ? "체험 처음부터 시작하기" : "새 분석 시작하기"} <span>↻</span></button>
           </div>
-          <p className="share-note">링크 공유에는 서비스 소개만 담겨요 — 내 경험 입력과 결과는 포함되지 않아요.</p>
+          <p className="share-note">링크 공유에는 서비스 소개만 담깁니다 — 내 경험 입력과 결과는 포함되지 않습니다.</p>
         </section>
       )}
 
@@ -1118,7 +1118,7 @@ export default function Home() {
       >
         <div className="model-dialog-head">
           <b>AI 분석 모델 선택</b>
-          <p>모델마다 성격이 달라요. [공식]은 Upstage 소개 기반, [자체]는 GapProof 관찰이며 검증 전 항목은 &ldquo;평가 중&rdquo;으로 표시해요.</p>
+          <p>모델마다 성격이 다릅니다. [공식]은 Upstage 소개 기반, [자체]는 GapProof 관찰이며 검증 전 항목은 &ldquo;평가 중&rdquo;으로 표시합니다.</p>
         </div>
         <div className="model-cards" role="radiogroup" aria-label="Solar 모델">
           {SOLAR_MODELS.map((option) => (

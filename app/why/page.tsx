@@ -77,7 +77,7 @@ export default function WhyPage() {
           <li>직업을 대신 결정하지 않습니다 — 직업은 언제나 &ldquo;가설&rdquo;로만 제시합니다.</li>
           <li>원문에 없는 경력을 만들어내지 않습니다.</li>
         </ul>
-        <p className="info-note">누구를 위한 서비스인지는 <a href="/who">누구를 위한가</a>에서, 프로젝트 배경은 <a href="/about">소개</a>에서 볼 수 있어요.</p>
+        <p className="info-note">누구를 위한 서비스인지는 <a href="/who">누구를 위한가</a>에서, 프로젝트 배경은 <a href="/about">소개</a>에서 볼 수 있습니다.</p>
       </section>
     </InfoShell>
   );

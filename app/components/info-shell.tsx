@@ -44,7 +44,7 @@ export function InfoShell({
         <div className="info-cta">
           <a className="primary info-demo-link" href="/demo">GapProof 데모 시작하기 <span>→</span></a>
           <a className="secondary info-sample-link" href="/demo?sample=1">코드 없이 샘플 둘러보기</a>
-          <small>실제 분석은 심사·멘토링 공유용 데모 코드가 필요해요.</small>
+          <small>실제 분석은 심사·멘토링 공유용 데모 코드가 필요합니다.</small>
         </div>
       </section>
 

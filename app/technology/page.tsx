@@ -17,12 +17,12 @@ const STACK = [
 ];
 
 const SECURITY = [
-  { name: "접근 게이트", Icon: IconCheck, detail: "데모 코드를 서버가 검증하고 서명된 HttpOnly 쿠키 세션을 발급해요. 환경변수가 없으면 데모가 열리지 않는 fail-closed 방식이에요. 공유용 데모 보호 장치일 뿐, 개인 계정 인증은 아니에요." },
-  { name: "API 키 보호", Icon: IconLock, detail: "Solar API 키는 서버 환경에만 있고 브라우저로 전달되지 않아요." },
-  { name: "요청 한도", Icon: IconClock, detail: "분석·코드 입력 모두 60초에 10회로 제한해 과다 요청과 무차별 대입을 막아요. 한도 확인이 불가능하면 요청을 거절해요." },
-  { name: "개인정보 가리기", Icon: IconEyeOff, detail: "이메일·전화번호·주민등록번호로 보이는 표현은 Solar로 보내기 전에 가리고, 가린 사실을 화면에 알려요." },
-  { name: "모델 허용 목록", Icon: IconList, detail: "서버에 등록된 Solar 모델만 사용할 수 있어요. 목록 밖 요청은 거부돼요." },
-  { name: "무저장 원칙", Icon: IconLock, detail: "경험 원문을 서버에 저장하지 않아요. &ldquo;새 분석 시작하기&rdquo;는 화면의 모든 상태를 지워요." },
+  { name: "접근 게이트", Icon: IconCheck, detail: "데모 코드를 서버가 검증하고 서명된 HttpOnly 쿠키 세션을 발급합니다. 환경변수가 없으면 데모가 열리지 않는 fail-closed 방식입니다. 공유용 데모 보호 장치일 뿐, 개인 계정 인증은 아닙니다." },
+  { name: "API 키 보호", Icon: IconLock, detail: "Solar API 키는 서버 환경에만 있고 브라우저로 전달되지 않습니다." },
+  { name: "요청 한도", Icon: IconClock, detail: "분석·코드 입력 모두 60초에 10회로 제한해 과다 요청과 무차별 대입을 막습니다. 한도 확인이 불가능하면 요청을 거절합니다." },
+  { name: "개인정보 가리기", Icon: IconEyeOff, detail: "이메일·전화번호·주민등록번호로 보이는 표현은 Solar로 보내기 전에 가리고, 가린 사실을 화면에 알립니다." },
+  { name: "모델 허용 목록", Icon: IconList, detail: "서버에 등록된 Solar 모델만 사용할 수 있습니다. 목록 밖 요청은 거부됩니다." },
+  { name: "무저장 원칙", Icon: IconLock, detail: "경험 원문을 서버에 저장하지 않습니다. &ldquo;새 분석 시작하기&rdquo;는 화면의 모든 상태를 지웁니다." },
 ];
 
 const CLASS_APPLIED = [
@@ -51,7 +51,7 @@ export default function TechnologyPage() {
             </tbody>
           </table>
         </div>
-        <p className="scroll-hint">← 좌우로 밀어 전체 표를 볼 수 있어요 →</p>
+        <p className="scroll-hint">← 좌우로 밀어 전체 표를 볼 수 있습니다 →</p>
       </section>
 
       <section className="info-section">
@@ -67,10 +67,10 @@ export default function TechnologyPage() {
         <h2>검증 방법</h2>
         <p>자동 테스트, 실제 Workers 개발환경, 5개 화면 크기에서 검증했습니다.</p>
         <ul>
-          <li>자동 테스트로 입력 경계값, 게이트 인증·위조 쿠키·fail-closed, 요청 한도, 개인정보 가리기, 모델 허용 목록, 서버 렌더링을 검증해요.</li>
-          <li>실제 Worker 개발환경(workerd)에서 게이트 세션·요청 한도·보안 헤더를 실측했어요.</li>
-          <li>5개 화면 크기(360~1440px)에서 가로 넘침 0, 콘솔 오류 0을 자동으로 확인해요.</li>
-          <li>테스트는 유료 Solar API를 호출하지 않도록 격리되어 있어요.</li>
+          <li>자동 테스트로 입력 경계값, 게이트 인증·위조 쿠키·fail-closed, 요청 한도, 개인정보 가리기, 모델 허용 목록, 서버 렌더링을 검증합니다.</li>
+          <li>실제 Worker 개발환경(workerd)에서 게이트 세션·요청 한도·보안 헤더를 실측했습니다.</li>
+          <li>5개 화면 크기(360~1440px)에서 가로 넘침 0, 콘솔 오류 0을 자동으로 확인합니다.</li>
+          <li>테스트는 유료 Solar API를 호출하지 않도록 격리되어 있습니다.</li>
         </ul>
       </section>
 
@@ -92,13 +92,13 @@ export default function TechnologyPage() {
       <section className="info-section">
         <h2>알려진 제한사항</h2>
         <ul>
-          <li>사용자 흐름 검증용 데모(MVP)이며, 기관 시스템 연동과 공식 자격 인정은 포함하지 않아요.</li>
-          <li>이름·주소처럼 형식이 없는 개인정보는 자동으로 가려지지 않을 수 있어요 — 입력 안내가 1차 방어예요.</li>
-          <li>Solar 실제 응답의 품질·지연은 운영 키 연결 후 계속 측정할 항목이에요.</li>
+          <li>사용자 흐름 검증용 데모(MVP)이며, 기관 시스템 연동과 공식 자격 인정은 포함하지 않습니다.</li>
+          <li>이름·주소처럼 형식이 없는 개인정보는 자동으로 가려지지 않을 수 있습니다 — 입력 안내가 1차 방어입니다.</li>
+          <li>Solar 실제 응답의 품질·지연은 운영 키 연결 후 계속 측정할 항목입니다.</li>
         </ul>
         <p className="info-repo">
-          개발 기록은 GitHub 저장소(현재 비공개)의 이슈·PR 단위로 관리하고 있어요. 심사 과정에서
-          요청이 있으면 공개 범위를 조정할 수 있어요.
+          개발 기록은 GitHub 저장소(현재 비공개)의 이슈·PR 단위로 관리하고 있습니다. 심사 과정에서
+          요청이 있으면 공개 범위를 조정할 수 있습니다.
         </p>
       </section>
     </InfoShell>

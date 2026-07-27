@@ -17,7 +17,7 @@ export default function AboutPage() {
     >
       <p className="info-note">
         문제의식과 원칙은 <a href="/why">왜 GapProof인가</a>, 대상별 안내는 <a href="/who">누구를 위한가</a>로
-        옮겨 정리했어요. 이 페이지는 프로젝트와 제작 배경을 다룹니다.
+        옮겨 정리했습니다. 이 페이지는 프로젝트와 제작 배경을 다룹니다.
       </p>
 
       <section className="info-section">
