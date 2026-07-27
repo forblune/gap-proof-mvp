@@ -482,7 +482,7 @@ body.drawer-open { overflow: hidden; }
 }
 
 /* Gate 2a(#36): 공개 홈 — 기존 토큰·클래스 재사용, 홈 전용 레이아웃만 추가 */
-.home { min-height: 100vh; background: var(--ivory); }
+.home { min-height: 100vh; background: var(--ivory); counter-reset: home-sec; }
 .home .info-nav .nav-cta { background: var(--ink); color: #fff; font-weight: 800; box-shadow: 0 4px 12px rgba(23, 36, 61, .22); margin-left: 4px; }
 .home .info-nav .nav-cta:hover { color: var(--yellow); }
 /* 히어로 — 전체 다크가 아니라 핵심 진입 구간만 다크 네이비(하이브리드). 실제 폭은 -inner에서 제한 */
@@ -503,7 +503,23 @@ body.drawer-open { overflow: hidden; }
 .home-hero .secondary, .home-final .secondary { background: transparent; border-color: rgba(255, 255, 255, .4); color: #fff; }
 .home-hero .secondary:hover, .home-final .secondary:hover { border-color: rgba(255, 255, 255, .72); }
 .home-section { max-width: 980px; margin: 0 auto; padding: 40px 24px; border-top: 1px solid var(--line); }
-.home-section h2 { font-weight: 600; font-size: clamp(22px, 3.4vw, 30px); line-height: 1.3; letter-spacing: -.01em; margin: 10px 0 18px; word-break: keep-all; overflow-wrap: break-word; }
+.home-section h2, .home-band-inner h2 { font-weight: 600; font-size: clamp(22px, 3.4vw, 30px); line-height: 1.3; letter-spacing: -.01em; margin: 10px 0 18px; word-break: keep-all; overflow-wrap: break-word; }
+/* design-loop-06: 8개 섹션이 시각적으로 무차별해 정보 구조·시선 흐름이 약했던 문제 —
+   (1) 5-7번 섹션을 하나의 밝은 톤 변화 "챕터"로 묶어 전체 스캔 리듬을 만들고
+   (2) 각 섹션 eyebrow 앞에 순번을 붙여 "지금 몇 번째 섹션인가"를 명시적으로 드러낸다.
+   새 컴포넌트·새 색상 토큰 없이 기존 --paper 재사용 + 기존 카운터 배지 패턴만 확장. */
+.home-section, .home-band-inner { counter-increment: home-sec; }
+.home-section .eyebrow::before, .home-band-inner .eyebrow::before { content: counter(home-sec, decimal-leading-zero) " · "; opacity: .6; font-weight: 700; }
+.home-band-b { background: var(--paper); }
+.home-band-inner { max-width: 980px; margin: 0 auto; padding: 40px 24px; border-top: 1px solid var(--line); }
+.home-band-inner + .home-band-inner { border-top-color: rgba(23, 36, 61, .1); }
+/* 챕터 경계는 여백을 더 크게, 챕터 내부는 더 촘촘하게 — 색 대비보다 신뢰도 높은 리듬 신호(근접성 원리) */
+.home-band-b .home-band-inner:first-child { padding-top: 64px; }
+.home-band-b .home-band-inner:last-child { padding-bottom: 64px; }
+.home-band-b + .home-section { padding-top: 64px; }
+/* 밴드 배경(--paper)이 카드 채움색(--paper)과 같아져 테두리만으로 카드를 구분해야 했던 문제 —
+   옅은 그림자로 뜬 느낌(깊이 신호)을 되살린다. 새 토큰 없이 기존 --shadow 재사용. */
+.home-band-b .home-card, .home-band-b .home-case { box-shadow: var(--shadow); }
 .home-grid { display: grid; gap: 14px; }
 .home-grid.two { grid-template-columns: repeat(2, 1fr); }
 .home-grid.three { grid-template-columns: repeat(3, 1fr); }

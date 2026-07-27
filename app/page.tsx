@@ -137,71 +137,73 @@ export default function HomePage() {
         <p className="home-note">이메일·전화번호로 보이는 표현은 분석 전에 자동으로 가립니다. 원문은 서버에 저장하지 않습니다.</p>
       </section>
 
-      {/* 5. 어떻게 작동하는가 */}
-      <section className="home-section" aria-labelledby="home-how">
-        <p className="eyebrow">어떻게 작동하는가</p>
-        <h2 id="home-how">AI는 제안하고, 확정은 언제나 사용자가 합니다.</h2>
-        <ol className="home-steps">
-          <li><b>자유롭게 쓰기</b><span>정리되지 않은 그대로 적습니다.</span></li>
-          <li><b>AI가 후보 제안</b><span>Solar가 실제 행동과 원문 근거를 함께 찾습니다.</span></li>
-          <li><b>사용자가 확인</b><span>맞아요·수정·거절 — 하나도 확인하지 않으면 진행되지 않습니다.</span></li>
-          <li><b>격차와 한 걸음</b><span>목표 직무와의 거리, 이번 주 행동, 증거카드로 이어집니다.</span></li>
-        </ol>
-        <a className="home-more" href="/how-it-works">작동 원리 전체 보기 →</a>
-      </section>
+      {/* 5-7. 작동 방식과 증거 — 밝은 배경 톤을 바꿔 앞뒤 구간과 하나의 챕터로 묶어 보여준다 */}
+      <div className="home-band-b">
+        <section className="home-band-inner" aria-labelledby="home-how">
+          <p className="eyebrow">어떻게 작동하는가</p>
+          <h2 id="home-how">AI는 제안하고, 확정은 언제나 사용자가 합니다.</h2>
+          <ol className="home-steps">
+            <li><b>자유롭게 쓰기</b><span>정리되지 않은 그대로 적습니다.</span></li>
+            <li><b>AI가 후보 제안</b><span>Solar가 실제 행동과 원문 근거를 함께 찾습니다.</span></li>
+            <li><b>사용자가 확인</b><span>맞아요·수정·거절 — 하나도 확인하지 않으면 진행되지 않습니다.</span></li>
+            <li><b>격차와 한 걸음</b><span>목표 직무와의 거리, 이번 주 행동, 증거카드로 이어집니다.</span></li>
+          </ol>
+          <a className="home-more" href="/how-it-works">작동 원리 전체 보기 →</a>
+        </section>
 
-      {/* 6. Before/After 사례 */}
-      <section className="home-section" aria-labelledby="home-cases">
-        <p className="eyebrow">가상 사례 3가지</p>
-        <h2 id="home-cases">이렇게 바뀝니다 — 정리되지 않은 말에서, 확인된 증거로.</h2>
-        <p className="home-note">아래는 이해를 돕기 위한 가상 사례입니다. 실존 인물의 정보가 아닙니다.</p>
-        <div className="home-cases">
-          {CASES.map((c) => (
-            <article className="home-case" key={c.id} aria-label={`가상 사례: ${c.tag}`}>
-              <p className="case-tag">{c.tag}</p>
-              <blockquote>{c.raw}</blockquote>
-              <dl className="case-facts">
-                <div className="fact fact-evidence">
-                  <dt><IconCheck />확인된 행동</dt>
-                  <dd><ul>{c.actions.map((a) => <li key={a}>{a}</li>)}</ul></dd>
-                </div>
-                <div className="fact fact-candidate">
-                  <dt><IconSpark />역량 후보</dt>
-                  <dd><b>{c.candidate}</b> — 근거: “{c.quote}”</dd>
-                </div>
-                <div className="fact fact-verify">
-                  <dt><IconQuestion />더 확인할 것</dt>
-                  <dd>{c.verify}</dd>
-                </div>
-                <div className="fact fact-caution">
-                  <dt><IconWarning />과장하지 않기</dt>
-                  <dd>{c.risk}</dd>
-                </div>
-                <div className="fact fact-hypothesis">
-                  <dt><IconCompass />직업 가설</dt>
-                  <dd>{c.hypothesis}</dd>
-                </div>
-                <div className="fact fact-action">
-                  <dt><IconChecklist />이번 주 작은 실험</dt>
-                  <dd>{c.smallStep}</dd>
-                </div>
-              </dl>
-            </article>
-          ))}
-        </div>
-      </section>
+        {/* 6. Before/After 사례 */}
+        <section className="home-band-inner" aria-labelledby="home-cases">
+          <p className="eyebrow">가상 사례 3가지</p>
+          <h2 id="home-cases">이렇게 바뀝니다 — 정리되지 않은 말에서, 확인된 증거로.</h2>
+          <p className="home-note">아래는 이해를 돕기 위한 가상 사례입니다. 실존 인물의 정보가 아닙니다.</p>
+          <div className="home-cases">
+            {CASES.map((c) => (
+              <article className="home-case" key={c.id} aria-label={`가상 사례: ${c.tag}`}>
+                <p className="case-tag">{c.tag}</p>
+                <blockquote>{c.raw}</blockquote>
+                <dl className="case-facts">
+                  <div className="fact fact-evidence">
+                    <dt><IconCheck />확인된 행동</dt>
+                    <dd><ul>{c.actions.map((a) => <li key={a}>{a}</li>)}</ul></dd>
+                  </div>
+                  <div className="fact fact-candidate">
+                    <dt><IconSpark />역량 후보</dt>
+                    <dd><b>{c.candidate}</b> — 근거: “{c.quote}”</dd>
+                  </div>
+                  <div className="fact fact-verify">
+                    <dt><IconQuestion />더 확인할 것</dt>
+                    <dd>{c.verify}</dd>
+                  </div>
+                  <div className="fact fact-caution">
+                    <dt><IconWarning />과장하지 않기</dt>
+                    <dd>{c.risk}</dd>
+                  </div>
+                  <div className="fact fact-hypothesis">
+                    <dt><IconCompass />직업 가설</dt>
+                    <dd>{c.hypothesis}</dd>
+                  </div>
+                  <div className="fact fact-action">
+                    <dt><IconChecklist />이번 주 작은 실험</dt>
+                    <dd>{c.smallStep}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </section>
 
-      {/* 7. AI 모델 */}
-      <section className="home-section" aria-labelledby="home-model">
-        <p className="eyebrow">AI 모델 선택</p>
-        <h2 id="home-model">분석 전에 Solar 모델을 직접 고를 수 있습니다.</h2>
-        <div className="home-grid three">
-          <div className="home-card"><b>Solar Pro 3 · 기본</b><p>복잡한 경험 분석에 적합한 최신 모델입니다.</p></div>
-          <div className="home-card"><b>Solar Pro 2</b><p>안정적인 고성능 모델입니다.</p></div>
-          <div className="home-card"><b>Solar Mini</b><p>빠르고 가벼운 분석용 모델입니다.</p></div>
-        </div>
-        <p className="home-note">서버에 등록된 모델만 사용됩니다. 실제 연결인지 샘플인지 화면 배지로 항상 구분합니다.</p>
-      </section>
+        {/* 7. AI 모델 */}
+        <section className="home-band-inner" aria-labelledby="home-model">
+          <p className="eyebrow">AI 모델 선택</p>
+          <h2 id="home-model">분석 전에 Solar 모델을 직접 고를 수 있습니다.</h2>
+          <div className="home-grid three">
+            <div className="home-card"><b>Solar Pro 3 · 기본</b><p>복잡한 경험 분석에 적합한 최신 모델입니다.</p></div>
+            <div className="home-card"><b>Solar Pro 2</b><p>안정적인 고성능 모델입니다.</p></div>
+            <div className="home-card"><b>Solar Mini</b><p>빠르고 가벼운 분석용 모델입니다.</p></div>
+          </div>
+          <p className="home-note">서버에 등록된 모델만 사용됩니다. 실제 연결인지 샘플인지 화면 배지로 항상 구분합니다.</p>
+        </section>
+      </div>
 
       {/* 8. 기술·안전·검증 */}
       <section className="home-section" aria-labelledby="home-tech">
