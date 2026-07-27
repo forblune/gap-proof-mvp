@@ -77,3 +77,24 @@ Explore 서브에이전트로 조사한 결과:
 
 **다음 행동**: `git add`→커밋(의미 단위)→push→PR 오픈(main 대상, 미병합 유지) → 전체 검증 로그를 PR 본문에 링크.
 
+## Skills 적용 기록 (구현 완료 후 감사 패스)
+
+- **copywriting** 스킬 가이드(명확성>재치, 구체성, 과대약속 금지)로 STEP3 카피 전체(킥커·헤드라인·인트로·카드 문구·버튼 라벨) 재검토 → 이미 "(예상)" 헤지, 정직한 톤, 기존 앱 버튼 명명 규칙("다음: OO 보기 →")과 일관된 상태를 확인. **수정 없음.**
+- **ui-ux-pro-max** 스킬 체크리스트(터치 타깃 44px, 포커스 링, 아이콘 일관성, 시맨틱 색상 토큰, 320px 가로 스크롤 0)로 최종 점검 → `.lookinto-link` min-height 44px, 전역 `:focus-visible` 규칙 그대로 적용, `fact-icons.tsx` 기존 SVG 아이콘 재사용(이모지 없음), 신규 raw hex 없이 기존 CSS 커스텀 프로퍼티만 사용, 기존 720px 브레이크포인트 재사용을 확인. **수정 없음** — Playwright 320~1440px 전 구간 통과와 독립 재평가로 이미 실증됨.
+- **seo-audit**: 이 변경은 인증된 데모 흐름 내부 단계 추가로 신규 색인 가능 URL·메타데이터 변경이 없어 스킵(요구사항: "SEO 변경이 실제로 필요한 경우에만").
+- **product-marketing**: `.agents/product-marketing.md` 컨텍스트를 팀원(Growth Hacker) 리뷰 프롬프트에 반영해 포지셔닝·신뢰 리스크 검토에 활용(별도 신규 산출물 없음, 기존 컨텍스트 재사용).
+- Superpowers 절차: 명시적 `Skill()` 호출 대신, 팀 리드 승인 설계를 계획 문서로 삼고(writing-plans 취지) → 실패마다 근본 원인 진단 후 정밀 수정(systematic-debugging 취지: draft.test.mjs 경계값 오류, aria-label 문구 불일치) → 유닛 테스트를 구현과 함께 작성·즉시 실행(test-driven-development 취지)하는 절차를 따름.
+
+## 최종 완료 조건 점검
+
+- ✅ npm test 44/44 (exit 0) · ✅ npm run build(테스트에 포함) · ✅ npm run lint 신규 오류 0
+- ✅ Playwright 159/159 — Chromium·WebKit·Firefox 전부 PASS
+- ✅ 320/360/375/390/430/768/1440px 가로스크롤·겹침·클리핑 0(신규 e2e로 검증)
+- ✅ 키보드·스크린리더 접근 가능 이름 확인(axe 0 + 독립 재평가)
+- ✅ 외부 링크 전부 https, target=_blank는 rel="noopener noreferrer"
+- ✅ 샘플 모드 Solar 호출 0 / 외부 API 실제 호출 0(네트워크 캡처로 검증) / Supabase 읽기·쓰기 0
+- ✅ 새 브랜치 feat/learn-before-check-resources, main 직접 커밋·병합·배포 없음
+- ✅ PR #76 (main 대상, draft, 미병합) 오픈 — https://github.com/forblune/gap-proof-mvp/pull/76
+
+**목표 완료.**
+
