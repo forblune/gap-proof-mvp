@@ -718,3 +718,15 @@ Loop 10 종료 시점 총점 77.6/100, 세부 평균 7.35/10(콘텐츠 밀도 5.
 
 ### 결정
 **되돌림.** 총점이 73.5→76으로 상승했으나 목표 상승폭에 못 미쳤고, 콘텐츠 밀도 완화가 `/demo` STEP2와 `/how-it-works`에만 국소 적용되어 홈페이지·`/why`·`/technology`에는 동일한 밀도 문제가 그대로 남았다. 무엇보다 STEP2의 '이번 주 작은 실험'·'더 확인하면 좋은 것'(핵심 다음-행동 제안)을 기본 숨김 처리한 것이 Loop11에서 이미 되돌림 사유로 지적된 것과 동일한 트레이드오프를 재도입한 것이라 사람 판단 없이 유지하기 어렵다고 판단, `app/demo/page.tsx`·`app/globals.css`·`app/how-it-works/page.tsx`·`app/technology/page.tsx` 4개 파일 변경을 전부 되돌렸다(`git checkout`). 리터럴 엔티티 수정과 모바일 STEP4 CTA 줄바꿈 수정 자체는 유효한 개선이었으나 콘텐츠 재구조화와 한 커밋 범위로 묶여 있어 이번 되돌림에 함께 포함했다 — 다음 루프에서 단독으로 재적용 검토. **main 병합·push·배포는 진행하지 않았다.**
+
+---
+
+## 최종 감사 (final-audit) — 2026-07-27
+
+Loop 11·12가 모두 되돌려지며(두 루프 연속 persisted 총점 상승폭 0점) 지속형 개선 루프를 종료. HEAD `912ec2c` 기준으로 배포 전 최종 게이트 점검을 수행했다.
+
+**검증 결과 요약**: `npm run build` 성공, `npm test` 37/37 통과, `npx playwright test` 114/114 통과(chromium/firefox/webkit 3브라우저 × accessibility/gate/home/responsive/screenshots/user-flow 6개 spec 전체), axe-core(wcag2a/wcag2aa) serious/critical 위반 트래킹 스위트 24케이스 + 추가 점검(`technology`·`guide`·`about`·`who` 라이트/다크 + STEP4 결과 화면) 9케이스 = 총 33케이스 전부 0건, Lighthouse `/`(Perf 90·A11y 100·BP 96·SEO 100)·`/demo`(Perf 84·A11y 100·BP 96·SEO 100), 키보드만으로 홈 내비게이션→테마 토글→데모 진입까지 전부 조작 가능함을 직접 확인. `npm run lint` 기존 4건(신규 0건) 재확인.
+
+**직접 재현으로 재확인한 기존 미해결 결함 3건**(design-loop-11/12가 수정을 시도했으나 되돌려져 현재도 존재): (1) 콘텐츠 밀도 과잉(홈 모바일 390px 전체 높이 6,948px 재실측), (2) 390px STEP4 최종 CTA 버튼 5줄 줄바꿈(버튼 폭 74.75px vs 컨테이너 354px 재실측), (3) `/technology`·`/how-it-works`의 `&ldquo;/&rdquo;` 리터럴 엔티티 미디코드 노출(`document.body.innerText` 직접 추출로 재확인).
+
+**결론**: 배포 차단 사유 0건 — **배포 가능**(실제 배포·main 병합은 미실행, 사람의 승인 필요). 상세 내역은 `docs/quality-loop/FINAL_AUDIT.md`, 점수 이력·한계 서술은 `docs/quality-loop/FINAL_PROFESSOR_REVIEW.md`, 스크린샷은 `docs/quality-loop/screenshots/final/{light,dark}/`(home/demo-gate/demo-result/technology/mobile-drawer 5종 × 2테마) 참고.
