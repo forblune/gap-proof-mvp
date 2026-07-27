@@ -55,7 +55,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .sample-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .progress-wrap { max-width: 1440px; margin: 0 auto; padding: 22px 36px 0; }
-.progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; list-style: none; margin: 0; padding: 0; }
+.progress { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; list-style: none; margin: 0; padding: 0; }
 .progress li { position: relative; display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 13px; }
 .progress li::after { content: ""; height: 2px; background: var(--line); flex: 1; order: 2; }
 .progress li:last-child::after { display: none; }
@@ -553,6 +553,22 @@ body.drawer-open { overflow: hidden; }
 .home-case dd ul { margin: 0; padding-left: 16px; }
 /* 6개 정보 유형을 데모 STEP2에서 이미 검증된 색상 체계로 구분(새 색 도입 없이 기존 토큰 재사용) */
 .home-case .fact-evidence dt, .home-case .fact-verify dt { color: var(--muted); }
+
+/* STEP 3 신규 — 먼저 알아보기 (검색 링크 카드, #Learn-Before-Check Phase 1) */
+.lookinto-intro { max-width: 720px; margin: -18px 0 26px; color: var(--color-text-muted); font-size: 14px; line-height: 1.6; word-break: keep-all; }
+.lookinto-group { margin-bottom: 26px; }
+.lookinto-group > .card-kicker { display: block; margin-bottom: 12px; }
+.lookinto-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.lookinto-card { display: flex; flex-direction: column; padding: 20px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+.lookinto-platform { color: var(--green); font-size: 12px; font-weight: 850; }
+.lookinto-card h3 { margin: 8px 0 6px; font-size: 17px; line-height: 1.4; }
+.lookinto-hint { margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; background: var(--color-surface-muted); color: var(--color-text); font-size: 12px; line-height: 1.5; }
+.lookinto-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 14px; padding: 0 4px; color: var(--green); font-weight: 800; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.lookinto-project { cursor: default; }
+.lookinto-project:hover { transform: none; }
+@media (max-width: 720px) {
+  .lookinto-grid { grid-template-columns: 1fr; }
+}
 .home-case .fact-candidate dt { color: var(--green); }
 .home-case .fact-caution dt { color: var(--coral); }
 .home-case .fact-hypothesis dt { color: var(--color-info); }

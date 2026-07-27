@@ -10,6 +10,7 @@ import {
   makeCheck,
 } from "../lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
+import { buildLookIntoItResources } from "../lib/resources";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
 import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
 import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
@@ -66,7 +67,7 @@ type AnalysisResponse = {
   notice: string;
 };
 
-const steps = ["시작", "경험", "역량 확인", "격차·행동", "GapProof"];
+const steps = ["시작", "경험", "역량 확인", "먼저 알아보기", "격차·행동", "GapProof"];
 
 // 개인화할 결과가 없을 때의 대체 공유 문구 — buildResultShareText()도 프리셋 값(목표직무명·개수·행동명)만
 // 사용하며, 사용자의 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
@@ -236,15 +237,15 @@ export default function Home() {
     };
   }, []);
 
-  // STEP 4 도착 시 결과 제목으로 포커스 이동(스크린리더·키보드 사용자 안내)
+  // STEP 5 도착 시 결과 제목으로 포커스 이동(스크린리더·키보드 사용자 안내)
   useEffect(() => {
-    if (step === 4) proofHeadingRef.current?.focus();
+    if (step === 5) proofHeadingRef.current?.focus();
   }, [step]);
 
-  // 카카오 공유 준비: STEP 4에서 키가 구성된 경우에만 SDK를 로드한다.
+  // 카카오 공유 준비: STEP 5에서 키가 구성된 경우에만 SDK를 로드한다.
   // 키는 저장소에 없고 서버 환경변수(KAKAO_JS_KEY)에서만 온다. 없으면 버튼 미표시.
   useEffect(() => {
-    if (step !== 4 || kakaoReady) return;
+    if (step !== 5 || kakaoReady) return;
     let cancelled = false;
     (async () => {
       try {
@@ -302,6 +303,22 @@ export default function Home() {
   const recommended = useMemo(() => recommendNextActions(gaps, role), [gaps, role]);
   const chosenAction =
     recommended.find((action) => action.id === selectedAction) ?? recommended[0];
+
+  // STEP 3 "먼저 알아보기" — 상위 격차 역량(없으면 목표직무의 첫 역량)을 기준으로 검색 링크를 구성한다.
+  // 검색어는 이 역량의 카탈로그 라벨(role.competencies[].label)만 사용하고, 사용자의 경험 원문·근거 인용은
+  // resources.ts에 절대 넘기지 않는다.
+  const lookIntoComp = useMemo(() => {
+    const byId = (id: string) => role.competencies.find((comp) => comp.id === id);
+    return (gaps[0] && byId(gaps[0].id)) || role.competencies[0];
+  }, [gaps, role]);
+  const lookIntoHypothesis = useMemo(() => {
+    const withHypothesis = confirmedClaims.find((claim) => claim.jobHypotheses && claim.jobHypotheses.length > 0);
+    return withHypothesis?.jobHypotheses?.[0]?.title ?? `${role.label} (목표직무 후보)`;
+  }, [confirmedClaims, role]);
+  const lookIntoResources = useMemo(
+    () => buildLookIntoItResources(lookIntoComp.label, lookIntoHypothesis, lookIntoComp.project),
+    [lookIntoComp, lookIntoHypothesis],
+  );
 
   const updateClaim = (id: number, status: ClaimStatus) => {
     setClaims((current) =>
@@ -979,7 +996,7 @@ export default function Home() {
           <div className="footer-actions sticky-actions">
             <div><b>{confirmedClaims.length}개 확인됨</b><span>최소 1개를 확인해 주십시오.</span></div>
             <button className="secondary" onClick={() => moveTo(1)}>이전</button>
-            <button className="primary" disabled={confirmedClaims.length === 0} onClick={() => moveTo(3)}>격차와 다음 행동 보기 <span>→</span></button>
+            <button className="primary" disabled={confirmedClaims.length === 0} onClick={() => moveTo(3)}>다음: 먼저 알아보기 <span>→</span></button>
           </div>
         </section>
       )}
@@ -987,7 +1004,80 @@ export default function Home() {
       {journeyOpen && step === 3 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 3 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
+            <div><span className="eyebrow">STEP 3 · 먼저 알아보기</span><h1>AI가 아니라 당신이 직접 확인하는 단계입니다.</h1></div>
+            <span className="time-pill">건너뛰어도 됩니다</span>
+          </div>
+          <p className="lookinto-intro">여기 링크는 정답이 아니라 검색 출발점입니다. 실제로 있는지, 지금 나에게 맞는지는 직접 살펴보고 판단해 주십시오.</p>
+
+          <div className="lookinto-group">
+            <div className="card-kicker">먼저 검색해보기 · 배워보기</div>
+            <div className="lookinto-grid">
+              {lookIntoResources.learn.map((card) => (
+                <article className="lookinto-card" key={card.id}>
+                  <span className="lookinto-platform">{card.platform}</span>
+                  <h3>{card.title}</h3>
+                  <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
+                  <div className="v2-badges">
+                    <span className="v2-badge">{card.hypothesis}</span>
+                    <span className="v2-badge">{card.time}</span>
+                    <span className="v2-badge">{card.difficulty}</span>
+                    <span className="v2-badge">{card.free}</span>
+                  </div>
+                  <p className="follow-up"><b><IconQuestion />확인할 포인트</b>{card.verify}</p>
+                  <a className="lookinto-link" href={card.href} target="_blank" rel="noopener noreferrer" aria-label={card.ariaLabel}>
+                    {card.linkLabel} <span aria-hidden="true">↗</span>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <details className="lookinto-group v2-hypo lookinto-institutional">
+            <summary><IconCompass />제도 확인하기 ({lookIntoResources.institutional.length}) — 고용24·온통청년</summary>
+            <div className="lookinto-grid">
+              {lookIntoResources.institutional.map((card) => (
+                <article className="lookinto-card" key={card.id}>
+                  <span className="lookinto-platform">{card.platform}</span>
+                  <h3>{card.title}</h3>
+                  <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
+                  {card.searchHint && <p className="lookinto-hint">{card.searchHint}</p>}
+                  <div className="v2-badges">
+                    <span className="v2-badge">{card.hypothesis}</span>
+                    <span className="v2-badge">{card.time}</span>
+                    <span className="v2-badge">{card.difficulty}</span>
+                    <span className="v2-badge">{card.free}</span>
+                  </div>
+                  <p className="follow-up"><b><IconQuestion />확인할 포인트</b>{card.verify}</p>
+                  <a className="lookinto-link" href={card.href} target="_blank" rel="noopener noreferrer" aria-label={card.ariaLabel}>
+                    {card.linkLabel} <span aria-hidden="true">↗</span>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </details>
+
+          <div className="lookinto-group">
+            <div className="card-kicker">직접 해보기</div>
+            <article className="action-card lookinto-project">
+              <span className="action-type">미니프로젝트</span>
+              <h3>{lookIntoResources.project.title}</h3>
+              <p>{lookIntoResources.project.rule}</p>
+              <div><b>{lookIntoResources.project.time}</b><span>{lookIntoResources.project.hypothesis}</span></div>
+            </article>
+          </div>
+
+          <p className="length-hint" role="status">둘러보지 않아도 다음으로 넘어갈 수 있습니다.</p>
+          <div className="footer-actions">
+            <button className="secondary" onClick={() => moveTo(2)}>이전</button>
+            <button className="primary" onClick={() => moveTo(4)}>다음: 격차·행동 보기 <span>→</span></button>
+          </div>
+        </section>
+      )}
+
+      {journeyOpen && step === 4 && (
+        <section className="page-shell flow-page">
+          <div className="section-head">
+            <div><span className="eyebrow">STEP 4 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
             <div className="role-chip"><small>대표 목표직무</small><b>{role.label}</b></div>
           </div>
           <div className="role-select" role="group" aria-label="목표직무 선택">
@@ -1063,11 +1153,11 @@ export default function Home() {
             <div className="zero-note" role="status">아직 확인된 역량이 없습니다. ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주십시오.</div>
           )}
           <div className="footer-actions">
-            <button className="secondary" onClick={() => moveTo(2)}>이전</button>
+            <button className="secondary" onClick={() => moveTo(3)}>이전</button>
             <button
               className="primary"
               disabled={confirmedClaims.length === 0 && passedComps.length === 0}
-              onClick={() => { setProofDate(formatProofDate(new Date())); moveTo(4); }}
+              onClick={() => { setProofDate(formatProofDate(new Date())); moveTo(5); }}
             >
               GapProof 만들기 <span>→</span>
             </button>
@@ -1075,10 +1165,10 @@ export default function Home() {
         </section>
       )}
 
-      {journeyOpen && step === 4 && (
+      {journeyOpen && step === 5 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 4 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼습니다.</h1></div>
+            <div><span className="eyebrow">STEP 5 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼습니다.</h1></div>
             <span className="complete-badge">{analysisSource === "solar" ? "✓ 분석 여정 완료" : "✓ 샘플 여정 완료"}</span>
           </div>
           <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있습니다. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료입니다.</p>
@@ -1106,7 +1196,7 @@ export default function Home() {
           </div>
           <div className="story-callout"><span>GapProof의 약속</span><p>“미래를 예측해 주는 AI가 아니라, 불확실한 미래에도 다시 움직일 수 있게 하는 AI.”</p></div>
           <div className="footer-actions final-actions">
-            <button className="secondary" onClick={() => moveTo(3)}>행동 다시 고르기</button>
+            <button className="secondary" onClick={() => moveTo(4)}>행동 다시 고르기</button>
             <button className="secondary" onClick={copyShareLink}>링크 복사</button>
             <button className="secondary" onClick={shareViaSystem}>공유하기</button>
             {kakaoReady && (
