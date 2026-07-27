@@ -941,8 +941,8 @@ export default function Home() {
                     )}
                     {claim.overclaimRisk && <p className="v2-line risk"><b><IconWarning />과장 주의</b>{claim.overclaimRisk}</p>}
                     {claim.jobHypotheses && claim.jobHypotheses.length > 0 && (
-                      <div className="v2-hypo">
-                        <b><IconCompass />직업 가설 (판정 아님)</b>
+                      <details className="v2-hypo">
+                        <summary><IconCompass />직업 가설 (판정 아님)</summary>
                         <ul>
                           {claim.jobHypotheses.map((hypothesis) => (
                             <li key={hypothesis.title}>
@@ -951,7 +951,7 @@ export default function Home() {
                             </li>
                           ))}
                         </ul>
-                      </div>
+                      </details>
                     )}
                     {claim.smallStep && <p className="v2-line step"><b><IconChecklist />이번 주 작은 실험</b>{claim.smallStep}</p>}
                   </div>

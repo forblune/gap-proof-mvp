@@ -242,7 +242,7 @@ body.drawer-open { overflow: hidden; }
 .claim-source span { color: var(--muted); }
 .follow-up { min-height: 62px; margin: 12px 0 15px; color: #596475; font-size: 12px; line-height: 1.55; }
 .follow-up b { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; color: var(--ink); }
-.follow-up b svg, .v2-line b svg, .v2-hypo > b svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.follow-up b svg, .v2-line b svg, .v2-hypo summary svg { width: 13px; height: 13px; flex: 0 0 auto; }
 .claim-actions { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 8px; margin-top: auto; }
 .claim-actions button { min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: white; cursor: pointer; font-size: 11px; font-weight: 700; }
 .claim-actions .confirm { border-color: var(--green); color: var(--green); }
@@ -621,14 +621,16 @@ body.drawer-open { overflow: hidden; }
 .v2-badge.signal { background: var(--paper); }
 .v2-line { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; color: #333f52; }
 .v2-line b { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; letter-spacing: .04em; margin-right: 8px; }
-.v2-line.risk { color: #7a3b2e; }
+/* design-loop-07: 근거(상황·확인된 행동)는 촘촘하게 묶고, 주의·전망(과장 주의 이후)은
+   여백을 넓혀 세 덩어리로 나눠 읽히게 한다 — Loop 6에서 검증된 근접성 리듬 기법 재사용 */
+.v2-line.risk { margin-top: 14px; color: #7a3b2e; }
 .v2-line.risk b { color: #a33a2a; }
-.v2-hypo { margin-top: 8px; font-size: 12.5px; }
-.v2-hypo > b { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+.v2-hypo { margin-top: 14px; font-size: 12.5px; }
+.v2-hypo summary { display: flex; align-items: center; gap: 5px; min-height: 32px; color: var(--muted); font-size: 11px; letter-spacing: .04em; cursor: pointer; }
 .v2-hypo ul { margin: 4px 0 0; padding-left: 16px; }
 .v2-hypo li { margin-top: 4px; line-height: 1.55; color: #333f52; }
 .v2-hypo li small { display: block; color: #5e687d; }
-.v2-line.step { color: var(--green); font-weight: 600; }
+.v2-line.step { margin-top: 12px; color: var(--green); font-weight: 600; }
 .v2-line.step b { color: var(--green); }
 
 /* Gate 5(#41): 모델 선택 다이얼로그 — 데스크톱 중앙 / 모바일 바텀시트 */
