@@ -23,7 +23,7 @@ const SECURITY = [
   { name: "요청 한도", Icon: IconClock, detail: "분석·코드 입력 모두 60초에 10회로 제한해 과다 요청과 무차별 대입을 막습니다. 한도 확인이 불가능하면 요청을 거절합니다." },
   { name: "개인정보 가리기", Icon: IconEyeOff, detail: "이메일·전화번호·주민등록번호로 보이는 표현은 Solar로 보내기 전에 가리고, 가린 사실을 화면에 알립니다." },
   { name: "모델 허용 목록", Icon: IconList, detail: "서버에 등록된 Solar 모델만 사용할 수 있습니다. 목록 밖 요청은 거부됩니다." },
-  { name: "무저장 원칙", Icon: IconLock, detail: "경험 원문을 서버에 저장하지 않습니다. &ldquo;새 분석 시작하기&rdquo;는 화면의 모든 상태를 지웁니다." },
+  { name: "무저장 원칙", Icon: IconLock, detail: "경험 원문을 서버에 저장하지 않습니다. “새 분석 시작하기”는 화면의 모든 상태를 지웁니다." },
 ];
 
 const CLASS_APPLIED = [

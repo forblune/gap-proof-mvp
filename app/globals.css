@@ -387,7 +387,7 @@ body.drawer-open { overflow: hidden; }
   .strength-row { grid-template-columns: 28px 1fr; }
   .strength-row .tier { grid-column: 2; }
   .footer-actions { flex-wrap: wrap; }
-  .footer-actions .primary { flex: 1; }
+  .footer-actions .primary { flex: 1 1 100%; }
   .sticky-actions > div:first-child { width: 100%; margin-bottom: 5px; }
   .proof-header { padding: 14px; }
   .identity, .brief-section, .proof-block, .brief-columns > div { padding: 18px; }
