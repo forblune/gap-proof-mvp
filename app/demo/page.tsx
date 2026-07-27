@@ -67,7 +67,8 @@ type AnalysisResponse = {
 
 const steps = ["시작", "경험", "역량 확인", "격차·행동", "GapProof"];
 
-// 공유 문구는 상수로 고정 — 사용자의 경험 입력·분석 결과를 절대 포함하지 않는다.
+// 개인화할 결과가 없을 때의 대체 공유 문구 — buildResultShareText()도 프리셋 값(목표직무명·개수·행동명)만
+// 사용하며, 사용자의 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
 const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동으로 — GapProof 데모";
 
 function TierBadge({ tier }: { tier: number }) {
@@ -577,6 +578,15 @@ export default function Home() {
 
   const shareUrl = () => window.location.origin;
 
+  // 공유 문구를 "내 결과"로 개인화 — 목표직무명·확인된 역량 개수·선택한 행동명(전부 프리셋/집계값)만 사용하고,
+  // 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
+  const buildResultShareText = () => {
+    const totalSkills = confirmedClaims.length + passedComps.length;
+    if (totalSkills === 0) return SHARE_TEXT;
+    const actionPart = chosenAction ? ` · 이번 주 행동 "${chosenAction.title}"` : "";
+    return `${role.label} 목표로 역량 ${totalSkills}개 확인${actionPart} — GapProof`;
+  };
+
   const copyShareLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl());
@@ -587,10 +597,10 @@ export default function Home() {
   };
 
   const shareViaSystem = async () => {
-    // 공유에는 서비스 소개와 링크만 담는다 — 사용자의 경험 원문·분석 결과는 포함하지 않는다.
+    // 공유에는 내 결과 요약(목표직무·확인 개수·행동명)과 링크만 담는다 — 경험 원문·분석 근거는 포함하지 않는다.
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: "GapProof", text: SHARE_TEXT, url: shareUrl() });
+        await navigator.share({ title: "GapProof", text: buildResultShareText(), url: shareUrl() });
       } catch {
         // 사용자가 공유를 취소한 경우 등 — 조용히 종료
       }
@@ -612,7 +622,7 @@ export default function Home() {
       objectType: "feed",
       content: {
         title: "GapProof | 공백을 증거로",
-        description: SHARE_TEXT,
+        description: buildResultShareText(),
         imageUrl: `${url}/og.png`,
         link: { mobileWebUrl: url, webUrl: url },
       },
@@ -1103,7 +1113,7 @@ export default function Home() {
             <button className="secondary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
             <button className="primary" onClick={sampleMode ? restartSample : requestDelete}>{sampleMode ? "체험 처음부터 시작하기" : "새 분석 시작하기"} <span>↻</span></button>
           </div>
-          <p className="share-note">링크 공유에는 서비스 소개만 담깁니다 — 내 경험 입력과 결과는 포함되지 않습니다.</p>
+          <p className="share-note">공유하기·카카오톡 공유에는 목표 직무, 확인한 역량 개수, 이번 주 행동만 담깁니다 — 경험 원문이나 역량 설명·근거는 포함되지 않습니다. (링크 복사는 주소만 복사합니다.)</p>
         </section>
       )}
 

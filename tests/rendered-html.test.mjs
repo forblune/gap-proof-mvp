@@ -163,12 +163,18 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
   const about = await (await fetchWorker(new Request("http://localhost/about", { headers: { accept: "text/html" } }))).text();
   assert.ok(about.includes("canonical"), "about canonical");
 
-  // 공유 계약: 문구는 상수, 사용자 경험·결과는 페이로드에 미포함(소스 계약)
+  // 공유 계약: 공유 문구는 목표직무·확인 개수·행동명(프리셋/집계값)만 개인화하고, 경험 원문·근거·인용문은 페이로드에 미포함(소스 계약)
   const pageSource = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(pageSource, /const SHARE_TEXT =/);
-  assert.match(pageSource, /text: SHARE_TEXT/);
+  assert.match(pageSource, /const buildResultShareText = /);
+  assert.match(pageSource, /text: buildResultShareText\(\)/);
   assert.doesNotMatch(pageSource, /navigator\.share\([^)]*experience/s);
-  assert.match(pageSource, /링크 공유에는 서비스 소개만/);
+  const shareFnBody = pageSource.slice(
+    pageSource.indexOf("const buildResultShareText = "),
+    pageSource.indexOf("const copyShareLink ="),
+  );
+  assert.doesNotMatch(shareFnBody, /experience|\.quote\b/);
+  assert.match(pageSource, /목표 직무, 확인한 역량 개수, 이번 주 행동만 담깁니다/);
 });
 
 test("serves public information pages without the demo gate", async () => {
