@@ -16,6 +16,7 @@ import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/impo
 import { IconCheck, IconQuestion, IconWarning, IconCompass, IconChecklist } from "../components/fact-icons";
 import BrandGlyph from "../components/brand-mark";
 import MobileActionsMenu from "../components/mobile-actions-menu";
+import ThemeToggle from "../components/theme-toggle";
 
 type ClaimStatus = "pending" | "confirmed" | "rejected";
 
@@ -684,6 +685,7 @@ export default function Home() {
             onNewAnalysis={sampleMode ? null : requestDelete}
           />
         )}
+        <ThemeToggle />
       </header>
 
       {sampleMode && journeyOpen && (

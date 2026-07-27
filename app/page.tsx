@@ -4,6 +4,7 @@
 import type { Metadata } from "next";
 import BrandGlyph from "./components/brand-mark";
 import MobileDrawerNav from "./components/mobile-drawer-nav";
+import ThemeToggle from "./components/theme-toggle";
 import { NAV_ITEMS } from "./components/site-nav";
 import {
   IconCheck,
@@ -76,6 +77,7 @@ export default function HomePage() {
           {NAV_ITEMS.map((item) => (
             <a key={item.href} href={item.href}>{item.label}</a>
           ))}
+          <ThemeToggle />
           <a className="nav-cta" href="/demo">데모 열기 →</a>
         </nav>
         <MobileDrawerNav />

@@ -2,6 +2,7 @@
 // 메인 데모(5단계 흐름)는 렌더하지 않으며, 데모 진입은 항상 게이트를 거친다.
 import BrandGlyph from "./brand-mark";
 import MobileDrawerNav from "./mobile-drawer-nav";
+import ThemeToggle from "./theme-toggle";
 import { NAV_ITEMS, type InfoPageKey } from "./site-nav";
 
 export type { InfoPageKey };
@@ -32,6 +33,7 @@ export function InfoShell({
               {item.label}
             </a>
           ))}
+          <ThemeToggle />
         </nav>
         <MobileDrawerNav active={active} />
       </header>
