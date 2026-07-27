@@ -98,3 +98,62 @@ Explore 서브에이전트로 조사한 결과:
 
 **목표 완료.**
 
+---
+
+## PR #76 독립 리뷰 후속 — 역할(role) 개인화 버그 수정
+
+- 목표: PR #76의 개인화 오류(목표직무 선택 전에 기본 role 기준 자료 노출)를 수정하고 검증된 draft PR 상태로 만든다. 최대 10턴/3시간, 새 PR·main 병합·배포 없이 기존 브랜치/PR만 사용.
+- 시작 상태 복원 확인: `pwd`=worktree, `git status`=clean, 브랜치=`feat/learn-before-check-resources`, HEAD=`8213877`(직전 세션 마지막 커밋), `origin/main`=`fcc5be1`, PR #76 = OPEN·DRAFT·MERGEABLE. 예상과 실제 일치, 다른 사용자 변경 없음.
+
+### 근본 원인 (OBSERVE)
+
+`app/demo/page.tsx`에서 `roleId`가 `useState(ROLES[0].id)`로 기본 초기화되고, 유일한 역할 선택 UI(`.role-select` 버튼 그룹)는 STEP4("목표직무 비교")에만 존재했다. STEP3 "먼저 알아보기"는 STEP2보다 나중, STEP4보다 먼저 등장하므로, 사용자가 목표직무를 한 번도 확인하지 않은 채 기본값(AI 서비스 기획자) 기준 검색어·미니프로젝트를 보게 되는 구조적 결함이었다. `role`/`gaps`/`recommended`/`lookIntoResources`는 이미 `roleId` 하나의 useMemo 체인에서 파생되므로(단일 소스 자체는 건재), 버그는 "언제·어디서 그 상태를 사용자가 볼 수 있는가"의 문제였다.
+
+### 재현 테스트 (FAILING TEST)
+
+`tests/e2e/role-personalization.spec.ts` 신규 작성 — 구현 전 실행 시 `getByText("이번에 알아볼 목표직무")` 요소가 없어 실패함을 확인(RED) → 구현 후 재실행하여 GREEN 전환(TDD).
+
+### 팀 구성 및 독립 검토
+
+| 역할 | 에이전트 | 의견 요약 |
+|---|---|---|
+| 리드 | Product Manager | APPROVE(조건부): STEP3/STEP4 중복 헤딩 금지, 두 인스턴스 모두 `setQuiz(null)` 필수, **AI 가설 폴백(`role.label` 대체 문구)을 실제 가설처럼 보여주지 말 것** — 실제 코드에서 `hypothesisBadge`/`buildProjectCard` 두 지점 모두에 폴백이 있었음을 직접 찾아 지적 |
+| UX Researcher | UX Researcher | AI 가설(비활성 텍스트, STEP2 어투 재사용) → 연결 문장 → 픽커 순으로 배치 권고. 뒤로가기 시 불일치 알림은 "필수 아님, 있으면 좋음"으로 강등 |
+| Engineering | Code Reviewer(1차: `engineering-code-reviewer` 존재하지 않아 재호출) | 단일 소스 확인, draft.ts `roleId` 스키마 이미 정상 확인, **기존 코드베이스에 이미 있는 모델 선택 다이얼로그의 `role="radiogroup"`+`<input type="radio">` 패턴 재사용을 위한 CSS(`.model-card`) 제시**, 재현 테스트의 버튼 쿼리를 radio로 바꿔야 함을 사전 지적 |
+| Accessibility Auditor | Accessibility Auditor | **`role="group"`+버튼+`aria-pressed`안(내 최초안)을 기각** — "3개 중 1개 선택" 의미는 `radiogroup`+`radio`+`aria-checked`만 안정적으로 전달된다고 지적, 포커스 이동(STEP5 `proofHeadingRef`와 동일 패턴을 STEP3에도) 권고 |
+
+리드 승인 최종안: (1) `RoleSelect` 공유 컴포넌트, `role="radiogroup"`+실제 `<input type="radio">`(기존 `.model-card` 패턴 재사용), (2) STEP3 최상단에 배치, AI 가설은 실제 값이 있을 때만 표시, (3) 두 인스턴스 모두 `setQuiz(null)`, (4) `resources.ts`의 hypothesis를 `string | null`로 바꿔 폴백 제거, (5) STEP3 진입 시 `<h1>` 포커스 이동.
+
+### 구현 (단일 코드 수정자: 본 세션)
+
+- `app/lib/resources.ts`: `ResourceCard.hypothesis`/`ProjectCard` 관련 필드 `string | null`. `hypothesisBadge()`는 hypothesis가 없으면 `null` 반환(폴백 문구 생성 안 함). 배지 문구를 `"AI 가설: {값} (판정 아님)"`으로 명확화.
+- `app/demo/page.tsx`: 공유 `RoleSelect` 컴포넌트 신규(`role="radiogroup"`, `<label className="role-card">`로 실제 `<input type="radio">` 감싸기, `.model-card`와 동일한 시각적 숨김+포커스 링 기법). STEP3 최상단에 "이번에 알아볼 목표직무" 섹션 삽입(AI 가설 존재 시에만 안내 문구 표시 → 연결 문장 → RoleSelect). STEP4의 기존 `role="group"`+버튼 블록을 동일한 `RoleSelect`로 교체(두 인스턴스 모두 `setQuiz(null)` 유지). `lookIntoHypothesis` useMemo가 `string | null` 반환(폴백 제거). `lookIntoHeadingRef` 신규 + STEP3 도착 시 포커스 이동 useEffect(기존 `proofHeadingRef` 패턴과 동일).
+- `app/globals.css`: `.role-select button` 규칙을 `.role-card`(라디오 은닉+`:has(input:focus-visible)` 포커스 링, `.model-card`와 동일 기법)로 교체. `.role-picker .role-select` 마진 오버라이드 추가(STEP4용으로 튜닝된 음수 마진이 STEP3의 다른 형제 요소와 우연한 마진 상쇄를 만들지 않도록).
+- `tests/resources.test.mjs`: hypothesis가 `null`일 때 배지를 만들지 않는다는 테스트, hypothesis가 있을 때 "(판정 아님)" 문구 포함 테스트 추가.
+- `tests/e2e/role-personalization.spec.ts`: 재현 테스트 4종(자료보다 먼저 픽커 노출, 직무 변경 시 즉시 갱신, AI 가설과 선택 직무 문구 분리, STEP3→STEP4→뒤로가기→재선택까지 전체 라운드트립에서 stale 데이터 0).
+
+### 테스트 결과
+
+- `npm test` → **46/46 통과**(신규 null-hypothesis 유닛 테스트 2종 포함, build 포함).
+- `npm run lint` → 신규 오류 0(기존 4건은 이전 세션에 이미 확인한 main의 무관 사전 오류, 이번 변경으로 늘지 않음).
+- `npx playwright test`(chromium+firefox+webkit 전체) → **171/171 통과**. `role-personalization.spec.ts` 12개(3브라우저×4시나리오) 전부 포함 — 자료보다 먼저 픽커 노출, 직무 변경 즉시 갱신(데이터 분석가 선택 시 AI 서비스 기획자 역량명 혼입 0), AI 가설·선택 직무 문구 분리, STEP3↔STEP4 왕복+재선택 후 이전 직무 잔존 자료 0. 기존 320~1440px/axe/외부 API 0 검증도 회귀 없이 통과.
+- 샘플 모드 STEP1 첫 클레임(`SAMPLE_JOURNEY.claims[0]`)에 실제 `jobHypotheses`가 있어 "AI 가설" 표시 케이스가 실제로 검증됨(가짜 데이터 아님).
+
+### 독립 재평가 (구현 완료 후, 코드 수정 미참여 팀원)
+
+- **Accessibility Auditor**: radiogroup/radio 구현이 설계와 정확히 일치(`checked`가 `roleId`에서 직접 파생되어 시각뿐 아니라 실제 상태 배타성 보장), 포커스 링·STEP3 진입 포커스 이동 모두 기존 STEP5 패턴과 일관. 새로 발견한 사항: STEP4에서는 `RoleSelect` 위에 STEP3와 같은 눈에 보이는 "이번에 알아볼 목표직무" 라벨이 없어 마우스 사용자에게 "바꿀 수 있다"는 시각적 단서가 약함(WCAG 위반은 아님, 사소한 발견성 개선 여지). **판정: KEEP WITH MINOR NOTES.**
+- **Code Reviewer**: 두 `RoleSelect` 호출부 모두 `setQuiz(null)` 확인, `lookIntoHypothesis`가 실제로 `string | null`이며 폴백 없음을 코드에서 직접 확인(46/46 유닛 테스트 실행으로 재검증), `role`/`roleId` 단일 소스가 STEP4·STEP5에서 변경 없이 그대로 유지됨을 확인, `role-personalization.spec.ts`를 직접 실행해 통과 재확인. **판정: KEEP.**
+
+**결정: KEEP.** NEEDS REWORK 0건. STEP4 라벨 발견성은 정정 루프 없이 아래 "남은 문제"로 기록(정합성·접근성 하드 요건과 무관한 사소한 개선이라 이번 수정 범위에서 마무리).
+
+### 남은 문제 (P1, 이번 PR 범위 아님 — 코드 미수정)
+
+1. **STEP4 역할 선택기 시각적 라벨 부재**: STEP3에는 "이번에 알아볼 목표직무" card-kicker가 있지만 STEP4의 동일 `RoleSelect`에는 없어 발견성이 약함. 후속 PR에서 STEP4에도 동일 라벨(또는 "직무 다시 선택" 요약) 추가 권장.
+2. **학습확인 퀴즈가 2문항 통과만으로 Lv.2 "수행 확인"을 부여하는 문제**(이번 목표에서 명시적으로 범위 제외): 퀴즈 통과=이해 확인, 실제 작업물·미니프로젝트=수행 확인으로 증거등급 의미를 재검토할 필요가 있음. 새 GitHub Issue는 생성하지 않음 — 별도 제안 시 이 항목을 근거로 사용.
+
+### Git / PR
+
+- 브랜치: `feat/learn-before-check-resources`(기존 유지) · PR #76(기존 유지, main 대상, **Draft·미병합** 상태 유지).
+- 새 PR 생성 없음, main 직접 커밋 없음, force-push/reset --hard/브랜치 삭제 없음, 운영 배포·Cloudflare·Supabase·Secret 변경 없음.
+- 커밋 예정: `fix: align learn-before-check resources with selected role`, `test: cover role selection and draft consistency`(role-personalization spec), `docs: record independent PR review and remediation`(본 항목).
+

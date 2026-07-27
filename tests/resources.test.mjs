@@ -79,3 +79,20 @@ test("buildLookIntoItResources는 learn 2개 · institutional 2개 · project 1�
   assert.equal(result.institutional.length, 2);
   assert.equal(result.project.title, PROJECT.title);
 });
+
+// PR #76 리뷰 수정 — AI 직업 가설이 없을 때(hypothesis=null) 사용자가 선택한 목표직무명을
+// "AI 가설"인 것처럼 대신 채워 넣지 않는다. 배지 자체를 만들지 않아야 한다(지어내지 않음).
+test("hypothesis가 null이면 카드에 AI 가설 배지를 만들지 않는다(직무명을 대신 채우지 않음)", () => {
+  const cards = [...buildLearnResources(KEYWORD, null), ...buildInstitutionalResources(KEYWORD, null)];
+  for (const card of cards) {
+    assert.equal(card.hypothesis, null, `${card.id}는 hypothesis가 null이어야 합니다`);
+  }
+  const project = buildProjectCard(PROJECT, null);
+  assert.ok(!project.hypothesis.includes("AI 가설"), "hypothesis가 없으면 프로젝트 카드에 AI 가설 문구가 없어야 합니다");
+  assert.ok(project.hypothesis.includes("검색 없이 지금 바로 시작할 수 있습니다"));
+});
+
+test("hypothesis가 있으면 배지 문구가 판정이 아님을 명시한다", () => {
+  const [youtube] = buildLearnResources(KEYWORD, HYPOTHESIS);
+  assert.equal(youtube.hypothesis, `AI 가설: ${HYPOTHESIS} (판정 아님)`);
+});

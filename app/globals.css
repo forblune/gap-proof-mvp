@@ -253,9 +253,16 @@ body.drawer-open { overflow: hidden; }
 .role-chip { display: flex; flex-direction: column; gap: 3px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
 .role-chip small { color: var(--muted); }
 .role-select { display: flex; flex-wrap: wrap; gap: 8px; margin: -14px 0 22px; }
-.role-select button { border: 1px solid var(--line); min-height: 44px; padding: 9px 14px; border-radius: 999px; background: transparent; cursor: pointer; font-size: 13px; font-weight: 750; transition: border-color .15s, background .15s; }
-.role-select button:hover { border-color: var(--color-border-strong); }
-.role-select button.active { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+/* 목표직무 카드 — .model-card와 동일 기법: 실제 <input type="radio">는 시각적으로 숨기되
+   포커스 가능 상태는 유지하고, :has(:focus-visible)로 포커스 링을 라벨(카드) 전체에 그린다. */
+.role-card { display: inline-flex; align-items: center; min-height: 44px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: transparent; cursor: pointer; font-size: 13px; font-weight: 750; transition: border-color .15s, background .15s; }
+.role-card:hover { border-color: var(--color-border-strong); }
+.role-card.selected { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+.role-card input { position: absolute; opacity: 0; pointer-events: none; }
+.role-card:has(input:focus-visible) { outline: 3px solid var(--color-focus-ring); outline-offset: 2px; }
+/* STEP3 "먼저 알아보기"에 재사용할 때는 원래 위치(STEP4, .section-head 아래)를 위해 튜닝된
+   음수 top margin이 새 위치의 형제 요소와 우연에 기댄 마진 상쇄를 만들지 않도록 무효화한다. */
+.role-picker .role-select { margin-top: 12px; margin-bottom: 4px; }
 .evidence-link { margin: 12px 0 4px; }
 .evidence-link label { display: block; margin-bottom: 6px; color: var(--green); font-size: 12px; font-weight: 850; }
 .evidence-link input { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--color-surface); color: var(--ink); font-size: 16px; }

@@ -13,7 +13,9 @@ export type ResourceCard = {
   ariaLabel: string;
   linkLabel: string;
   reason: string;
-  hypothesis: string;
+  // AI가 STEP2에서 제안한 직업 가설이 있을 때만 채워진다 — 사용자가 STEP3에서 선택한 목표직무와는
+  // 별개 값이므로(선택 직무는 이 모듈이 아니라 competencyLabel로만 반영), null이면 배지를 렌더하지 않는다.
+  hypothesis: string | null;
   time: string;
   difficulty: string;
   free: string;
@@ -43,11 +45,13 @@ function buildKmoocUrl(keyword: string): string {
 export const WORK24_TRAINING_URL = "https://hrd.work24.go.kr/";
 export const YOUTH_CENTER_SEARCH_URL = "https://www.youthcenter.go.kr/youthPolicy/ythPlcyTotalSearch";
 
-function hypothesisBadge(hypothesis: string): string {
-  return `직업 가설: ${hypothesis}`;
+// hypothesis가 없으면(AI가 이 claim에 직업 가설을 제안하지 않았으면) 배지를 만들지 않는다 —
+// 없는 값을 "AI 가설"로 지어내지 않기 위함(예: 선택한 목표직무명을 AI 가설인 것처럼 되돌려주지 않음).
+function hypothesisBadge(hypothesis: string | null): string | null {
+  return hypothesis ? `AI 가설: ${hypothesis} (판정 아님)` : null;
 }
 
-export function buildLearnResources(competencyLabel: string, hypothesis: string): ResourceCard[] {
+export function buildLearnResources(competencyLabel: string, hypothesis: string | null): ResourceCard[] {
   const hypothesisBadgeText = hypothesisBadge(hypothesis);
   return [
     {
@@ -81,7 +85,7 @@ export function buildLearnResources(competencyLabel: string, hypothesis: string)
   ];
 }
 
-export function buildInstitutionalResources(competencyLabel: string, hypothesis: string): ResourceCard[] {
+export function buildInstitutionalResources(competencyLabel: string, hypothesis: string | null): ResourceCard[] {
   const hypothesisBadgeText = hypothesisBadge(hypothesis);
   return [
     {
@@ -117,18 +121,19 @@ export function buildInstitutionalResources(competencyLabel: string, hypothesis:
   ];
 }
 
-export function buildProjectCard(project: ActionTemplate, hypothesis: string): ProjectCard {
+export function buildProjectCard(project: ActionTemplate, hypothesis: string | null): ProjectCard {
+  const prefix = hypothesis ? `AI 가설: ${hypothesis} (판정 아님) · ` : "";
   return {
     title: project.title,
     time: project.time,
     rule: project.rule,
-    hypothesis: `직업 가설: ${hypothesis} · 검색 없이 지금 바로 시작할 수 있습니다.`,
+    hypothesis: `${prefix}검색 없이 지금 바로 시작할 수 있습니다.`,
   };
 }
 
 export function buildLookIntoItResources(
   competencyLabel: string,
-  hypothesis: string,
+  hypothesis: string | null,
   project: ActionTemplate,
 ): { learn: ResourceCard[]; institutional: ResourceCard[]; project: ProjectCard } {
   return {

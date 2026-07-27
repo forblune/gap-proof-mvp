@@ -82,6 +82,28 @@ function TierBadge({ tier }: { tier: number }) {
   );
 }
 
+// 목표직무 선택 — STEP3(자료를 보기 전)·STEP4(격차 비교) 두 곳에서 동일한 roleId를 공유한다.
+// 상호 배타적으로 하나만 마운트되므로 radio name 충돌은 없다. role="radiogroup"+radio로 구성해
+// "3개 중 1개 선택됨" 상태를 스크린리더가 안정적으로 announce하도록 한다(색상만으로 전달하지 않음).
+function RoleSelect({ roleId, onSelect }: { roleId: string; onSelect: (id: string) => void }) {
+  return (
+    <div className="role-select" role="radiogroup" aria-label="목표직무 선택">
+      {ROLES.map((option) => (
+        <label key={option.id} className={`role-card ${roleId === option.id ? "selected" : ""}`}>
+          <input
+            type="radio"
+            name="target-role"
+            value={option.id}
+            checked={roleId === option.id}
+            onChange={() => onSelect(option.id)}
+          />
+          {option.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [step, setStep] = useState(0);
   const [storeConsent, setStoreConsent] = useState(false);
@@ -118,6 +140,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const proofHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const lookIntoHeadingRef = useRef<HTMLHeadingElement | null>(null);
   // Gate 1(#35): draft 저장은 사용자 상호작용(첫 상태 변화) 이후부터 시작한다.
   // 마운트 직후 기본값을 저장해 기존 draft를 덮어쓰지 않기 위한 가드.
   const draftSaveArmed = useRef(false);
@@ -242,6 +265,12 @@ export default function Home() {
     if (step === 5) proofHeadingRef.current?.focus();
   }, [step]);
 
+  // STEP 3 도착 시 제목으로 포커스 이동 — 목표직무 선택이 이 단계의 핵심 상호작용이라
+  // STEP 5와 동일하게 스크린리더·키보드 사용자에게 진입을 명확히 알린다.
+  useEffect(() => {
+    if (step === 3) lookIntoHeadingRef.current?.focus();
+  }, [step]);
+
   // 카카오 공유 준비: STEP 5에서 키가 구성된 경우에만 SDK를 로드한다.
   // 키는 저장소에 없고 서버 환경변수(KAKAO_JS_KEY)에서만 온다. 없으면 버튼 미표시.
   useEffect(() => {
@@ -311,10 +340,12 @@ export default function Home() {
     const byId = (id: string) => role.competencies.find((comp) => comp.id === id);
     return (gaps[0] && byId(gaps[0].id)) || role.competencies[0];
   }, [gaps, role]);
+  // null이면 이 claim 묶음에 AI가 제안한 직업 가설이 없다는 뜻 — 사용자가 선택한 목표직무(role.label)를
+  // "AI 가설"인 것처럼 대신 채워 넣지 않는다(두 개념을 섞지 않기 위한 명시적 분리).
   const lookIntoHypothesis = useMemo(() => {
     const withHypothesis = confirmedClaims.find((claim) => claim.jobHypotheses && claim.jobHypotheses.length > 0);
-    return withHypothesis?.jobHypotheses?.[0]?.title ?? `${role.label} (목표직무 후보)`;
-  }, [confirmedClaims, role]);
+    return withHypothesis?.jobHypotheses?.[0]?.title ?? null;
+  }, [confirmedClaims]);
   const lookIntoResources = useMemo(
     () => buildLookIntoItResources(lookIntoComp.label, lookIntoHypothesis, lookIntoComp.project),
     [lookIntoComp, lookIntoHypothesis],
@@ -1004,10 +1035,19 @@ export default function Home() {
       {journeyOpen && step === 3 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 3 · 먼저 알아보기</span><h1>AI가 아니라 당신이 직접 확인하는 단계입니다.</h1></div>
+            <div><span className="eyebrow">STEP 3 · 먼저 알아보기</span><h1 ref={lookIntoHeadingRef} tabIndex={-1}>AI가 아니라 당신이 직접 확인하는 단계입니다.</h1></div>
             <span className="time-pill">건너뛰어도 됩니다</span>
           </div>
           <p className="lookinto-intro">여기 링크는 정답이 아니라 검색 출발점입니다. 실제로 있는지, 지금 나에게 맞는지는 직접 살펴보고 판단해 주십시오.</p>
+
+          <div className="lookinto-group role-picker">
+            {lookIntoHypothesis && (
+              <p className="follow-up"><b><IconCompass />AI가 제안한 직업 가설 (판정 아님)</b>{lookIntoHypothesis}</p>
+            )}
+            <div className="card-kicker">이번에 알아볼 목표직무</div>
+            <p className="length-hint">{lookIntoHypothesis ? "그래서 아래 3가지 중 무엇을 먼저 확인해볼까요? 언제든 바꿀 수 있습니다." : "아래에서 이번에 확인해볼 목표직무를 선택해 주십시오. 언제든 바꿀 수 있습니다."}</p>
+            <RoleSelect roleId={roleId} onSelect={(id) => { setRoleId(id); setQuiz(null); }} />
+          </div>
 
           <div className="lookinto-group">
             <div className="card-kicker">먼저 검색해보기 · 배워보기</div>
@@ -1018,7 +1058,7 @@ export default function Home() {
                   <h3>{card.title}</h3>
                   <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
                   <div className="v2-badges">
-                    <span className="v2-badge">{card.hypothesis}</span>
+                    {card.hypothesis && <span className="v2-badge">{card.hypothesis}</span>}
                     <span className="v2-badge">{card.time}</span>
                     <span className="v2-badge">{card.difficulty}</span>
                     <span className="v2-badge">{card.free}</span>
@@ -1042,7 +1082,7 @@ export default function Home() {
                   <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
                   {card.searchHint && <p className="lookinto-hint">{card.searchHint}</p>}
                   <div className="v2-badges">
-                    <span className="v2-badge">{card.hypothesis}</span>
+                    {card.hypothesis && <span className="v2-badge">{card.hypothesis}</span>}
                     <span className="v2-badge">{card.time}</span>
                     <span className="v2-badge">{card.difficulty}</span>
                     <span className="v2-badge">{card.free}</span>
@@ -1080,11 +1120,7 @@ export default function Home() {
             <div><span className="eyebrow">STEP 4 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
             <div className="role-chip"><small>대표 목표직무</small><b>{role.label}</b></div>
           </div>
-          <div className="role-select" role="group" aria-label="목표직무 선택">
-            {ROLES.map((option) => (
-              <button key={option.id} className={roleId === option.id ? "active" : ""} onClick={() => { setRoleId(option.id); setQuiz(null); }}>{option.label}</button>
-            ))}
-          </div>
+          <RoleSelect roleId={roleId} onSelect={(id) => { setRoleId(id); setQuiz(null); }} />
           <div className="map-grid">
             <section className="paper-card strengths">
               <div className="card-kicker">확인된 현재 역량</div>
