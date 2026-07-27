@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { InfoShell } from "../components/info-shell";
 import { IconCheck, IconLock, IconClock, IconEyeOff, IconList } from "../components/fact-icons";
+import { IconNextjs, IconReact, IconCloudflare, IconSolar, IconNode } from "../components/tech-icons";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/technology" },
@@ -9,11 +10,11 @@ export const metadata: Metadata = {
 };
 
 const STACK = [
-  { name: "Next.js App Router + vinext (Vite)", reason: "파일 기반 라우팅과 서버 라우트를 Cloudflare Workers에서 실행하기 위해" },
-  { name: "React 19 · TypeScript(strict)", reason: "5단계 상태 흐름을 타입 안전하게 관리하기 위해" },
-  { name: "Cloudflare Workers", reason: "공개 배포와 엣지 실행, 환경변수(secret) 바인딩을 위해" },
-  { name: "Upstage Solar API", reason: "한국어 경험 문장의 구조화(JSON 출력)에 적합하고, 국내 생태계 확장성을 고려" },
-  { name: "node:test 통합 테스트", reason: "빌드 산출물 Worker를 직접 호출해 실제 응답 계약을 검증하기 위해" },
+  { name: "Next.js App Router + vinext (Vite)", Icon: IconNextjs, reason: "파일 기반 라우팅과 서버 라우트를 Cloudflare Workers에서 실행하기 위해" },
+  { name: "React 19 · TypeScript(strict)", Icon: IconReact, reason: "5단계 상태 흐름을 타입 안전하게 관리하기 위해" },
+  { name: "Cloudflare Workers", Icon: IconCloudflare, reason: "공개 배포와 엣지 실행, 환경변수(secret) 바인딩을 위해" },
+  { name: "Upstage Solar API", Icon: IconSolar, reason: "한국어 경험 문장의 구조화(JSON 출력)에 적합하고, 국내 생태계 확장성을 고려" },
+  { name: "node:test 통합 테스트", Icon: IconNode, reason: "빌드 산출물 Worker를 직접 호출해 실제 응답 계약을 검증하기 위해" },
 ];
 
 const SECURITY = [
@@ -41,17 +42,11 @@ export default function TechnologyPage() {
     >
       <section className="info-section">
         <h2>실제 기술 스택</h2>
-        <div className="table-scroll">
-          <table className="info-table">
-            <thead><tr><th>기술</th><th>선택 이유</th></tr></thead>
-            <tbody>
-              {STACK.map((item) => (
-                <tr key={item.name}><td><b>{item.name}</b></td><td>{item.reason}</td></tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="scroll-hint">← 좌우로 밀어 전체 표를 볼 수 있습니다 →</p>
+        <ul className="info-cards">
+          {STACK.map((item) => (
+            <li key={item.name}><b><item.Icon />{item.name}</b><p>{item.reason}</p></li>
+          ))}
+        </ul>
       </section>
 
       <section className="info-section">

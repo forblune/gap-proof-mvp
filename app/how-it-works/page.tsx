@@ -51,22 +51,11 @@ export default function HowItWorksPage() {
 
       <section className="info-section">
         <h2>증거등급 기준</h2>
-        <div className="table-scroll">
-          <table className="info-table">
-            <thead>
-              <tr><th>등급</th><th>이름</th><th>최소 조건</th></tr>
-            </thead>
-            <tbody>
-              {TIERS.map((tier) => (
-                <tr key={tier.level}>
-                  <td><b>{tier.level}</b></td>
-                  <td>{tier.name}</td>
-                  <td>{tier.condition}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="info-cards">
+          {TIERS.map((tier) => (
+            <li key={tier.level}><b>{tier.level} · {tier.name}</b><p>{tier.condition}</p></li>
+          ))}
+        </ul>
       </section>
 
       <section className="info-section">

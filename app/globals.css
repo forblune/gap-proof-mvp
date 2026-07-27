@@ -170,18 +170,20 @@ body.drawer-open { overflow: hidden; }
 .info-section h2 svg { width: 19px; height: 19px; flex: 0 0 auto; color: var(--green); }
 .info-section p { margin: 0 0 10px; color: #445066; font-size: 14px; line-height: 1.7; }
 .info-section ul { margin: 0; padding-left: 18px; color: #445066; font-size: 14px; line-height: 1.75; }
-.table-scroll { overflow-x: auto; }
-.scroll-hint { display: none; margin: 6px 0 0; color: var(--muted); font-size: 13px; text-align: center; }
-@media (max-width: 640px) { .scroll-hint { display: block; } } /* design-loop-03: 표가 뷰포트보다 넓을 때 가로 스크롤 힌트 제공 */
-.info-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 13px; line-height: 1.6; }
-.info-table th, .info-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-.info-table th { color: var(--muted); font-size: 13px; font-weight: 800; }
+/* design-loop-09: 표(.table-scroll/.info-table/.scroll-hint)는 모바일 가로 스크롤을 유발해 전면 폐기 —
+   증거등급·기술 스택·사용 순서 전부 아래 카드/번호 배지 패턴으로 대체(스크롤 없이 항상 세로로 쌓임) */
 /* 번호 배지 — 홈 "어떻게 작동하는가"(.home-steps)와 동일한 패턴 재사용, 12단계 텍스트 나열을 스캔 가능하게 */
 .info-pipeline { counter-reset: pstep; margin: 0; padding-left: 0; list-style: none; }
 .info-pipeline li { counter-increment: pstep; position: relative; margin-bottom: 14px; padding-left: 42px; min-height: 26px; font-size: 14px; }
 .info-pipeline li::before { content: counter(pstep); position: absolute; top: 0; left: 0; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--ink); color: var(--yellow); font-weight: 800; font-size: 12px; }
 .info-pipeline li b { display: block; margin-bottom: 2px; }
 .info-pipeline li p { margin: 0; color: #596475; font-size: 13px; line-height: 1.6; }
+/* design-loop-09: 표 대신 재사용 — 3개 필드를 가진 순서형 단계를 표 없이 카드처럼 보여준다 */
+.step-fields { margin: 6px 0 0; }
+.step-fields div { margin-top: 6px; font-size: 13px; line-height: 1.6; }
+.step-fields div:first-child { margin-top: 0; }
+.step-fields dt { display: inline; font-weight: 800; color: var(--green); margin-right: 6px; }
+.step-fields dd { display: inline; margin: 0; color: #445066; }
 .info-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .info-cards li { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fffefa; font-size: 13px; }
 .info-cards li b { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--green); }
