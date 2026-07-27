@@ -675,3 +675,46 @@ Loop 10 종료 시점 총점 77.6/100, 세부 평균 7.35/10(콘텐츠 밀도 5.
 
 ### 결정
 **되돌림.** 총점이 목표만큼 상승하지 않았고(73.5→76), 콘텐츠 밀도 개선이 데모/how-it-works에만 국소 적용되어 홈페이지·모바일에는 동일한 문제가 그대로 남아 일관성이 부족했다. 또한 STEP2 핵심 액션 제안(이번 주 작은 실험 등)을 기본 숨김 처리한 것이 GapProof의 핵심 가치제안 노출을 줄이는 트레이드오프라 사람 판단 없이 유지하기 어렵다고 판단, `app/demo/page.tsx`·`app/globals.css`·`app/how-it-works/page.tsx`·`app/technology/page.tsx` 4개 파일 변경을 전부 되돌렸다(`git checkout`). 리터럴 엔티티 수정(technology/how-it-works)은 그 자체로는 결함 수정이었으나 다른 두 변경과 한 사이클로 묶여 있어 이번 되돌림에 함께 포함했다 — 다음 루프에서 단독으로 재적용 검토. **main 병합·push·배포는 진행하지 않았다.**
+
+## Loop 12 — 리터럴 엔티티 수정 + 모바일 STEP4 CTA 줄바꿈 + 콘텐츠 밀도 재구조화 (되돌림)
+
+### 시도한 변경
+3개 문제를 모두 최소 범위로 수정했다.
+
+1) 리터럴 엔티티(가장 명확한 버그): `app/technology/page.tsx:26`, `app/how-it-works/page.tsx:22`의 SECURITY/PIPELINE 배열 문자열 안 `&ldquo;/&rdquo;`를 실제 유니코드 곱은따옴표(" ")로 직접 교체. 전수 grep으로 같은 패턴이 JS 문자열 리터럴에 더 없는지 확인했고(`app/demo`, `app/terms`, `app/about`의 나머지 3건은 JSX 텍스트 자식이라 React가 정상 디코드하므로 그대로 둠).
+
+2) 모바일 STEP4 버튼 줄바꿈: `app/globals.css`의 `@media (max-width:720px)` 블록에 `.final-actions .primary { flex: 1 1 100%; }` 규칙을 추가해, secondary 버튼들과 같은 flex 줄에서 잔여폭에 끼이지 않고 항상 자기 줄 전체 폭을 차지하도록 고정. 390px 스크린샷으로 재확인 — "체험 처음부터 시작하기 ↻"가 한 줄로 정상 표시됨(라이트·다크 모두).
+
+3) 콘텐츠 밀도(재구조화, 삭제 없음):
+   - `app/how-it-works/page.tsx`: PIPELINE 12단계 플랫 배열을 PIPELINE_GROUPS 4개 상위 흐름(입력 준비/AI 분석과 사용자 확인/격차와 행동 계산/결과와 삭제)으로 재구성. 각 그룹은 한 줄 요약을 기본 노출하고, 12단계 전체 텍스트는 details/summary("세부 단계 보기 (N단계)")로 접어 기본 숨김 — 모든 원문 텍스트는 그대로 보존, 펼치면 100% 확인 가능.
+   - `app/demo/page.tsx` STEP2 claim-card: 항상 노출되던 "더 확인하면 좋은 것"(follow-up 질문)과 "이번 주 작은 실험"을 claim-v2 블록 뒤 하나의 `<details className="claim-more">`로 묶어 기본 접힘 처리. 근거(인용·출처·과장 주의·확인된 행동·직업 가설)는 계속 기본 노출 유지 — 부가 설명만 재구조화, 정보 삭제 없음.
+   - `app/globals.css`: 위 두 UI에 필요한 `.pipeline-groups/.pipeline-group`, `.claim-more` 스타일을 기존 `.info-pipeline`/`.v2-hypo`/`.info-section` 패턴과 토큰(`--color-brand-fill`, `--yellow`, `--color-surface`, `--line`, `--ink`, `--color-text-muted` 등)만 재사용해 추가. 새 하드코딩 색상 없음. 죽은 `.follow-up` CSS 규칙은 정리.
+
+홈페이지 전체 스크롤 길이(4011px, 8개 챕터)를 줄이는 대규모 콘텐츠 재기획은 이번 루프의 최소 범위를 벗어난다고 판단해 다루지 않음 — 다음 루프 후보로 남김.
+
+### 되돌린 이유
+독립 재채점 결과 총점이 73.5 → 76으로 상승했으나, qualityConcerns에서 다음이 확인됨.
+- 홈페이지 모바일 전체 높이가 390px 뷰포트에서 6948px로 매우 길다(03-home-light-mobile.png 실측) — 가상 사례 카드 등이 완전히 펼쳐진 채 이어지며, 이번 design-loop-12는 `app/page.tsx`를 변경하지 않아 그대로다.
+- `app/demo/page.tsx`의 `claim.smallStep`('이번 주 작은 실험')과 `claim.question`이 기본 접힌 `<details>`(min-height 32px summary)로 이동해 기본 숨김 처리됐다 — 정보 삭제는 아니지만 기본 가시성이 줄었다(사실 기록, Loop11 되돌림 사유와 동일 패턴 재도입).
+- `/technology` 기술 스택 카드 5개가 3열 그리드의 마지막 칸 1개를 비운 채 렌더된다(빈 슬롯).
+- 라이트/다크 두 테마 모두 홈·데모 5단계·technology·why·how-it-works 전 페이지에서 대비·레이아웃 품질이 대등했다 — 한쪽만 저하되는 문제는 발견되지 않음.
+- Playwright fullPage 스크린샷(myflow-*-step2-confirmed.png 등)에서 position:sticky `.topbar`(`app/globals.css:11`)가 스크롤 중간 지점에 중복 렌더된 프레임이 캡처됐으나, 이는 fullPage 스크린샷 스티칭 아티팩트로 판단되며 실제 사용자가 겪는 버그는 아닌 것으로 보인다(참고용 기록).
+- 신규 `.pipeline-group summary`·`.claim-more summary` 토글의 min-height가 32px로 WCAG 2.5.5(AAA) 권장 44px에 못 미치지만, `.long-examples summary` 등 기존 앱 전역 관례와 동일해 이번 루프가 만든 새 회귀는 아니다.
+- 6개 URL(`/`, `/demo`, `/demo?sample=1`, `/technology`, `/why`, `/how-it-works`)을 콘솔 오류 모니터링과 함께 로드했을 때 콘솔 오류·페이지 오류 0건이었다(자체 Playwright 스팟체크, axe-core 전체 재실행은 이번 세션에서 수행하지 않음 — Loop10 로그의 자동화 결과에 의존).
+
+사람 판단이 필요한 사항으로 다음이 지적됨: `/demo` STEP2에서 '더 확인하면 좋은 것'과 '이번 주 작은 실험'(핵심 다음-행동 제안)을 기본 접어 숨긴 것이 옳은 트레이드오프인지(밀도는 낮아지지만 시간이 부족한 심사자·상담사가 펼치지 않고 넘어가면 GapProof의 핵심 가치제안을 놓칠 위험 — 동일 트레이드오프가 Loop11 되돌림 사유였는데 design-loop-12에 그대로 재도입됨), 1440px에서 980px 콘텐츠 폭을 유지하는 것이 의도적 여백 선택인지 결함인지(`REFERENCE_STYLE_ANALYSIS.md`는 '권장'으로만 표시, 2회 루프에서 다뤄지지 않은 채 남음), `/how-it-works` 12단계 4그룹+접기 재구조화가 대상 독자(빠르게 훑는 일반 사용자 vs 전체 파이프라인을 한 번에 검증하려는 기술 심사자/교수)에 따라 평가가 갈릴 수 있다는 점.
+
+### 점수 비교
+| 항목 | Loop11 되돌림 시점 | Loop12 시도(재채점) | Δ |
+|---|---|---|---|
+| **총점** | 73.5 | 76 | +2.5 (목표 상승폭 미달 또는 목표 항목 미개선) |
+
+### 감점 근거
+| 항목 | 감점 | 근거 | 개선 방법 |
+|---|---|---|---|
+| 1440px 데스크톱 콘텐츠 폭이 980px cap으로 여전히 좁음 | -6 | `app/globals.css:502`(`.home-hero-inner`), `519`(`.home-section`), `528`(`.home-band-inner`), `587`(`.home-final-inner`) 전부 `max-width:980px` — 1440px 뷰포트에서 좌우 여백 약 230px. `docs/quality-loop/REFERENCE_STYLE_ANALYSIS.md` 5번 항목이 참고 히어로형 사이트 2곳(1280px/1480px cap, 여백 56~80px) 대비 '권장' 개선사항으로 명시했고, Loop11 되돌림 사유에도 동일 항목이 -4점 근거로 기록됐는데 design-loop-12 diff(`app/demo/page.tsx`, `globals.css`, `how-it-works/page.tsx`, `technology/page.tsx`)는 이 파일들을 건드리지 않아 2회 연속 미해결. 01/09/11-home,technology 스크린샷에서 와이드 캔버스 대비 콘텐츠가 좁게 떠 있는 인상이 그대로 보임. | 본문 컨테이너 max-width를 1200~1280px로 넓히고 카드 그리드 열 수를 늘려 실제 콘텐츠 밀도로 여백을 메운다(단순 확장 시 카드가 늘어져 보이므로 그리드 재조정 병행). |
+| 콘텐츠 밀도 완화가 부분 적용에 그치고 핵심 액션 제안을 기본 숨김 처리 | -5 | 이번 diff는 `/demo` STEP2(claim-more details)와 `/how-it-works`(pipeline 4그룹화)만 손댔다. 홈페이지 '가상 사례' 카드 6개와 `/why` 7블록, `/technology` 보안 6블록은 그대로다 — 03-home-light-mobile.png 실측 높이 390x6948px로 여전히 매우 길다. 또한 `app/demo/page.tsx` diff에서 `claim.smallStep`('이번 주 작은 실험', GapProof의 핵심 가치제안인 다음-행동 제안)과 `claim.question`이 새 `<details className="claim-more">`(min-height 32px summary) 안으로 이동해 기본 숨김 처리됐다 — myflow-light-desktop-step2-unconfirmed.png에서 카드 하단에 '더 확인하면 좋은 것 · 이번 주 작은 실험' 한 줄만 보이고 클릭해야 내용이 드러난다. 이는 Loop11 되돌림 사유(동일 트레이드오프)와 정확히 같은 패턴이 재도입된 것. | 홈/why/technology에도 동일한 details 패턴을 일관 적용해 사이트 전체 밀도를 맞추거나, 반대로 STEP2의 '이번 주 작은 실험'만은 접지 않고 기본 노출로 되돌려 핵심 가치제안의 가시성을 지킨다(밀도 완화와 핵심 카피 노출 사이 우선순위를 팀이 결정 필요). |
+| `/technology` 기술 스택 그리드에 빈 슬롯 1개 잔존 | -2 | 09-technology-light-desktop.png(crop-tech-cards.png)에서 3열 그리드에 카드 5개(Next.js/React/Cloudflare/Solar/node:test)만 있어 2번째 행 3번째 칸이 완전히 비어 있다. Loop11 되돌림 근거에서도 동일 문제가 -2점으로 지적됐고 design-loop-12의 `technology/page.tsx` diff는 따옴표 엔티티 수정 2줄뿐이라 레이아웃은 그대로다. | 5개 항목을 홀수에 맞는 레이아웃(1행 3개+1행 2개 좌측 정렬, 또는 5번째 카드를 전체 폭 확장)으로 바꾸거나 6번째 항목(예: node:test 상세나 CI 파이프라인)을 추가해 그리드를 채운다. |
+
+### 결정
+**되돌림.** 총점이 73.5→76으로 상승했으나 목표 상승폭에 못 미쳤고, 콘텐츠 밀도 완화가 `/demo` STEP2와 `/how-it-works`에만 국소 적용되어 홈페이지·`/why`·`/technology`에는 동일한 밀도 문제가 그대로 남았다. 무엇보다 STEP2의 '이번 주 작은 실험'·'더 확인하면 좋은 것'(핵심 다음-행동 제안)을 기본 숨김 처리한 것이 Loop11에서 이미 되돌림 사유로 지적된 것과 동일한 트레이드오프를 재도입한 것이라 사람 판단 없이 유지하기 어렵다고 판단, `app/demo/page.tsx`·`app/globals.css`·`app/how-it-works/page.tsx`·`app/technology/page.tsx` 4개 파일 변경을 전부 되돌렸다(`git checkout`). 리터럴 엔티티 수정과 모바일 STEP4 CTA 줄바꿈 수정 자체는 유효한 개선이었으나 콘텐츠 재구조화와 한 커밋 범위로 묶여 있어 이번 되돌림에 함께 포함했다 — 다음 루프에서 단독으로 재적용 검토. **main 병합·push·배포는 진행하지 않았다.**
