@@ -109,7 +109,7 @@ export function parseDraft(raw: string | null | undefined): DraftV1 | null {
   const d = parsed;
   if (d.v !== 1) return null;
   if (typeof d.savedAt !== "string") return null;
-  if (!Number.isInteger(d.step) || (d.step as number) < 0 || (d.step as number) > 4) return null;
+  if (!Number.isInteger(d.step) || (d.step as number) < 0 || (d.step as number) > 5) return null;
   if (typeof d.storeConsent !== "boolean" || typeof d.aggregateConsent !== "boolean") return null;
   if (typeof d.experience !== "string" || d.experience.length > DRAFT_MAX_EXPERIENCE) return null;
   if (!Array.isArray(d.claims) || d.claims.length > MAX_CLAIMS || !d.claims.every(isClaim)) return null;

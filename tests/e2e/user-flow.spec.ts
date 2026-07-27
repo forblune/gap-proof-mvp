@@ -12,7 +12,9 @@ test.describe("주요 사용자 흐름 (샘플 여정)", () => {
     expect(await page.locator(".sample-badge").first().textContent()).toContain("샘플");
 
     await page.getByRole("button", { name: /맞아요/ }).first().click();
-    await page.getByRole("button", { name: /격차와 다음 행동 보기/ }).click();
+    await page.getByRole("button", { name: /먼저 알아보기/ }).click();
+    await expect(page.getByText("먼저 검색해보기 · 배워보기")).toBeVisible();
+    await page.getByRole("button", { name: /격차·행동 보기/ }).click();
     await page.getByRole("button", { name: /GapProof 만들기/ }).click();
 
     await expect(page.locator(".personal-proof")).toBeVisible({ timeout: 10_000 });

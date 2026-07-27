@@ -43,7 +43,7 @@ test("깨진 입력은 전부 null — 빈 값·비JSON·버전 불일치", () =
 
 test("범위·타입 위반은 null — step·experience 상한·claims 상태·checks·source", () => {
   const ok = JSON.parse(serializeDraft(base(), "t"));
-  assert.equal(parseDraft(JSON.stringify({ ...ok, step: 5 })), null);
+  assert.equal(parseDraft(JSON.stringify({ ...ok, step: 6 })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, step: 1.5 })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, experience: "가".repeat(DRAFT_MAX_EXPERIENCE + 1) })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, claims: [{ ...claim(), status: "weird" }] })), null);
