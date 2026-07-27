@@ -123,8 +123,8 @@ test("server-renders the access gate for unauthenticated visitors", async () => 
   // 게이트 화면: 서비스 이름 + 짧은 설명 + 데모 코드임을 명시
   assert.match(html, /심사·멘토링 데모/);
   assert.match(html, /안내받은 데모 코드를 입력해 주세요/);
-  assert.match(html, /계정 로그인이나 개인 비밀번호가 아니에요/);
-  assert.match(html, /취업 가능성이나 적성을 판정하지 않아요/);
+  assert.match(html, /계정 로그인이나 개인 비밀번호가 아닙니다/);
+  assert.match(html, /취업 가능성이나 적성을 판정하지 않습니다/);
   // 비인증 HTML에는 메인 데모 흐름이 노출되지 않는다 (전체 데모 진입 게이트 정책)
   assert.doesNotMatch(html, /공백을 지우지 않고/);
   assert.doesNotMatch(html, /\[필수\] 경험 분석을 위한 원문 처리/);
@@ -163,12 +163,18 @@ test("emits SEO, Open Graph, share metadata, robots, and sitemap", async () => {
   const about = await (await fetchWorker(new Request("http://localhost/about", { headers: { accept: "text/html" } }))).text();
   assert.ok(about.includes("canonical"), "about canonical");
 
-  // 공유 계약: 문구는 상수, 사용자 경험·결과는 페이로드에 미포함(소스 계약)
+  // 공유 계약: 공유 문구는 목표직무·확인 개수·행동명(프리셋/집계값)만 개인화하고, 경험 원문·근거·인용문은 페이로드에 미포함(소스 계약)
   const pageSource = await readFile(new URL("../app/demo/page.tsx", import.meta.url), "utf8");
   assert.match(pageSource, /const SHARE_TEXT =/);
-  assert.match(pageSource, /text: SHARE_TEXT/);
+  assert.match(pageSource, /const buildResultShareText = /);
+  assert.match(pageSource, /text: buildResultShareText\(\)/);
   assert.doesNotMatch(pageSource, /navigator\.share\([^)]*experience/s);
-  assert.match(pageSource, /링크 공유에는 서비스 소개만/);
+  const shareFnBody = pageSource.slice(
+    pageSource.indexOf("const buildResultShareText = "),
+    pageSource.indexOf("const copyShareLink ="),
+  );
+  assert.doesNotMatch(shareFnBody, /experience|\.quote\b/);
+  assert.match(pageSource, /목표 직무, 확인한 역량 개수, 이번 주 행동만 담깁니다/);
 });
 
 test("serves public information pages without the demo gate", async () => {
@@ -176,9 +182,9 @@ test("serves public information pages without the demo gate", async () => {
     ["/privacy", ["전문가(법률) 검토 전의 초안", "서버에 저장하지 않습니다", "만 14세 미만 이용"]],
     ["/terms", ["전문가(법률) 검토 전의 초안", "판정하지 않으며", "AI 산출물의 한계"]],
     ["/why", ["행동 증거 중심 원칙", "과장하지 않는 구조", "GapProof가 하지 않는 것"]],
-    ["/who", ["이런 분을 위해 만들었습니다", "대신 결정하지 않는 것", "상담 보조자료이며 자동판정이 아니에요"]],
+    ["/who", ["이런 분을 위해 만들었습니다", "대신 결정하지 않는 것", "상담 보조자료이며 자동판정이 아닙니다"]],
     ["/about", ["만든 계기", "하지 않는 판단", "취업 가능성이나 적성을 판정하지 않습니다"]],
-    ["/guide", ["사용 순서", "입력하지 않아도 되는 정보", "오류가 나면 이렇게 하세요"]],
+    ["/guide", ["사용 순서", "입력하지 않아도 되는 정보", "오류가 나면 이렇게 대처합니다"]],
     ["/how-it-works", ["파이프라인", "증거등급 기준", "원문 인용 검증"]],
     ["/technology", ["실제 기술 스택", "보안·개인정보 설계", "의도적으로 사용하지 않았습니다"]],
   ];
@@ -209,9 +215,9 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   ]);
 
   assert.match(page, /type ClaimStatus = "pending" \| "confirmed" \| "rejected"/);
-  assert.match(page, /AI의 제안보다 당신의 확인이 먼저예요/);
+  assert.match(page, /AI의 제안보다 당신의 확인이 먼저입니다/);
   assert.match(page, /거절한 항목은 카드와 추천에서 빠집니다/);
-  assert.match(page, /원문 공유는 직접 선택해요/);
+  assert.match(page, /원문 공유는 직접 선택합니다/);
   assert.match(page, /새 분석 시작하기/); // Gate 9: 파괴적 작업 재명명
   // #35: 삭제·잠금은 공통 리셋 헬퍼로 입력을 비우고 draft도 함께 지운다
   assert.match(page, /resetJourneyState\("", \[\]\)/);
@@ -227,11 +233,11 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   // Gate 3(#39): 자동 절삭 금지 — textarea에 maxLength를 두지 않고 초과를 명시 오류로 알린다
   assert.doesNotMatch(page, /id="experience" maxLength/);
   assert.match(page, /최소 20자 · 최대 10,000자/); // 길이 조건 안내(화면·서버 일치)
-  assert.match(page, /자동으로 잘라내지 않아요/); // 절삭 금지 계약
+  assert.match(page, /자동으로 잘라내지 않습니다/); // 절삭 금지 계약
   assert.match(page, /role="alertdialog"/); // 기록 삭제 확인 절차
-  assert.match(page, /아직 확인된 역량이 없어요/); // 확인 0개 가드 안내
+  assert.match(page, /아직 확인된 역량이 없습니다/); // 확인 0개 가드 안내
   assert.match(page, /notice\.kind === "error" \? "alert" : "status"/); // 오류 알림 라이브 리전
-  assert.match(page, /개인정보가 감지되면 가려서 표시돼요/); // 마스킹 가능성 고지(#7)
+  assert.match(page, /개인정보가 감지되면 가려서 표시됩니다/); // 마스킹 가능성 고지(#7)
   assert.match(layout, /SITE_TITLE = "GapProof \| 공백을 증거로"/);
   assert.match(layout, /metadataBase: new URL\(SITE_URL\)/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
@@ -266,7 +272,7 @@ test("rejects oversized experience before any model call", async () => {
   assert.equal(response.status, 413);
   const body = await response.json();
   assert.equal(body.error, "input_too_long");
-  assert.equal(body.message, "경험은 10,000자 이내로 적어 주세요. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주세요.");
+  assert.equal(body.message, "경험은 10,000자 이내로 적어 주십시오. 지금 내용은 그대로 두고 넘치는 만큼만 줄여 주십시오.");
 });
 
 test("enforces input boundaries with actionable user messages", async () => {
@@ -277,7 +283,7 @@ test("enforces input boundaries with actionable user messages", async () => {
   assert.equal(r19.status, 400);
   const b19 = await r19.json();
   assert.equal(b19.error, "input_too_short");
-  assert.equal(b19.message, "경험을 20자 이상 적어 주세요.");
+  assert.equal(b19.message, "경험을 20자 이상 적어 주십시오.");
 
   const r20 = await post("가".repeat(20));
   assert.equal(r20.status, 200);
@@ -409,7 +415,7 @@ test("masks obvious PII before analysis while keeping quote integrity", async ()
   assert.ok(!serialized.includes("010-1234-5678"));
   assert.ok(serialized.includes("[이메일]"));
   // 마스킹 사실 고지 + 인용 검증은 마스킹 텍스트 기준으로 계속 동작
-  assert.match(body.notice, /가리고 분석했어요/);
+  assert.match(body.notice, /가리고 분석했습니다/);
   assert.deepEqual(body.masked, ["이메일", "전화번호"]);
   assert.ok(body.claims.length >= 1);
 });

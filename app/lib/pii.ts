@@ -24,6 +24,6 @@ export function maskPII(text: string): { text: string; maskedKinds: string[] } {
 
 export function maskedNoticeSuffix(maskedKinds: string[]): string {
   return maskedKinds.length
-    ? ` ${maskedKinds.join("·")}(으)로 보이는 정보는 가리고 분석했어요.`
+    ? ` ${maskedKinds.join("·")}(으)로 보이는 정보는 가리고 분석했습니다.`
     : "";
 }

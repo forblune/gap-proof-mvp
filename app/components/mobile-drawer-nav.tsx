@@ -3,6 +3,7 @@
 // 데스크톱 내비(.info-nav)는 서버 마크업 그대로 두고 CSS로 상호 배타 노출한다.
 import { createPortal } from "react-dom";
 import { NAV_ITEMS } from "./site-nav";
+import ThemeToggle from "./theme-toggle";
 import { useSlidePanel } from "./use-slide-panel";
 
 export default function MobileDrawerNav({ active = null }: { active?: string | null }) {
@@ -31,6 +32,7 @@ export default function MobileDrawerNav({ active = null }: { active?: string | n
           <div className="drawer-backdrop" onClick={close} />
           <div id="gp-drawer" ref={panelRef} className="drawer-panel" role="dialog" aria-modal="true" aria-label="메뉴">
             <div className="drawer-head">
+              <ThemeToggle />
               <button ref={closeRef} type="button" className="drawer-close" aria-label="메뉴 닫기" onClick={close}>
                 <span aria-hidden="true">✕</span>
               </button>

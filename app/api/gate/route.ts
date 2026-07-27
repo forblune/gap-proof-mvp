@@ -23,11 +23,11 @@ export async function POST(request: Request) {
   // 바인딩 실패 시 코드 검증을 계속하지 않고 fail-closed(503)로 종료한다.
   const rateDecision = await checkRateLimit("GATE_RATE_LIMITER", await clientKey(request));
   if (rateDecision === "unavailable") {
-    return json({ error: "rate_limit_unavailable", message: "요청 한도 확인이 불가해 잠시 입장을 멈췄어요. 잠시 후 다시 시도해 주세요." }, 503);
+    return json({ error: "rate_limit_unavailable", message: "요청 한도 확인이 불가해 잠시 입장을 멈췄습니다. 잠시 후 다시 시도해 주십시오." }, 503);
   }
   if (rateDecision === "limited") {
     return json(
-      { error: "rate_limited", message: "시도가 너무 잦아요. 1분 뒤에 다시 입력해 주세요." },
+      { error: "rate_limited", message: "시도가 너무 잦습니다. 1분 뒤에 다시 입력해 주십시오." },
       429,
       { "retry-after": String(RATE_LIMIT_WINDOW_SECONDS) },
     );
@@ -37,29 +37,29 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as { code?: unknown };
   } catch {
-    return json({ error: "invalid_json", message: "요청 형식을 확인해 주세요." }, 400);
+    return json({ error: "invalid_json", message: "요청 형식을 확인해 주십시오." }, 400);
   }
 
   const code = typeof body.code === "string" ? body.code.trim() : "";
   if (!code) {
-    return json({ error: "code_required", message: "데모 코드를 입력해 주세요." }, 400);
+    return json({ error: "code_required", message: "데모 코드를 입력해 주십시오." }, 400);
   }
   if (code.length > 64) {
-    return json({ error: "invalid_code", message: "코드가 올바르지 않아요. 안내받은 코드를 다시 확인해 주세요." }, 401);
+    return json({ error: "invalid_code", message: "코드가 올바르지 않습니다. 안내받은 코드를 다시 확인해 주십시오." }, 401);
   }
 
   const result = await verifyAccessCode(code);
   if (result === "unconfigured") {
     // fail-closed: 게이트 환경변수가 없으면 데모를 열지 않는다
-    return json({ error: "gate_not_configured", message: "데모 접근이 아직 준비되지 않았어요. 운영자에게 문의해 주세요." }, 503);
+    return json({ error: "gate_not_configured", message: "데모 접근이 아직 준비되지 않았습니다. 운영자에게 문의해 주십시오." }, 503);
   }
   if (result === "invalid") {
-    return json({ error: "invalid_code", message: "코드가 올바르지 않아요. 안내받은 코드를 다시 확인해 주세요." }, 401);
+    return json({ error: "invalid_code", message: "코드가 올바르지 않습니다. 안내받은 코드를 다시 확인해 주십시오." }, 401);
   }
 
   const cookie = await createGateCookie(request);
   if (!cookie) {
-    return json({ error: "gate_not_configured", message: "데모 접근이 아직 준비되지 않았어요. 운영자에게 문의해 주세요." }, 503);
+    return json({ error: "gate_not_configured", message: "데모 접근이 아직 준비되지 않았습니다. 운영자에게 문의해 주십시오." }, 503);
   }
   return json({ authorized: true }, 200, { "set-cookie": cookie });
 }

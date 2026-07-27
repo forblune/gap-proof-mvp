@@ -37,9 +37,17 @@ export const metadata: Metadata = {
   },
 };
 
+// 테마 우선순위: localStorage 저장값 > prefers-color-scheme > 라이트 기본값.
+// 하이드레이션·첫 페인트 이전에 동기 실행되어야 깜빡임(FOIT)이 없다 — React가 아니라
+// 순수 스크립트 태그로 <html>에 data-theme을 직접 찍는다.
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem("gapproof-theme");var t=s==="light"||s==="dark"?s:(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

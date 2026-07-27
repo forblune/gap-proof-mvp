@@ -14,16 +14,16 @@ export function validateImportFile(file: ImportFileMeta): ImportValidation {
   const name = file.name.toLowerCase();
   const hasAllowedExtension = ALLOWED_EXTENSIONS.some((extension) => name.endsWith(extension));
   if (!hasAllowedExtension) {
-    return { ok: false, reason: "지금은 TXT와 Markdown(.md) 파일만 붙일 수 있어요. PDF·DOCX는 다음 단계에서 준비 중이에요." };
+    return { ok: false, reason: "지금은 TXT와 Markdown(.md) 파일만 붙일 수 있습니다. PDF·DOCX는 다음 단계에서 준비 중입니다." };
   }
   if (!ALLOWED_MIME.includes(file.type)) {
-    return { ok: false, reason: "텍스트 파일이 아닌 것 같아요. 파일 형식을 확인해 주세요." };
+    return { ok: false, reason: "텍스트 파일이 아닌 것 같습니다. 파일 형식을 확인해 주십시오." };
   }
   if (file.size > IMPORT_MAX_BYTES) {
-    return { ok: false, reason: "파일이 200KB를 넘어요. 필요한 부분만 옮겨 붙여 주세요." };
+    return { ok: false, reason: "파일이 200KB를 넘습니다. 필요한 부분만 옮겨 붙여 주십시오." };
   }
   if (file.size === 0) {
-    return { ok: false, reason: "빈 파일이에요. 내용을 확인해 주세요." };
+    return { ok: false, reason: "빈 파일입니다. 내용을 확인해 주십시오." };
   }
   return { ok: true };
 }

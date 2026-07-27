@@ -2,6 +2,7 @@
 // 메인 데모(5단계 흐름)는 렌더하지 않으며, 데모 진입은 항상 게이트를 거친다.
 import BrandGlyph from "./brand-mark";
 import MobileDrawerNav from "./mobile-drawer-nav";
+import ThemeToggle from "./theme-toggle";
 import { NAV_ITEMS, type InfoPageKey } from "./site-nav";
 
 export type { InfoPageKey };
@@ -32,6 +33,7 @@ export function InfoShell({
               {item.label}
             </a>
           ))}
+          <ThemeToggle />
         </nav>
         <MobileDrawerNav active={active} />
       </header>
@@ -44,7 +46,7 @@ export function InfoShell({
         <div className="info-cta">
           <a className="primary info-demo-link" href="/demo">GapProof 데모 시작하기 <span>→</span></a>
           <a className="secondary info-sample-link" href="/demo?sample=1">코드 없이 샘플 둘러보기</a>
-          <small>실제 분석은 심사·멘토링 공유용 데모 코드가 필요해요.</small>
+          <small>실제 분석은 심사·멘토링 공유용 데모 코드가 필요합니다.</small>
         </div>
       </section>
 
