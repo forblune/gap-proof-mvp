@@ -12,9 +12,15 @@ import { checkRateLimit, clientKey, RATE_LIMIT_WINDOW_SECONDS } from "../../lib/
 import { readServerEnv } from "../../lib/server-env";
 import { parseYoutubeUrl, sanitizeLesson } from "../../lib/youtube-lesson";
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+// 모델 별칭을 쓴다. 고정 버전(gemini-2.0-flash, gemini-2.5-flash)은 신규 프로젝트에 제공이
+// 종료돼 404를 돌려주는 것을 실측으로 확인했다. 이 별칭은 항상 현행 flash 모델을 가리킨다
+// (검증 시점 실제 서빙: gemini-3.6-flash).
+const GEMINI_MODEL = "gemini-flash-latest";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const GEMINI_TIMEOUT_MS = 30_000;
+// 비용·남용 방지 상한. 영상 하나를 학습 자료로 정리하는 데 필요한 만큼만 허용한다.
+const GEMINI_MAX_OUTPUT_TOKENS = 2048;
+const LESSON_MAX_URL_LENGTH = 2048;
 
 const SYSTEM_PROMPT = `너는 GapProof의 학습 자료 정리 보조다. 주어진 공개 YouTube 영상 하나를 학습자가 따라갈 수 있는 형태로 정리한다.
 
@@ -91,7 +97,7 @@ export async function POST(request: Request) {
     return json({ error: "invalid_json", message: "요청 형식을 확인해 주십시오." }, 400);
   }
 
-  const rawUrl = typeof body.url === "string" ? body.url.trim().slice(0, 2048) : "";
+  const rawUrl = typeof body.url === "string" ? body.url.trim().slice(0, LESSON_MAX_URL_LENGTH) : "";
   const parsed = parseYoutubeUrl(rawUrl);
   if (!parsed) {
     return json(
@@ -135,7 +141,7 @@ export async function POST(request: Request) {
         ],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 2048,
+          maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
           responseMimeType: "application/json",
         },
       }),
