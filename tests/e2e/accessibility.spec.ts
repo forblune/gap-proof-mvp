@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-const PATHS = ["/", "/demo", "/why", "/how-it-works"];
+const PATHS = ["/", "/demo", "/demo?sample=1", "/why", "/how-it-works"];
 const THEMES = ["light", "dark"] as const;
 
 test.describe("접근성 검사 (axe-core)", () => {
