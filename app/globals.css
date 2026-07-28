@@ -12,7 +12,9 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .brand { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; color: var(--ink); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.04em; }
 .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; background: var(--color-brand-fill); color: var(--color-brand-fill-contrast); border-radius: 9px 9px 16px 9px; } /* 로고 마크는 테마와 무관하게 고정(브랜드 정체성) */
 .brand-mark svg { width: 74%; height: 74%; display: block; }
-.brand-mark .mark-bridge { fill: var(--yellow); }
+/* 심벌의 "잇는 획". 네이비 칩 위에서 읽혀야 하므로 본문용 틸(#0d7c73, 3.21:1)보다
+   밝은 값을 쓴다(7.19:1). 로고는 1.4.11 대상이 아니지만 보이지 않으면 의미가 없다. */
+.brand-mark .mark-bridge { stroke: var(--color-brand-accent-on-dark); }
 .brand-mark.small { width: 28px; height: 28px; border-radius: 7px 7px 12px 7px; }
 .top-actions { display: flex; align-items: center; gap: 18px; }
 /* design-loop-10: 헤더 테마 토글 — 아이콘+텍스트로 현재 상태를 알리고, 다른 버튼과 동일한 44px 터치 타깃 유지 */
@@ -71,8 +73,19 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .hero { min-height: calc(100vh - 150px); min-height: calc(100svh - 150px); display: grid; grid-template-columns: 1.06fr .72fr; align-items: center; gap: 82px; }
 .eyebrow, .card-kicker { display: inline-block; color: var(--green); font-size: 12px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
 .hero h1, .section-head h1 { margin: 17px 0 22px; font-size: clamp(48px, 5.2vw, 78px); line-height: 1.05; letter-spacing: -.055em; font-weight: 700; }
-.hero h1 em { color: var(--green); font-style: normal; position: relative; }
-.hero h1 em::after { content: ""; position: absolute; height: 12px; bottom: 5px; left: -2px; right: -4px; background: var(--yellow); opacity: var(--hero-underline-opacity, .65); z-index: -1; transform: rotate(-1deg); }
+/* 강조 표현 — 형광펜 밑줄을 대신하는 브랜드 언어.
+   기존 노란 밑줄(높이 12px, 불투명도 .65, 기울임)은 형광펜처럼 글자를 덮어 본문 독해를
+   방해했고, 다크 모드에서는 초록 글자와 섞여 대비가 1.82:1 까지 떨어졌다.
+   여기서는 글자를 덮지 않는 얇은 선 하나만 글자 아래에 둔다.
+   한 화면에서 강조는 이 한 곳만 쓴다. */
+.hero h1 em { color: var(--color-primary); font-style: normal; position: relative; }
+.hero h1 em::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -.06em;
+  height: 4px; border-radius: 2px;
+  /* 인디고에서 틸로 — 심벌의 "잇는 획"과 같은 두 색이다. */
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+}
+@media (max-width: 720px) { .hero h1 em::after { height: 3px; } }
 .hero-lead { max-width: 690px; margin: 0; color: var(--color-text-muted); font-size: 18px; line-height: 1.78; word-break: keep-all; }
 .principles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
 .principles span { padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--color-surface); color: var(--color-text-muted); font-size: 13px; }
@@ -178,7 +191,7 @@ body.drawer-open { overflow: hidden; }
 /* 번호 배지 — 홈 "어떻게 작동하는가"(.home-steps)와 동일한 패턴 재사용, 12단계 텍스트 나열을 스캔 가능하게 */
 .info-pipeline { counter-reset: pstep; margin: 0; padding-left: 0; list-style: none; }
 .info-pipeline li { counter-increment: pstep; position: relative; margin-bottom: 14px; padding-left: 42px; min-height: 26px; font-size: 14px; }
-.info-pipeline li::before { content: counter(pstep); position: absolute; top: 0; left: 0; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand-fill); color: var(--yellow); font-weight: 800; font-size: 12px; }
+.info-pipeline li::before { content: counter(pstep); position: absolute; top: 0; left: 0; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand-fill); color: var(--color-brand-accent-on-dark); font-weight: 800; font-size: 12px; }
 .info-pipeline li b { display: block; margin-bottom: 2px; }
 .info-pipeline li p { margin: 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.6; }
 /* design-loop-09: 표 대신 재사용 — 3개 필드를 가진 순서형 단계를 표 없이 카드처럼 보여준다 */
@@ -491,7 +504,7 @@ body.drawer-open { overflow: hidden; }
   .identity small { color: #4a5568 !important; }
   .identity p { color: #333f52 !important; }
   .brand-mark, .brand-mark.small { background: #fff !important; color: var(--color-brand-fill) !important; border: 2px solid var(--color-brand-fill); }
-  .brand-mark .mark-bridge { fill: var(--color-brand-fill) !important; } /* 흰 배경 인쇄에서 노란 브리지 대비 확보 */
+  .brand-mark .mark-bridge { stroke: var(--color-brand-fill) !important; } /* 흰 배경 인쇄에서는 단색으로 */
   .primary span { color: var(--color-brand-fill) !important; }
 }
 
@@ -508,8 +521,9 @@ body.drawer-open { overflow: hidden; }
 .home-hero { background: var(--hero-gradient); }
 .home-hero-inner { max-width: 980px; margin: 0 auto; padding: 64px 24px 44px; }
 .home-hero h1 { font-weight: 700; font-size: clamp(30px, 5.4vw, 52px); line-height: 1.15; letter-spacing: -.02em; margin: 12px 0 16px; color: #fff; word-break: keep-all; overflow-wrap: break-word; }
-.home-hero .eyebrow { color: var(--yellow); word-break: keep-all; }
-.home-hero h1 em { color: var(--yellow); font-style: italic; background: none; }
+.home-hero .eyebrow { color: var(--color-brand-accent-on-dark); word-break: keep-all; }
+.home-hero h1 em { color: var(--color-brand-accent-on-dark); font-style: normal; background: none; }
+.home-hero h1 em::after { display: none; } /* 어두운 배경에서는 색만으로 충분하다 */
 .home-hero .lead { max-width: 640px; color: rgba(255, 255, 255, .84); }
 .home-cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .home-cta-row a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
@@ -557,7 +571,7 @@ body.drawer-open { overflow: hidden; }
 .home-more:hover { text-decoration: underline; }
 .home-steps { counter-reset: hstep; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0; margin: 0; list-style: none; }
 .home-steps li { counter-increment: hstep; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
-.home-steps li::before { content: counter(hstep); display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand-fill); color: var(--yellow); font-weight: 800; font-size: 13px; margin-bottom: 8px; }
+.home-steps li::before { content: counter(hstep); display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-brand-fill); color: var(--color-brand-accent-on-dark); font-weight: 800; font-size: 13px; margin-bottom: 8px; }
 .home-steps b { display: block; }
 .home-steps span { color: var(--color-text); font-size: 13px; line-height: 1.55; }
 .home-cases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
@@ -784,6 +798,7 @@ body.drawer-open { overflow: hidden; }
   --color-brand-fill: #172033;
   --color-brand-fill-contrast: #ffffff;
   --color-brand-accent: #0d7c73;
+  --color-brand-accent-on-dark: #3fbfae;
   --color-highlight: #4057c8;
   --color-highlight-contrast: #ffffff;
   --color-fill-contrast: #ffffff;
@@ -1012,10 +1027,10 @@ body.drawer-open { overflow: hidden; }
 .stack-converge .stack-converge-core {
   display: grid; place-items: center; gap: 3px; margin: 0;
   width: 116px; height: 116px; border-radius: 50%;
-  background: var(--color-brand-fill); color: var(--yellow); text-align: center;
+  background: var(--color-brand-fill); color: var(--color-brand-accent-on-dark); text-align: center;
 }
 .stack-converge .stack-converge-core b,
-.stack-converge .stack-converge-core small { color: var(--yellow); }
+.stack-converge .stack-converge-core small { color: var(--color-brand-accent-on-dark); }
 .stack-converge .stack-converge-core b { font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
 /* opacity 를 주면 대비 계산이 조상 배경으로 떨어져 실제보다 낮게 잡힌다. 색으로만 낮춘다. */
 .stack-converge .stack-converge-core small { font-size: 11px; }
