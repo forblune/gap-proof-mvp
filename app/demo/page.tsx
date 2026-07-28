@@ -17,7 +17,9 @@ import { LESSON_QUESTION_LABELS, parseYoutubeUrl } from "../lib/youtube-lesson";
 import {
   CERTIFICATE_DISCLAIMER,
   CERTIFICATE_ISSUER,
+  CERTIFICATE_USAGE_NOTE,
   CERTIFICATE_KINDS,
+  RECOGNITION_GROUPS,
   RECOGNITION_KINDS,
   MIN_ANSWER_CHARS,
   canIssueLearningCertificate,
@@ -105,11 +107,22 @@ const steps = ["시작", "경험", "역량 확인", "먼저 알아보기", "격�
 // 사용하며, 사용자의 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
 const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동으로 — GapProof 데모";
 
+// 증거등급은 "무엇이 확인됐는가"이지 숙련도가 아니다.
+// 숫자만 홀로 두면 실력 점수로 읽힌다 — 확인된 사실을 늘 함께 붙인다.
+// (벤치마킹: Open Badges 3.0 은 achievedLevel 을 발급기관 루브릭이 있을 때만 쓴다)
+const TIER_LABELS = ["자기기록", "근거 연결", "수행 확인", "기관 확인"];
+const TIER_MEANS = [
+  "사용자가 원문에서 확인한 내용입니다.",
+  "확인 가능한 링크가 연결됐습니다.",
+  "실제 수행이나 산출물이 확인됐습니다.",
+  "지정 기관이 확인했습니다.",
+];
+
 function TierBadge({ tier }: { tier: number }) {
-  const labels = ["자기기록", "근거 연결", "수행 확인", "기관 확인"];
   return (
-    <span className={`tier tier-${tier}`}>
-      <b>Lv.{tier}</b> {labels[tier]}
+    <span className={`tier tier-${tier}`} title={TIER_MEANS[tier]}>
+      <b>Lv.{tier}</b> {TIER_LABELS[tier]}
+      <small className="sr-only"> — {TIER_MEANS[tier]} 숙련도 점수가 아닙니다.</small>
     </span>
   );
 }
@@ -1493,17 +1506,31 @@ export default function Home() {
 
                 <div className="recognition-panel">
                   <div className="card-kicker">지금 인정되는 범위</div>
-                  <ul className="recognition-list">
-                    {RECOGNITION_KINDS.filter((kind) => kind.id !== "third_party_reviewed").map((kind) => {
-                      const active = activeRecognitions.includes(kind.id);
-                      return (
-                        <li key={kind.id} className={active ? "recognition-on" : "recognition-off"}>
-                          <b>{active ? "인정됨" : "아직 아님"} · {kind.label}</b>
-                          <small>{active ? kind.limits : kind.means}</small>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  {/* 확인 주체가 다른 것을 같은 목록에 섞지 않는다.
+                      내가 적은 것과 기관이 발급한 것이 나란히 놓이면 같은 무게로 읽힌다. */}
+                  {RECOGNITION_GROUPS.map((group) => {
+                    const kinds = RECOGNITION_KINDS.filter(
+                      (kind) => group.kinds.includes(kind.id) && kind.id !== "third_party_reviewed",
+                    );
+                    if (kinds.length === 0) return null;
+                    return (
+                      <section className={`recognition-group recognition-group-${group.id}`} key={group.id}>
+                        <h4>{group.label}</h4>
+                        <p className="recognition-who">{group.who}</p>
+                        <ul className="recognition-list">
+                          {kinds.map((kind) => {
+                            const active = activeRecognitions.includes(kind.id);
+                            return (
+                              <li key={kind.id} className={active ? "recognition-on" : "recognition-off"}>
+                                <b>{active ? "인정됨" : "아직 아님"} · {kind.label}</b>
+                                <small>{active ? kind.limits : kind.means}</small>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </section>
+                    );
+                  })}
                   <p className="length-hint" role="status">
                     이 학습 기록만으로 도달 가능한 최대 증거등급: <b>Lv.{recordMaxTier}</b>
                     {recordMaxTier === 0 && " — 등급을 올리려면 실제로 해 보고 결과물 링크를 남겨 주십시오."}
@@ -1555,6 +1582,17 @@ export default function Home() {
                       <div><dt>고유번호</dt><dd>{issuedCert.serial}</dd></div>
                     </dl>
                     <p className="cert-disclaimer">{CERTIFICATE_DISCLAIMER}</p>
+                    {/* 잘못 쓰이는 자리를 문서가 직접 막는다. 인쇄본에도 함께 나간다. */}
+                    <div className="cert-usage">
+                      <b>이 문서를 적는 자리</b>
+                      <p>{CERTIFICATE_USAGE_NOTE.allowed}</p>
+                      <p>{CERTIFICATE_USAGE_NOTE.forbidden}</p>
+                      <p className="cert-usage-example">
+                        {CERTIFICATE_USAGE_NOTE.wording
+                          .replace("{역량}", issuedCert.competencyLabel || "역량")
+                          .replace("{발급일}", issuedCert.issuedAt)}
+                      </p>
+                    </div>
                     <div className="cert-doc-actions">
                       <button className="secondary" onClick={() => window.print()}>인쇄 · PDF로 저장</button>
                     </div>

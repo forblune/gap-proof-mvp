@@ -12,6 +12,9 @@ import {
   isValidArtifactUrl,
   validArtifacts,
   canIssueLearningCertificate,
+  CERTIFICATE_USAGE_NOTE,
+  RECOGNITION_GROUPS,
+  recognitionGroupOf,
   certificateScope,
   isAnsweredEnough,
   countAnswered,
@@ -360,4 +363,47 @@ test("한 글자 답은 응답으로 세지 않는다 — 형식만 채운 응�
   const decision = canIssueLearningCertificate(record);
   assert.equal(decision.eligible, false);
   assert.ok(decision.missing.some((m) => m.includes(String(MIN_ANSWER_CHARS))), decision.missing.join(" / "));
+});
+
+// 벤치마킹(Forage) 적용 — 문서가 어디에 적으면 안 되는지까지 말한다.
+// "공인 자격이 아니다"라는 고지만으로는 경력란에 적히는 것을 막지 못한다.
+test("발급 문서가 적어야 할 자리와 적으면 안 되는 자리를 함께 말한다", () => {
+  assert.ok(CERTIFICATE_USAGE_NOTE.allowed.includes("수료") || CERTIFICATE_USAGE_NOTE.allowed.includes("자격"));
+  assert.ok(CERTIFICATE_USAGE_NOTE.forbidden.includes("경력"));
+  assert.ok(CERTIFICATE_USAGE_NOTE.forbidden.includes("고용") || CERTIFICATE_USAGE_NOTE.forbidden.includes("근무"));
+  // 고용을 뜻한다고 읽힐 표현이 들어가면 안 된다.
+  for (const value of Object.values(CERTIFICATE_USAGE_NOTE)) {
+    assert.equal(/취업|합격|채용 가능/.test(value), false, value);
+  }
+});
+
+test("발급 조건 설명이 실제 판정 함수와 같은 것을 말한다", () => {
+  const learning = CERTIFICATE_KINDS.find((kind) => kind.id === "learning");
+  assert.ok(learning.requires.includes("본인이 표시한"), learning.requires);
+  assert.ok(learning.requires.includes(String(MIN_ANSWER_CHARS)), learning.requires);
+});
+
+// 벤치마킹(Credly·Europass) 적용 — 신뢰 등급을 라벨이 아니라 구조로 구분한다.
+test("모든 인정 유형이 정확히 하나의 그룹에 속한다 — 어디에도 없는 유형은 화면으로 샌다", () => {
+  for (const kind of RECOGNITION_KINDS) {
+    const groups = RECOGNITION_GROUPS.filter((group) => group.kinds.includes(kind.id));
+    assert.equal(groups.length, 1, `${kind.id} 가 ${groups.length}개 그룹에 속합니다`);
+    assert.equal(recognitionGroupOf(kind.id), groups[0].id);
+  }
+});
+
+test("자기기록과 외부 발급이 같은 그룹에 들어가지 않는다", () => {
+  const self = RECOGNITION_GROUPS.find((group) => group.id === "self");
+  const external = RECOGNITION_GROUPS.find((group) => group.id === "external");
+  assert.ok(self.kinds.includes("learning_completed"));
+  assert.ok(self.kinds.includes("understanding_checked"));
+  assert.ok(external.kinds.includes("external_credential"));
+  // 겹치면 구조로 구분한다는 전제가 무너진다.
+  assert.deepEqual(self.kinds.filter((id) => external.kinds.includes(id)), []);
+  // 각 그룹은 "누가 확인했는지"를 반드시 밝힌다.
+  for (const group of RECOGNITION_GROUPS) {
+    assert.ok(group.who.trim().length > 0, group.id);
+  }
+  // 외부 그룹은 GapProof가 진위를 확인하지 않았음을 명시한다.
+  assert.match(external.who, /발급기관|GapProof가 아닙니다/);
 });

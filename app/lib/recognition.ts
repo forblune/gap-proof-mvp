@@ -73,6 +73,50 @@ export const RECOGNITION_KINDS: RecognitionKind[] = [
   },
 ];
 
+// 인정을 "누가 확인했는가"로 묶는다.
+//
+// 라벨만으로 신뢰도를 구분하면 결국 한 목록 안에서 나란히 놓이고, 사용자는
+// 자기가 적은 것과 기관이 발급한 것을 같은 무게로 읽는다. Credly 는 반입 배지를
+// 별도 섹션에 두고 transcript 에서 빼고, Europass 는 자기평가와 발급물을 다른
+// 저장소에 둔다 — 규칙을 라벨이 아니라 구조로 강제한다.
+// (조사 근거: docs/planning/BENCHMARK_AUDIT.md)
+export type RecognitionGroupId = "self" | "artifact" | "external";
+
+export type RecognitionGroup = {
+  id: RecognitionGroupId;
+  label: string;
+  who: string; // 누가 확인한 것인가
+  kinds: RecognitionKindId[];
+};
+
+export const RECOGNITION_GROUPS: RecognitionGroup[] = [
+  {
+    id: "self",
+    label: "내가 기록한 것",
+    who: "본인이 표시하거나 적은 내용입니다. GapProof가 사실 여부를 확인하지 않습니다.",
+    kinds: ["learning_completed", "understanding_checked", "performance_done"],
+  },
+  {
+    id: "artifact",
+    label: "남아 있는 결과물",
+    who: "누구나 링크를 열어 다시 확인할 수 있습니다. 품질은 평가하지 않습니다.",
+    kinds: ["artifact_linked"],
+  },
+  {
+    id: "external",
+    label: "외부 기관이 발급한 것",
+    who: "발급 주체가 GapProof가 아닙니다. 진위는 발급기관에서 확인해 주십시오.",
+    kinds: ["external_credential", "third_party_reviewed"],
+  },
+];
+
+export function recognitionGroupOf(id: RecognitionKindId): RecognitionGroupId {
+  const group = RECOGNITION_GROUPS.find((candidate) => candidate.kinds.includes(id));
+  // 그룹 없는 인정 유형은 만들지 않는다 — 만들면 어디에도 속하지 않은 채 화면에 새는다.
+  if (!group) throw new Error(`recognition kind without group: ${id}`);
+  return group.id;
+}
+
 export function findRecognitionKind(id: string): RecognitionKind | undefined {
   return RECOGNITION_KINDS.find((kind) => kind.id === id);
 }
@@ -135,8 +179,8 @@ export const CERTIFICATE_KINDS: CertificateKind[] = [
   {
     id: "learning",
     label: "학습 수료증",
-    issuedFor: "학습 자료를 끝까지 보고 필수 질문에 답한 사실",
-    requires: "학습 자료 완료 + 필수 질문 전체 응답",
+    issuedFor: "본인이 표시한 학습 자료 완료와 필수 질문 응답 사실",
+    requires: "본인이 표시한 학습 자료 완료 + 필수 질문 전체 응답(문항당 10자 이상)",
     doesNotMean: "실제로 수행했다는 뜻이 아닙니다. 증거등급을 올리지 않습니다.",
   },
   {
@@ -160,6 +204,15 @@ export const CERTIFICATE_KINDS: CertificateKind[] = [
 export const CERTIFICATE_ISSUER = "Forblune · GapProof";
 export const CERTIFICATE_DISCLAIMER =
   "이 문서는 공인 자격이나 국가 공인 학점이 아닙니다. GapProof가 확인한 범위만 기록합니다.";
+
+// 어디에 적어야 하고 어디에 적으면 안 되는지까지 문서가 직접 말한다.
+// "공인 자격이 아니다"라는 고지만으로는 이 문서가 경력란에 적히는 것을 막지 못한다.
+// (벤치마킹: Forage 인용 정책 — docs/planning/BENCHMARK_AUDIT.md)
+export const CERTIFICATE_USAGE_NOTE = {
+  allowed: "이력서·프로필의 '교육·수료' 또는 '자격' 항목에 적어 주십시오.",
+  forbidden: "'경력'이나 '재직' 항목에는 적지 마십시오. 이 문서는 근무나 고용을 뜻하지 않습니다.",
+  wording: "표기 예: GapProof 학습 기록 — {역량} ({발급일})",
+} as const;
 
 // ── 발급 조건 판정 ──────────────────────────────────────────────────────────
 
