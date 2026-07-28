@@ -10,7 +10,7 @@ const VIEWPORTS = [
   { label: "desktop-1440", width: 1440, height: 900 },
 ];
 
-const PATHS = ["/", "/demo", "/why"];
+const PATHS = ["/", "/demo", "/why", "/about"];
 
 test.describe("반응형 뷰포트 검사", () => {
   for (const viewport of VIEWPORTS) {
