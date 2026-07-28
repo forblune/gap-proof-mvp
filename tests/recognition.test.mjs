@@ -19,6 +19,7 @@ import {
   isAnsweredEnough,
   countAnswered,
   MIN_ANSWER_CHARS,
+  LESSON_ONLY_MAX_TIER,
   canIssuePerformanceCertificate,
   recognitionKindsFor,
   maxTierFromRecord,
@@ -436,4 +437,33 @@ test("요구 증거가 중복돼 있어도 두 번 세지 않는다", () => {
   assert.equal(coverage.requiredCount, 2);
   assert.equal(coverage.metCount, 1);
   assert.equal(coverage.percent, 50);
+});
+
+// 심사 지적: LESSON_ONLY_MAX_TIER 집행 분기를 지워도 테스트가 전부 통과했다.
+// 상한이 실제로 결과를 바꾸는 입력으로 고정해, 그 분기를 지우면 실패하게 한다.
+test("학습만 한 기록은 확인 증거가 있어도 상한을 넘지 않는다 — 집행 분기가 살아 있어야 한다", () => {
+  const lessonOnly = baseRecord({
+    understandingChecked: true,
+    performanceNote: ".", // 문턱 미달
+    artifacts: [],
+  });
+  assert.equal(maxTierFromRecord(lessonOnly, true), LESSON_ONLY_MAX_TIER);
+
+  // 수행 기록이 문턱을 넘으면 상한이 풀린다 — 상한이 무조건 0을 반환하는 것이 아님을 확인한다.
+  const withPerformance = baseRecord({
+    understandingChecked: true,
+    performanceNote: "실제 문제 1개를 5문장으로 정의해 봤습니다",
+    artifacts: [],
+  });
+  assert.ok(
+    maxTierFromRecord(withPerformance, true) > LESSON_ONLY_MAX_TIER,
+    "수행 기록이 있어도 상한이 걸려 있습니다",
+  );
+});
+
+test("한 글자 수행 기록은 '실제 수행' 인정으로도 세지 않는다 — 증서와 같은 문턱", () => {
+  const thin = baseRecord({ performanceNote: "." });
+  assert.ok(!recognitionKindsFor(thin).includes("performance_done"));
+  const real = baseRecord({ performanceNote: "실제 문제 1개를 5문장으로 정의해 봤습니다" });
+  assert.ok(recognitionKindsFor(real).includes("performance_done"));
 });

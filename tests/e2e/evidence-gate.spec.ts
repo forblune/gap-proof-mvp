@@ -62,7 +62,7 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
     await page.getByRole("button", { name: "이전" }).click(); // STEP4 → STEP3
     await page.getByRole("button", { name: "이전" }).click(); // STEP3 → STEP2
     await page.getByRole("button", { name: /거절/ }).first().click();
-    await expect(page.getByText("0개 확인됨")).toBeVisible();
+    await expect(page.getByText("0개 내가 확인함")).toBeVisible();
 
     // 다시 STEP4까지 이동(STEP2→3 버튼은 0개일 때 비활성이므로, 최소 이동 경로로 STEP2에 머무는 채
     // 게이트를 직접 검증 — 퀴즈 통과 이력(passedComps)은 남아있지만 STEP2→3 게이트조차 통과하지 못한다).
@@ -92,7 +92,7 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
     await page.getByRole("button", { name: "이전" }).click(); // STEP4 → STEP3
     await page.getByRole("button", { name: "이전" }).click(); // STEP3 → STEP2
     await page.getByRole("button", { name: /거절/ }).first().click();
-    await expect(page.getByText("0개 확인됨")).toBeVisible();
+    await expect(page.getByText("0개 내가 확인함")).toBeVisible();
     await expect(page.getByRole("button", { name: /먼저 알아보기/ })).toBeDisabled();
   });
 

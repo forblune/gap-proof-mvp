@@ -181,7 +181,9 @@ export default function ProfilePage() {
                     <small>되돌릴 수 없습니다.</small>
                     {/* 삭제 버튼이 사라지면서 포커스가 body로 떨어진다 — 확인 안으로 옮긴다. */}
                     <button type="button" className="secondary" ref={focusConfirm} onClick={() => cancelDelete(card.id)}>취소</button>
-                    <button type="button" className="danger" onClick={() => deleteCard(card.id)} disabled={deleting} aria-busy={deleting}>삭제</button>
+                    <button type="button" className="danger" onClick={() => deleteCard(card.id)} disabled={deleting} aria-busy={deleting}>
+                      삭제<span className="sr-only"> — {roleLabel(card.role_id)} 증거카드</span>
+                    </button>
                   </span>
                 ) : (
                   <button

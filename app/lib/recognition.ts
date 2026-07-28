@@ -330,7 +330,9 @@ export function recognitionKindsFor(record: LearningRecord): RecognitionKindId[]
   const kinds: RecognitionKindId[] = [];
   if (canIssueLearningCertificate(record).eligible) kinds.push("learning_completed");
   if (record.understandingChecked) kinds.push("understanding_checked");
-  if ((record.performanceNote ?? "").trim()) kinds.push("performance_done");
+  // 증서와 같은 문턱을 쓴다. 한 모듈이 같은 주장("실제 수행")에 두 기준을 두면
+  // 화면에는 "인정됨 · 실제 수행"이 뜨는데 증서는 발급되지 않는 어긋남이 생긴다.
+  if (isAnsweredEnough(record.performanceNote)) kinds.push("performance_done");
   if (validArtifacts(record).length > 0) kinds.push("artifact_linked");
   return kinds;
 }
@@ -394,7 +396,7 @@ export function evidenceCoverage(requiredItems: string[], metItems: string[]): E
     requiredCount,
     metCount,
     percent: requiredCount === 0 ? 0 : Math.round((metCount / requiredCount) * 100),
-    formula: `확인된 요구 증거 ${metCount}개 ÷ 목표 직무의 요구 증거 ${requiredCount}개 × 100`,
+    formula: `확인 가능한 링크가 붙은 요구 증거 ${metCount}개 ÷ 목표 직무의 요구 증거 ${requiredCount}개 × 100`,
     basis,
     unmet,
     disclaimer: COVERAGE_DISCLAIMER,

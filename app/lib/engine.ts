@@ -70,14 +70,16 @@ export function isVerifiableLink(link: string | undefined | null): boolean {
   }
 }
 
-// 학습확인(퀴즈)을 통과한 역량 id 집합. 퀴즈는 이해도 점검일 뿐, 그 자체로는
-// 증거가 아니다 — 이 역량에 실제 경험과 연결된 사용자 확인 증거가 이미 있을 때만
-// 수행 확인(강도 3)의 하한으로 반영한다(아래 competencyStrength 참고).
+// 학습확인(퀴즈)을 통과한 역량 id 집합. 퀴즈는 이해도 점검일 뿐이며
+// 증거 강도에는 어떤 경우에도 반영되지 않는다(아래 competencyStrength 참고).
+// 이 값은 증거카드에 "이해 확인" 항목을 적을지 결정하는 표시용으로만 쓴다.
 export type PassedChecks = Record<string, boolean>;
 
-// 확인된 증거(원문) 중 이 역량(keywords)과 매칭되는 것이 있는지 — 학습확인(퀴즈) 통과가
-// 수행 확인(Lv.2)으로 이어지기 위한 전제 조건. competencyStrength와 화면 표시(page.tsx의
-// STEP4·STEP5 "수행 확인" 배지) 양쪽에서 같은 판정 기준을 쓰기 위해 별도로 내보낸다.
+// 확인된 증거(원문) 중 이 역량(keywords)과 매칭되는 것이 있는지.
+// 증거카드에 "이해 확인" 항목을 적을 수 있는지, 증거 충족도에서 요구 증거를 충족으로
+// 셀 수 있는지를 같은 기준으로 판정하기 위해 별도로 내보낸다.
+// 주의: 키워드 매칭만으로는 부정문도 걸린다. 충족도 계산은 호출부에서 tier >= 1(확인 가능한
+// 링크)로 한 번 더 거른다.
 export function hasConfirmedEvidenceFor(comp: Competency, confirmed: EvidenceInput[]): boolean {
   return confirmed.some((claim) => {
     const text = `${claim.skill} ${claim.quote}`;
