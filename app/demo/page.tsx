@@ -12,6 +12,22 @@ import {
 } from "../lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
 import { buildLookIntoItResources } from "../lib/resources";
+import type { YoutubeLesson } from "../lib/youtube-lesson";
+import { LESSON_QUESTION_LABELS, parseYoutubeUrl } from "../lib/youtube-lesson";
+import {
+  CERTIFICATE_DISCLAIMER,
+  CERTIFICATE_ISSUER,
+  CERTIFICATE_KINDS,
+  RECOGNITION_KINDS,
+  canIssueLearningCertificate,
+  canIssuePerformanceCertificate,
+  certificateSerial,
+  evidenceCoverage,
+  maxTierFromRecord,
+  recognitionKindsFor,
+  type CertificateKindId,
+  type LearningRecord,
+} from "../lib/recognition";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
 import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
 import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
@@ -52,6 +68,17 @@ type Quiz = {
 };
 
 type AnalysisSource = "idle" | "loading" | "solar" | "sample";
+
+// 발급된 문서 — 화면·인쇄본에 그대로 쓰인다. 발급 조건은 recognition.ts가 판정한다.
+type IssuedCertificate = {
+  kind: CertificateKindId;
+  serial: string;
+  issuedAt: string;
+  competencyLabel: string;
+  sourceTitle: string;
+  scope: string;
+  artifactUrl?: string;
+};
 
 type NoticeKind = "success" | "error" | "info";
 type Notice = { text: string; kind: NoticeKind };
@@ -134,6 +161,16 @@ export default function Home() {
   // Gate 5(#41): 모델 선택 다이얼로그(네이티브 <dialog> — focus trap·Esc 기본 제공)
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const [pendingModelId, setPendingModelId] = useState(modelId);
+  // 영상 학습(Gemini) — 학습 자료·질문 응답·수행 기록·산출물. 인정 상한은 recognition.ts가 정한다.
+  const [lessonUrl, setLessonUrl] = useState("");
+  const [lesson, setLesson] = useState<YoutubeLesson | null>(null);
+  const [lessonBusy, setLessonBusy] = useState(false);
+  const [lessonError, setLessonError] = useState<string | null>(null);
+  const [lessonAnswers, setLessonAnswers] = useState<string[]>([]);
+  const [lessonEditing, setLessonEditing] = useState(false);
+  const [performanceNote, setPerformanceNote] = useState("");
+  const [artifactUrl, setArtifactUrl] = useState("");
+  const [issuedCert, setIssuedCert] = useState<IssuedCertificate | null>(null);
   const modelDialogRef = useRef<HTMLDialogElement | null>(null);
   const modelButtonRef = useRef<HTMLButtonElement | null>(null);
   // Gate 6(#42): 파일 가져오기 — 브라우저 안에서 텍스트로만 읽는다(업로드·저장 없음)
@@ -373,6 +410,47 @@ export default function Home() {
     [lookIntoComp, lookIntoHypothesis],
   );
 
+  // 학습 기록 — 발급 조건 판정과 인정 표시가 모두 이 하나의 값을 본다(화면과 규칙이 어긋나지 않게).
+  const learningRecord = useMemo<LearningRecord>(
+    () => ({
+      competencyId: lookIntoComp.id,
+      competencyLabel: lookIntoComp.label,
+      sourceTitle: lesson?.title ?? "",
+      sourceUrl: lesson?.videoUrl,
+      requiredQuestionCount: lesson?.questions.length ?? 0,
+      answeredQuestionCount: lesson
+        ? lessonAnswers.filter((answer) => (answer ?? "").trim().length > 0).length
+        : 0,
+      understandingChecked: Boolean(passedChecks[lookIntoComp.id]),
+      performanceNote,
+      artifacts: artifactUrl.trim() ? [{ url: artifactUrl.trim() }] : [],
+    }),
+    [lookIntoComp, lesson, lessonAnswers, passedChecks, performanceNote, artifactUrl],
+  );
+
+  const learningDecision = useMemo(() => canIssueLearningCertificate(learningRecord), [learningRecord]);
+  const performanceDecision = useMemo(
+    () => canIssuePerformanceCertificate(learningRecord),
+    [learningRecord],
+  );
+  const activeRecognitions = useMemo(() => recognitionKindsFor(learningRecord), [learningRecord]);
+  const recordMaxTier = useMemo(() => maxTierFromRecord(learningRecord), [learningRecord]);
+
+  // 증거 충족도 — 이 서비스가 쓰는 유일한 비율 수치. 취업 가능성·적성 예측이 아니라
+  // "목표 직무가 요구하는 증거 중 확인된 항목의 비율"이며, 산정식과 근거를 함께 보여 준다.
+  const roleCoverage = useMemo(() => {
+    const requiredItems = role.competencies.map((comp) => comp.proof);
+    const confirmedInputs = confirmedClaims.map((claim) => ({
+      skill: claim.skill,
+      quote: claim.quote,
+      tier: claim.tier,
+    }));
+    const metItems = role.competencies
+      .filter((comp) => hasConfirmedEvidenceFor(comp, confirmedInputs))
+      .map((comp) => comp.proof);
+    return evidenceCoverage(requiredItems, metItems);
+  }, [role, confirmedClaims]);
+
   const updateClaim = (id: number, status: ClaimStatus) => {
     setClaims((current) =>
       current.map((claim) => (claim.id === id ? { ...claim, status } : claim)),
@@ -518,6 +596,90 @@ export default function Home() {
       setAnalysisSource("idle");
       showNotice("연결 오류로 분석하지 못했습니다. 입력은 그대로 남아 있으니 잠시 후 같은 버튼으로 다시 시도해 주십시오.", "error");
     }
+  };
+
+  // 영상 학습 자료 생성 — 키는 서버에서만 쓰이며, 실패는 전부 사용자 언어로 안내한다.
+  const generateLesson = async () => {
+    const url = lessonUrl.trim();
+    if (!url) {
+      setLessonError("공개 YouTube 영상 주소를 입력해 주십시오.");
+      return;
+    }
+    // 주소 형식은 보내기 전에 확인한다 — 잘못된 주소로 유료 호출을 낭비하지 않고,
+    // 사용자에게 즉시 구체적인 안내를 준다(서버도 같은 규칙으로 한 번 더 검사한다).
+    if (!parseYoutubeUrl(url)) {
+      setLessonError(
+        "공개 YouTube 영상 주소를 확인해 주십시오. 예: https://www.youtube.com/watch?v=... 또는 https://youtu.be/...",
+      );
+      return;
+    }
+    // 샘플 체험은 실제 AI 호출을 하지 않는다(경험 분석과 동일한 규칙).
+    // 없는 학습 자료를 지어내지 않고, 무엇을 하면 되는지만 안내한다.
+    if (sampleMode) {
+      setLessonError(
+        "샘플 체험에서는 실제 AI 호출을 하지 않습니다. 영상 학습을 만들려면 시작 화면에서 데모 코드로 입장해 주십시오. 영상은 지금 직접 보셔도 됩니다.",
+      );
+      return;
+    }
+    setLessonBusy(true);
+    setLessonError(null);
+    try {
+      const response = await fetch("/api/lesson", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = (await response.json()) as {
+        lesson?: YoutubeLesson;
+        notice?: string;
+        message?: string;
+      };
+      if (!response.ok || !data.lesson) {
+        setLessonError(data.message ?? "학습 자료를 만들지 못했습니다. 다시 시도해 주십시오.");
+        return;
+      }
+      setLesson(data.lesson);
+      setLessonAnswers(new Array(data.lesson.questions.length).fill(""));
+      setIssuedCert(null);
+      if (data.notice) showNotice(data.notice, "info");
+    } catch {
+      setLessonError("학습 자료를 만들지 못했습니다. 네트워크를 확인하고 다시 시도해 주십시오.");
+    } finally {
+      setLessonBusy(false);
+    }
+  };
+
+  const updateLessonAnswer = (index: number, value: string) =>
+    setLessonAnswers((prev) => prev.map((answer, i) => (i === index ? value : answer)));
+
+  const clearLesson = () => {
+    setLesson(null);
+    setLessonAnswers([]);
+    setLessonError(null);
+    setIssuedCert(null);
+    setLessonEditing(false);
+  };
+
+  // 발급 — 조건 미충족이면 아무것도 만들지 않는다(버튼도 비활성이지만 방어적으로 한 번 더 막는다).
+  const issueCertificate = (kind: CertificateKindId) => {
+    const decision = kind === "performance" ? performanceDecision : learningDecision;
+    if (!decision.eligible) {
+      showNotice("아직 발급 조건을 충족하지 않았습니다.", "error");
+      return;
+    }
+    const issuedAt = formatProofDate(new Date());
+    setIssuedCert({
+      kind,
+      serial: certificateSerial(kind, learningRecord, issuedAt),
+      issuedAt,
+      competencyLabel: learningRecord.competencyLabel,
+      sourceTitle: learningRecord.sourceTitle,
+      scope:
+        kind === "performance"
+          ? "학습 자료 완료 · 필수 질문 응답 · 사용자가 남긴 수행 기록과 산출물 링크"
+          : "학습 자료 완료 · 필수 질문 응답",
+      artifactUrl: kind === "performance" ? artifactUrl.trim() : undefined,
+    });
   };
 
   const startCheck = () => {
@@ -1146,6 +1308,184 @@ export default function Home() {
             </article>
           </div>
 
+          <div className="lookinto-group lesson-group">
+            <div className="card-kicker">영상으로 학습하기 (선택)</div>
+            <h3 className="lesson-title">본 영상을 학습 기록으로 남깁니다.</h3>
+            <p className="length-hint">
+              공개 YouTube 주소를 넣으면 요약·핵심 개념·질문을 정리해 드립니다. 정리된 내용은 직접 고칠 수 있습니다.
+              영상 학습과 질문은 <b>학습 완료·이해 확인</b>까지만 인정됩니다 — 증거등급은 실제로 해 보고 결과물을 남겨야 오릅니다.
+            </p>
+            <div className="lesson-input-row">
+              <label className="sr-only" htmlFor="lesson-url">공개 YouTube 영상 주소</label>
+              <input
+                id="lesson-url"
+                type="url"
+                inputMode="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={lessonUrl}
+                onChange={(event) => setLessonUrl(event.target.value)}
+                disabled={lessonBusy}
+              />
+              <button className="check-cta" onClick={generateLesson} disabled={lessonBusy || !lessonUrl.trim()}>
+                {lessonBusy ? "정리하는 중…" : lesson ? "다시 만들기" : "학습 자료 만들기"}
+              </button>
+            </div>
+            {lessonError && <p className="lesson-error" role="alert">{lessonError}</p>}
+
+            {lesson && (
+              <div className="lesson-body">
+                <div className="lesson-head">
+                  <h4>{lesson.title}</h4>
+                  <div className="lesson-head-actions">
+                    <button className="secondary" onClick={() => setLessonEditing((prev) => !prev)}>
+                      {lessonEditing ? "편집 끝내기" : "내용 고치기"}
+                    </button>
+                    <button className="secondary" onClick={clearLesson}>지우기</button>
+                  </div>
+                </div>
+                {lessonEditing ? (
+                  <label className="lesson-edit">
+                    <span>요약을 직접 고칠 수 있습니다</span>
+                    <textarea
+                      value={lesson.summary}
+                      rows={4}
+                      onChange={(event) => setLesson({ ...lesson, summary: event.target.value })}
+                    />
+                  </label>
+                ) : (
+                  <p className="lesson-summary">{lesson.summary}</p>
+                )}
+
+                {lesson.keyConcepts.length > 0 && (
+                  <div className="v2-badges">
+                    {lesson.keyConcepts.map((concept) => (
+                      <span className="v2-badge" key={concept}>{concept}</span>
+                    ))}
+                  </div>
+                )}
+
+                {lesson.timestamps.length > 0 && (
+                  <ul className="lesson-timestamps">
+                    {lesson.timestamps.map((stamp) => (
+                      <li key={`${stamp.at}-${stamp.label}`}><b>{stamp.at}</b> {stamp.label}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="lesson-questions">
+                  <div className="card-kicker">스스로 확인하기 (필수 {lesson.questions.length}문항)</div>
+                  {lesson.questions.map((question, index) => (
+                    <label className="lesson-question" key={`${question.kind}-${index}`}>
+                      <span className="lesson-q-head">
+                        <span className="v2-badge">{LESSON_QUESTION_LABELS[question.kind]}</span>
+                        {question.question}
+                      </span>
+                      <textarea
+                        rows={2}
+                        value={lessonAnswers[index] ?? ""}
+                        placeholder="내 말로 적어 주십시오"
+                        onChange={(event) => updateLessonAnswer(index, event.target.value)}
+                      />
+                      <small className="lesson-guide">도움말: {question.answerGuide}</small>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="lesson-practice">
+                  <p className="follow-up"><b>추천 수행 과제</b>{lesson.practiceTask}</p>
+                  <p className="follow-up"><b>예상 산출물</b>{lesson.expectedArtifact}</p>
+                  <label className="lesson-edit">
+                    <span>무엇을 직접 해 봤는지 한 줄로 적어 주십시오</span>
+                    <textarea
+                      rows={2}
+                      value={performanceNote}
+                      placeholder="예: 실제 문제 1개를 5문장으로 정의해 봤습니다"
+                      onChange={(event) => setPerformanceNote(event.target.value)}
+                    />
+                  </label>
+                  <label className="lesson-edit">
+                    <span>결과물 링크 (http/https)</span>
+                    <input
+                      type="url"
+                      inputMode="url"
+                      placeholder="https://github.com/... 또는 문서 공유 링크"
+                      value={artifactUrl}
+                      onChange={(event) => setArtifactUrl(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="recognition-panel">
+                  <div className="card-kicker">지금 인정되는 범위</div>
+                  <ul className="recognition-list">
+                    {RECOGNITION_KINDS.filter((kind) => kind.id !== "third_party_reviewed").map((kind) => {
+                      const active = activeRecognitions.includes(kind.id);
+                      return (
+                        <li key={kind.id} className={active ? "recognition-on" : "recognition-off"}>
+                          <b>{active ? "인정됨" : "아직 아님"} · {kind.label}</b>
+                          <small>{active ? kind.limits : kind.means}</small>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="length-hint" role="status">
+                    이 학습 기록만으로 도달 가능한 최대 증거등급: <b>Lv.{recordMaxTier}</b>
+                    {recordMaxTier === 0 && " — 등급을 올리려면 실제로 해 보고 결과물 링크를 남겨 주십시오."}
+                  </p>
+                </div>
+
+                <div className="cert-actions">
+                  {CERTIFICATE_KINDS.filter((kind) => kind.id !== "external_record").map((kind) => {
+                    const decision = kind.id === "performance" ? performanceDecision : learningDecision;
+                    return (
+                      <div className="cert-action" key={kind.id}>
+                        <button
+                          className="check-cta"
+                          disabled={!decision.eligible}
+                          onClick={() => issueCertificate(kind.id)}
+                        >
+                          {kind.label} 발급
+                        </button>
+                        <small>{kind.doesNotMean}</small>
+                        {!decision.eligible && (
+                          <ul className="cert-missing" role="status">
+                            {decision.missing.map((item) => <li key={item}>{item}</li>)}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {issuedCert && (
+                  <article className="certificate-doc" aria-label={`${issuedCert.kind === "performance" ? "수행 확인서" : "학습 수료증"}`}>
+                    <header>
+                      <span className="brand-mark small"><BrandGlyph /></span>
+                      <div>
+                        <b>{issuedCert.kind === "performance" ? "수행 확인서" : "학습 수료증"}</b>
+                        <small>{CERTIFICATE_ISSUER}</small>
+                      </div>
+                    </header>
+                    <dl>
+                      <div><dt>역량</dt><dd>{issuedCert.competencyLabel || "—"}</dd></div>
+                      <div><dt>학습 자료</dt><dd>{issuedCert.sourceTitle || "—"}</dd></div>
+                      <div><dt>확인 범위</dt><dd>{issuedCert.scope}</dd></div>
+                      {issuedCert.artifactUrl && (
+                        <div><dt>결과물</dt><dd className="cert-url">{issuedCert.artifactUrl}</dd></div>
+                      )}
+                      <div><dt>발급일</dt><dd>{issuedCert.issuedAt}</dd></div>
+                      <div><dt>고유번호</dt><dd>{issuedCert.serial}</dd></div>
+                    </dl>
+                    <p className="cert-disclaimer">{CERTIFICATE_DISCLAIMER}</p>
+                    <div className="cert-doc-actions">
+                      <button className="secondary" onClick={() => window.print()}>인쇄 · PDF로 저장</button>
+                    </div>
+                  </article>
+                )}
+              </div>
+            )}
+          </div>
+
           <p className="length-hint" role="status">둘러보지 않아도 다음으로 넘어갈 수 있습니다.</p>
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(2)}>이전</button>
@@ -1186,6 +1526,20 @@ export default function Home() {
                   <strong>{gap.score}</strong>
                 </div>
               )) : <p>선택한 직무의 필수 역량을 이미 확인했습니다. 다른 직무로 바꿔 격차를 확인해 보십시오.</p>}
+              <div className="coverage-block">
+                <div className="coverage-head">
+                  <b>증거 충족도 {roleCoverage.percent}%</b>
+                  <small>{roleCoverage.metCount} / {roleCoverage.requiredCount} 항목</small>
+                </div>
+                <p className="coverage-formula">산정식: {roleCoverage.formula}</p>
+                {roleCoverage.basis.length > 0 && (
+                  <p className="coverage-list"><b>확인된 요구 증거</b> {roleCoverage.basis.join(" · ")}</p>
+                )}
+                {roleCoverage.unmet.length > 0 && (
+                  <p className="coverage-list"><b>아직 확인되지 않은 항목</b> {roleCoverage.unmet.join(" · ")}</p>
+                )}
+                <p className="coverage-disclaimer">{roleCoverage.disclaimer}</p>
+              </div>
             </section>
           </div>
           <div className="action-section">

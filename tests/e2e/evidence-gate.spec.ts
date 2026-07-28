@@ -38,11 +38,22 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
     for (let attemptIndex = 0; attemptIndex < 3; attemptIndex++) {
       if (await passedPanel.isVisible().catch(() => false)) break;
       const options = page.locator(".check-q");
-      await options.nth(0).locator(".check-opt").nth(attemptIndex).click({ force: true });
-      await options.nth(1).locator(".check-opt").nth(attemptIndex).click({ force: true });
-      await page.getByRole("button", { name: "제출" }).click({ force: true });
-      // 제출 후 통과/재시도 중 하나로 DOM이 안정될 때까지 명시적으로 기다린다(race 방지).
-      await passedPanel.waitFor({ state: "visible", timeout: 2_000 }).catch(() => {});
+      // 선택이 실제로 반영됐는지(.picked) 확인한 뒤 제출한다 — webkit에서 리렌더 전에
+      // 클릭이 발생해 시도가 유실되던 문제를 막는다(기대값은 그대로).
+      for (const questionIndex of [0, 1]) {
+        const option = options.nth(questionIndex).locator(".check-opt").nth(attemptIndex);
+        // 리렌더 타이밍에 따라 첫 클릭이 유실될 수 있어, 선택이 반영될 때까지 다시 누른다.
+        await expect(async () => {
+          if (!(await option.getAttribute("class"))?.includes("picked")) await option.click();
+          expect(await option.getAttribute("class")).toContain("picked");
+        }).toPass({ timeout: 8_000 });
+      }
+      await page.getByRole("button", { name: "제출" }).click();
+      // 제출 결과가 DOM에 반영될 때까지 기다린다: 통과 패널이 뜨거나 시도 횟수가 올라간다.
+      await Promise.race([
+        passedPanel.waitFor({ state: "visible", timeout: 4_000 }).catch(() => {}),
+        page.getByText(`시도 ${attemptIndex + 2}/3`).waitFor({ state: "visible", timeout: 4_000 }).catch(() => {}),
+      ]);
     }
     await expect(passedPanel).toBeVisible({ timeout: 5_000 });
     await page.getByRole("button", { name: "닫기" }).click();

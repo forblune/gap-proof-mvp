@@ -808,3 +808,79 @@ body.drawer-open { overflow: hidden; }
   --topbar-tint: rgba(28, 33, 48, .94);
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
 }
+
+/* ── 영상 학습(Gemini) · 인정 범위 · 발급 문서 ────────────────────────────── */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.lesson-group { display: grid; gap: 12px; }
+.lesson-title { margin: 0; font-size: 17px; font-weight: 700; }
+.lesson-input-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.lesson-input-row input { flex: 1 1 240px; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font-size: 14px; }
+.lesson-input-row .check-cta { flex: 0 0 auto; }
+.lesson-error { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--color-danger-soft, #fdecec); color: var(--color-danger, #a3242b); font-size: 13px; line-height: 1.6; }
+
+.lesson-body { display: grid; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.lesson-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.lesson-head h4 { margin: 0; font-size: 16px; font-weight: 700; }
+.lesson-head-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.lesson-summary { margin: 0; font-size: 14px; line-height: 1.75; color: var(--color-text); }
+.lesson-timestamps { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.8; color: var(--color-text-muted); }
+.lesson-timestamps b { color: var(--ink); }
+
+.lesson-questions { display: grid; gap: 12px; }
+.lesson-question { display: grid; gap: 6px; }
+.lesson-q-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; font-size: 14px; font-weight: 650; line-height: 1.6; }
+.lesson-question textarea, .lesson-edit textarea, .lesson-edit input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--color-surface, var(--paper)); color: var(--ink); font-size: 14px; font-family: inherit; line-height: 1.6; }
+.lesson-guide { color: var(--color-text-muted); font-size: 12px; line-height: 1.6; }
+.lesson-edit { display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
+.lesson-practice { display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+.recognition-panel { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.recognition-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.recognition-list li { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); font-size: 13px; line-height: 1.6; }
+.recognition-list li b { font-size: 13px; }
+.recognition-list li small { color: var(--color-text-muted); font-size: 12px; line-height: 1.6; }
+.recognition-on { border-color: var(--green); background: var(--green-soft); }
+.recognition-on b { color: var(--green); }
+.recognition-off b { color: var(--color-text-muted); }
+
+.cert-actions { display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cert-action { display: grid; gap: 6px; }
+.cert-action small { color: var(--color-text-muted); font-size: 12px; line-height: 1.6; }
+.cert-action .check-cta:disabled { opacity: .5; cursor: not-allowed; }
+.cert-missing { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.7; color: var(--color-text-muted); }
+
+.certificate-doc { display: grid; gap: 12px; padding: 16px; border: 2px solid var(--color-brand-fill); border-radius: 12px; background: var(--paper); break-inside: avoid; }
+.certificate-doc header { display: flex; gap: 10px; align-items: center; }
+.certificate-doc header b { display: block; font-size: 16px; }
+.certificate-doc header small { color: var(--color-text-muted); font-size: 12px; }
+.certificate-doc dl { display: grid; gap: 8px; margin: 0; }
+.certificate-doc dl > div { display: grid; grid-template-columns: 86px 1fr; gap: 10px; font-size: 13px; line-height: 1.6; }
+.certificate-doc dt { color: var(--color-text-muted); font-weight: 650; }
+.certificate-doc dd { margin: 0; word-break: break-word; }
+.cert-url { font-size: 12px; overflow-wrap: anywhere; }
+.cert-disclaimer { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--green-soft); color: var(--color-text); font-size: 12px; line-height: 1.6; }
+.cert-doc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 480px) {
+  .lesson-input-row .check-cta { flex: 1 1 100%; }
+  .certificate-doc dl > div { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* 발급 문서 인쇄: 문서만 남기고 조작 UI는 숨긴다 */
+@media print {
+  .lesson-input-row, .lesson-head-actions, .cert-actions, .cert-doc-actions,
+  .lesson-questions, .lesson-practice, .recognition-panel, .lesson-timestamps { display: none !important; }
+  .certificate-doc { border: 1px solid #c9c3b4; box-shadow: none; }
+  .cert-disclaimer { background: #fff !important; border: 1px solid #c9c3b4; }
+}
+
+/* 증거 충족도 — 취업 가능성이 아니라 요구 증거 대비 확인 비율. 산정식·근거를 항상 함께 표시 */
+.coverage-block { display: grid; gap: 6px; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--color-surface, var(--paper)); }
+.coverage-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+.coverage-head b { font-size: 15px; }
+.coverage-head small { color: var(--color-text-muted); font-size: 12px; }
+.coverage-formula { margin: 0; color: var(--color-text-muted); font-size: 12px; line-height: 1.6; }
+.coverage-list { margin: 0; font-size: 12px; line-height: 1.7; }
+.coverage-list b { display: block; color: var(--color-text-muted); font-weight: 650; }
+.coverage-disclaimer { margin: 0; padding: 6px 8px; border-radius: 8px; background: var(--green-soft); font-size: 12px; line-height: 1.6; }
