@@ -120,10 +120,11 @@ const TIER_MEANS = [
 
 function TierBadge({ tier }: { tier: number }) {
   return (
+    // 라벨 자체가 "무엇이 확인됐는가"다(자기기록·근거 연결·수행 확인·기관 확인).
+    // 배지마다 설명 문장을 반복하면 폭을 밀어내고 밀도만 나빠져, 설명은 목록 단위로 한 번만 둔다.
     <span className={`tier tier-${tier}`}>
       <b>Lv.{tier}</b> {TIER_LABELS[tier]}
-      <small className="tier-means">{TIER_MEANS[tier]}</small>
-      <small className="sr-only"> 숙련도 점수가 아닙니다.</small>
+      <span className="sr-only">. {TIER_MEANS[tier]} 숙련도 점수가 아닙니다.</span>
     </span>
   );
 }
