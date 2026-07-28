@@ -8,13 +8,8 @@
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, isSupabaseConfigured } from "../../lib/supabase";
+import { safeNext } from "../../lib/safe-redirect";
 
-// 같은 사이트 상대 경로만 통과시킨다("//evil.com", "http://evil.com" 등은 거부).
-function safeNext(raw: string | null): string {
-  if (!raw) return "/profile";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/profile";
-  return raw;
-}
 
 function redirect(origin: string, path: string, cookies: string[]): Response {
   const headers = new Headers({ location: new URL(path, origin).toString(), "cache-control": "no-store" });
@@ -24,7 +19,7 @@ function redirect(origin: string, path: string, cookies: string[]): Response {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const next = safeNext(url.searchParams.get("next"));
+  const next = safeNext(url.searchParams.get("next"), url.origin);
 
   // 사용자가 외부 인증 화면에서 취소했거나 provider가 오류를 돌려준 경우.
   const providerError = url.searchParams.get("error");
@@ -58,7 +53,8 @@ export async function GET(request: Request) {
         for (const { name, value, options } of cookiesToSet) {
           const parts = [`${name}=${encodeURIComponent(value)}`, "Path=/", "HttpOnly", "SameSite=Lax"];
           if (!isLocalHttp) parts.push("Secure");
-          if (options?.maxAge) parts.push(`Max-Age=${options.maxAge}`);
+          // maxAge=0은 PKCE verifier 삭제 지시이므로 falsy로 버리면 안 된다.
+          if (options?.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
           setCookies.push(parts.join("; "));
         }
       },

@@ -10,8 +10,18 @@ async function reachLookIntoStep(page) {
   await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
   await page.getByRole("button", { name: /가능성 찾기/ }).click();
   await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 10_000 });
-  await page.getByRole("button", { name: /맞아요/ }).first().click();
-  await page.getByRole("button", { name: /먼저 알아보기/ }).click();
+  // 확인 클릭이 렌더보다 앞서면 유실될 수 있다. 카드가 confirmed 상태(.selected.confirm)가
+  // 될 때까지 다시 누른다 — 이 반영이 없으면 다음 버튼은 영원히 비활성으로 남는다.
+  const confirmButton = page.getByRole("button", { name: /맞습니다/ }).first();
+  await expect(async () => {
+    const cls = (await confirmButton.getAttribute("class")) ?? "";
+    if (!cls.includes("selected")) await confirmButton.click();
+    expect((await confirmButton.getAttribute("class")) ?? "").toContain("selected");
+  }).toPass({ timeout: 15_000 });
+
+  const nextStep = page.getByRole("button", { name: /먼저 알아보기/ });
+  await expect(nextStep).toBeEnabled({ timeout: 15_000 });
+  await nextStep.click();
 }
 
 test.describe("역할 개인화 — STEP3 자료 표시 전 목표직무 확인/선택", () => {

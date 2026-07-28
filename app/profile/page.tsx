@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -59,15 +60,19 @@ export default function ProfilePage() {
   };
 
   const deleteCard = async (id: string) => {
+    if (deleting) return; // 연타로 같은 요청이 두 번 나가지 않게 한다
+    setDeleting(true);
     const supabase = createClient();
-    if (!supabase) return;
+    if (!supabase) { setDeleting(false); return; }
     const { error: deleteError } = await supabase.from("proof_cards").delete().eq("id", id);
     if (deleteError) {
       setError("삭제하지 못했습니다. 잠시 후 다시 시도해 주십시오.");
+      setDeleting(false);
       return;
     }
     setConfirmingDelete(null);
     setNotice("삭제했습니다.");
+    setDeleting(false);
     void load();
   };
 
@@ -129,7 +134,7 @@ export default function ProfilePage() {
                   <span className="profile-confirm" role="alertdialog" aria-label="삭제 확인">
                     <small>되돌릴 수 없습니다.</small>
                     <button type="button" className="secondary" onClick={() => setConfirmingDelete(null)}>취소</button>
-                    <button type="button" className="danger" onClick={() => deleteCard(card.id)}>삭제</button>
+                    <button type="button" className="danger" onClick={() => deleteCard(card.id)} disabled={deleting} aria-busy={deleting}>삭제</button>
                   </span>
                 ) : (
                   <button type="button" className="secondary" onClick={() => setConfirmingDelete(card.id)}>삭제</button>

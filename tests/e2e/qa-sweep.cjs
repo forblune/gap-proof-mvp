@@ -101,7 +101,7 @@ const LOCAL_ARTIFACT = /Access-Control-Allow-Origin|manifest|Failed to load reso
   await p.locator("#experience").fill("항공물류를 전공했고 집에서 AI 수학과 웹을 독학하며 팀 프로젝트로 물류 데이터 대시보드를 만들었습니다.");
   await p.getByRole("button", { name: /가능성 찾기/ }).click();
   await p.waitForSelector(".claim-card", { timeout: 20000 });
-  await p.getByRole("button", { name: /맞아요/ }).first().click();
+  await p.getByRole("button", { name: /맞습니다/ }).first().click();
   await p.getByRole("button", { name: /격차와 다음 행동 보기/ }).click();
   await p.getByRole("button", { name: /GapProof 만들기/ }).click();
   await p.waitForSelector(".personal-proof", { timeout: 8000 });

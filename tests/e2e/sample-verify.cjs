@@ -21,7 +21,7 @@ const OUT = process.argv[2];
   await p.waitForSelector(".claim-card", { timeout: 8000 });
   r.sampleNotice = (await p.locator("main").innerText()).includes("샘플 체험 중이에요");
   r.badgeSample = ((await p.locator(".sample-badge").first().textContent()) ?? "").includes("샘플");
-  await p.getByRole("button", { name: /맞아요/ }).first().click();
+  await p.getByRole("button", { name: /맞습니다/ }).first().click();
   await p.getByRole("button", { name: /격차와 다음 행동 보기/ }).click();
   await p.getByRole("button", { name: /GapProof 만들기/ }).click();
   await p.waitForSelector(".personal-proof", { timeout: 8000 });

@@ -182,6 +182,8 @@ export default function Home() {
   // Gate 1(#35): draft 저장은 사용자 상호작용(첫 상태 변화) 이후부터 시작한다.
   // 마운트 직후 기본값을 저장해 기존 draft를 덮어쓰지 않기 위한 가드.
   const draftSaveArmed = useRef(false);
+  // localStorage를 쓸 수 없을 때만 사용하는 이 탭 한정 발급 대상 식별자.
+  const sessionOwnerKey = useRef<string | null>(null);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
 
@@ -385,7 +387,17 @@ export default function Home() {
       quote: claim.quote,
       tier: claim.tier,
     }));
-    return passedComps.filter((c) => hasConfirmedEvidenceFor(c, confirmedInputs));
+    return passedComps
+      .filter((c) => hasConfirmedEvidenceFor(c, confirmedInputs))
+      .map((c) => ({
+        comp: c,
+        // 배지 등급을 2로 못박지 않는다. 이 역량에 실제로 연결된 확인 증거의 등급을 그대로 쓴다
+        // (링크 없는 자기기록이면 Lv.0). 퀴즈 통과는 "이해 확인"일 뿐 수행이 아니므로
+        // 등급을 올리는 근거가 되지 못한다 — recognition.ts의 인정 유형과 같은 규칙이다.
+        tier: confirmedInputs
+          .filter((claim) => c.keywords.some((k) => `${claim.skill} ${claim.quote}`.includes(k)))
+          .reduce((max, claim) => Math.max(max, claim.tier), 0),
+      }));
   }, [passedComps, confirmedClaims]);
 
   const recommended = useMemo(() => recommendNextActions(gaps, role), [gaps, role]);
@@ -671,7 +683,10 @@ export default function Home() {
       window.localStorage.setItem(KEY, created);
       return created;
     } catch {
-      return "local"; // 저장이 막힌 환경(프라이빗 모드 등)에서도 발급 자체는 가능해야 한다
+      // 저장이 막힌 환경(프라이빗 모드 등)에서도 발급은 가능해야 하지만, 고정 문자열을 쓰면
+      // 서로 다른 사용자가 같은 번호를 받는다. 이 탭에서만 유지되는 난수로 대체한다.
+      if (!sessionOwnerKey.current) sessionOwnerKey.current = crypto.randomUUID();
+      return sessionOwnerKey.current;
     }
   };
 
@@ -847,7 +862,9 @@ export default function Home() {
   // 공유 문구를 "내 결과"로 개인화 — 목표직무명·확인된 역량 개수·선택한 행동명(전부 프리셋/집계값)만 사용하고,
   // 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
   const buildResultShareText = () => {
-    const totalSkills = confirmedClaims.length + verifiedPassedComps.length;
+    // verifiedPassedComps는 "확인 증거가 있는" 역량만 담으므로 confirmedClaims와 겹친다.
+    // 두 값을 더하면 같은 증거를 두 번 세게 되므로 확인된 증거 수만 쓴다.
+    const totalSkills = confirmedClaims.length;
     if (totalSkills === 0) return SHARE_TEXT;
     const actionPart = chosenAction ? ` · 이번 주 행동 "${chosenAction.title}"` : "";
     return `${role.label} 목표로 역량 ${totalSkills}개 확인${actionPart} — GapProof`;
@@ -1236,7 +1253,7 @@ export default function Home() {
                 <div className="claim-actions">
                   <button className={claim.status === "rejected" ? "selected reject" : ""} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
                   <button onClick={() => startEditingClaim(claim)}>표현 수정</button>
-                  <button className={claim.status === "confirmed" ? "selected confirm" : "confirm"} onClick={() => updateClaim(claim.id, "confirmed")}>✓ 맞아요</button>
+                  <button className={claim.status === "confirmed" ? "selected confirm" : "confirm"} onClick={() => updateClaim(claim.id, "confirmed")}>✓ 맞습니다</button>
                 </div>
               </article>
             ))}
@@ -1463,9 +1480,11 @@ export default function Home() {
                         </button>
                         <small>{kind.doesNotMean}</small>
                         {!decision.eligible && (
-                          <ul className="cert-missing" role="status">
-                            {decision.missing.map((item) => <li key={item}>{item}</li>)}
-                          </ul>
+                          <div role="status">
+                            <ul className="cert-missing">
+                              {decision.missing.map((item) => <li key={item}>{item}</li>)}
+                            </ul>
+                          </div>
                         )}
                       </div>
                     );
@@ -1525,8 +1544,8 @@ export default function Home() {
                   {confirmedClaims.map((claim) => (
                     <div className="strength-row" key={claim.id}><span>✓</span><p><b>{claim.skill}</b><small>{claim.quote}</small></p><TierBadge tier={claim.tier} /></div>
                   ))}
-                  {verifiedPassedComps.map((c) => (
-                    <div className="strength-row" key={c.id}><span>✓</span><p><b>{c.label}</b><small>학습확인 통과 · 수행 확인</small></p><TierBadge tier={2} /></div>
+                  {verifiedPassedComps.map(({ comp, tier }) => (
+                    <div className="strength-row" key={comp.id}><span>✓</span><p><b>{comp.label}</b><small>확인한 근거 있음 · 학습확인(이해) 통과</small></p><TierBadge tier={tier} /></div>
                   ))}
                 </>
               ) : <p>확인된 역량이 없습니다.</p>}
@@ -1626,7 +1645,7 @@ export default function Home() {
             <article className="proof-card personal-proof">
               <div className="proof-header"><div><span className="brand-mark small"><BrandGlyph /></span><b>GapProof</b></div><span>개인용 증거카드</span></div>
               <div className="identity"><small>목표직무</small><h2>{role.label}</h2><p>{role.blurb}</p></div>
-              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{verifiedPassedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
+              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{verifiedPassedComps.map(({ comp, tier }) => <div className="proof-skill" key={comp.id}><b>{comp.label} · 이해 확인</b><TierBadge tier={tier} /></div>)}</div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주십시오."}”</blockquote></div>
               <div className="chosen-action"><span>이번 주 다음 행동</span><b>{chosenAction?.title}</b><small>{chosenAction?.rule}</small></div>
               <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>{proofDate}</b></footer>

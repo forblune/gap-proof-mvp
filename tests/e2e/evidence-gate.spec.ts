@@ -24,7 +24,7 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
     await reachStep4(page);
     // 후보를 거절(확인 아님)해 confirmedClaims를 0으로 유지한 채 STEP3/4로 진행할 방법이 없으므로,
     // 먼저 1개를 확인해 STEP4까지 이동한 뒤, 학습확인만 통과시키고 확인은 취소해 0개로 되돌린다.
-    await page.getByRole("button", { name: /맞아요/ }).first().click();
+    await page.getByRole("button", { name: /맞습니다/ }).first().click();
     await page.getByRole("button", { name: /먼저 알아보기/ }).click();
     await page.getByRole("button", { name: /격차·행동 보기/ }).click();
     await expect(page.getByText("목표직무 비교")).toBeVisible();
@@ -71,7 +71,7 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
 
   test("확인 증거 1개 이상이면 STEP4→5로 정상 진행할 수 있다", async ({ page }) => {
     await reachStep4(page);
-    await page.getByRole("button", { name: /맞아요/ }).first().click();
+    await page.getByRole("button", { name: /맞습니다/ }).first().click();
     await page.getByRole("button", { name: /먼저 알아보기/ }).click();
     await page.getByRole("button", { name: /격차·행동 보기/ }).click();
     await expect(page.getByText("목표직무 비교")).toBeVisible();
@@ -84,7 +84,7 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
 
   test("확인을 취소해 0개로 되돌리면 STEP4→5 버튼이 다시 비활성화된다", async ({ page }) => {
     await reachStep4(page);
-    await page.getByRole("button", { name: /맞아요/ }).first().click();
+    await page.getByRole("button", { name: /맞습니다/ }).first().click();
     await page.getByRole("button", { name: /먼저 알아보기/ }).click();
     await page.getByRole("button", { name: /격차·행동 보기/ }).click();
     await expect(page.getByRole("button", { name: "GapProof 만들기" })).toBeEnabled();
@@ -113,7 +113,7 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
   test("320px 모바일에서 STEP4 가로 오버플로가 없다", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 780 });
     await reachStep4(page);
-    await page.getByRole("button", { name: /맞아요/ }).first().click();
+    await page.getByRole("button", { name: /맞습니다/ }).first().click();
     await page.getByRole("button", { name: /먼저 알아보기/ }).click();
     await page.getByRole("button", { name: /격차·행동 보기/ }).click();
     await expect(page.getByText("목표직무 비교")).toBeVisible();
@@ -126,7 +126,7 @@ test.describe("증거등급 무결성 — STEP4→5 게이트", () => {
 
   test("STEP4에 심각한 접근성 위반이 없다(axe wcag2a/aa)", async ({ page }) => {
     await reachStep4(page);
-    await page.getByRole("button", { name: /맞아요/ }).first().click();
+    await page.getByRole("button", { name: /맞습니다/ }).first().click();
     await page.getByRole("button", { name: /먼저 알아보기/ }).click();
     await page.getByRole("button", { name: /격차·행동 보기/ }).click();
     await expect(page.getByText("목표직무 비교")).toBeVisible();

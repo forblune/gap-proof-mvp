@@ -229,3 +229,44 @@ test("고유번호는 발급 대상이 다르면 달라진다 — 같은 날 같
   const userB = certificateSerial("learning", record, "2026-07-28", "user-B");
   assert.notEqual(userA, userB, "서로 다른 사용자가 같은 번호를 받으면 '고유번호'가 거짓이 된다");
 });
+
+// ── 문서·recognition.ts·engine.ts 3자 교차 검증 ─────────────────────────────
+// 심사 지적(D3): 기획서는 "둘이 어긋나면 이 테스트가 실패한다"고 적었지만 실제로는
+// engine.ts를 한 번도 부르지 않아 아무것도 강제하지 못했다. 아래가 그 강제를 만든다.
+import { competencyStrength, hasConfirmedEvidenceFor } from "../app/lib/engine.ts";
+
+const engineComp = {
+  id: "problem_framing",
+  label: "문제 정의",
+  required: 3,
+  importance: 2,
+  proof: "문제 정의 문서",
+  keywords: ["정의", "문제"],
+  learn: { title: "l", time: "t", rule: "r" },
+  project: { title: "p", time: "t", rule: "r" },
+};
+const matching = (tier = 0) => ({ skill: "문제 정의", quote: "문제를 정의해 봤다", tier });
+
+test("engine 교차검증: TIER_RULES의 Lv.2 금지 조건이 competencyStrength에서 실제로 지켜진다", () => {
+  // 규칙표가 "이해 확인만으로는 오르지 않는다"고 적었으므로, 엔진도 그래야 한다.
+  const lv2 = TIER_RULES.find((r) => r.tier === 2);
+  assert.match(lv2.neverWhen, /이해 확인|퀴즈/);
+  // 매칭 증거 없이 퀴즈만 통과 → 3에 도달하면 안 된다.
+  assert.notEqual(competencyStrength(engineComp, [], { [engineComp.id]: true }), 3);
+});
+
+test("engine 교차검증: 인정 유형의 maxTier 0이 엔진 동작과 일치한다", () => {
+  // learning_completed / understanding_checked 는 단독 maxTier 0이라고 문서·코드가 선언한다.
+  assert.equal(findRecognitionKind("learning_completed").maxTier, 0);
+  assert.equal(findRecognitionKind("understanding_checked").maxTier, 0);
+  // 따라서 확인 증거가 하나도 없으면 엔진 강도도 0이어야 한다.
+  assert.equal(competencyStrength(engineComp, [], { [engineComp.id]: true }), 0);
+});
+
+test("engine 교차검증: hasConfirmedEvidenceFor 가 두 모듈에서 같은 전제로 쓰인다", () => {
+  assert.equal(hasConfirmedEvidenceFor(engineComp, []), false);
+  assert.equal(hasConfirmedEvidenceFor(engineComp, [matching()]), true);
+  // 매칭 증거가 있을 때만 퀴즈가 등급에 반영된다.
+  assert.equal(competencyStrength(engineComp, [matching()], { [engineComp.id]: true }), 3);
+  assert.equal(competencyStrength(engineComp, [matching()], {}), 1);
+});

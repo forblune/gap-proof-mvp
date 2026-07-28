@@ -79,11 +79,22 @@ test.describe("인증 화면", () => {
     expect(page.url()).toContain("auth=missing_code");
   });
 
-  test("callback 은 외부 주소로의 열린 리다이렉트를 허용하지 않는다", async ({ page }) => {
-    await page.goto("/auth/callback?next=https://example.com/evil", { waitUntil: "networkidle" });
-    // code 가 없으므로 로그인으로 가고, 어떤 경우에도 외부 도메인으로 나가지 않는다.
-    expect(page.url()).not.toContain("example.com");
-    expect(new URL(page.url()).origin).toBe(new URL(page.url()).origin);
+  test("callback 은 어떤 형태의 외부 주소로도 나가지 않는다(역슬래시 우회 포함)", async ({ page, baseURL }) => {
+    // 역슬래시는 WHATWG URL에서 슬래시와 같게 취급되므로 "/\\evil.com" 이 외부로 해석될 수 있다.
+    // 실제 도착 origin 이 우리 origin 인지 단언한다(같은 값끼리 비교하는 항진명제가 아니다).
+    const ourOrigin = new URL(baseURL ?? "http://localhost:3000").origin;
+    const attempts = [
+      "https://example.com/evil",
+      "//example.com/evil",
+      "/\\example.com",
+      "/\\\\example.com",
+      "\\/example.com",
+    ];
+    for (const next of attempts) {
+      await page.goto(`/auth/callback?next=${encodeURIComponent(next)}`, { waitUntil: "networkidle" });
+      expect(new URL(page.url()).origin, `next=${next} 로 외부 이동함`).toBe(ourOrigin);
+      expect(page.url(), `next=${next}`).not.toContain("example.com");
+    }
   });
 
   test("사용자가 취소하면 취소했다는 사실을 로그인 화면으로 전달한다", async ({ page }) => {

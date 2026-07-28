@@ -42,12 +42,12 @@ const TEXT = "draft 복원 검증용 사용자 입력입니다. 항공물류를 
   await page.getByRole("button", { name: /가능성 찾기/ }).click();
   await page.waitForSelector(".claim-card", { timeout: 20000 });
   const claimCount = await page.locator(".claim-card").count();
-  await page.getByRole("button", { name: /맞아요/ }).first().click();
+  await page.getByRole("button", { name: /맞습니다/ }).first().click();
   await page.waitForTimeout(300);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForSelector(".claim-card", { timeout: 8000 });
   r.reloadKeepsStep2 = (await page.locator(".claim-card").count()) === claimCount;
-  r.reloadKeepsConfirm = (await page.locator(".claim-card .confirm[disabled], .claim-card button:has-text('맞아요')").count()) >= 0 &&
+  r.reloadKeepsConfirm = (await page.locator(".claim-card .confirm[disabled], .claim-card button:has-text('맞습니다')").count()) >= 0 &&
     ((await page.locator("main").innerText()).includes("1개 확인됨"));
 
   // 3) 세션 만료: 쿠키 삭제 → 분석 클릭 → 게이트 + 만료 문구 + 상태 유지 → 재인증 → 그 자리 복귀

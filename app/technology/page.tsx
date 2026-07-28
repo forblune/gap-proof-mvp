@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { InfoShell } from "../components/info-shell";
 import { IconCheck, IconLock, IconClock, IconEyeOff, IconList } from "../components/fact-icons";
 import { IconNextjs, IconReact, IconCloudflare, IconSolar, IconNode } from "../components/tech-icons";
+import { StackConverge } from "../components/stack-converge";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/technology" },
@@ -42,6 +43,20 @@ export default function TechnologyPage() {
     >
       <section className="info-section">
         <h2>실제 기술 스택</h2>
+        <p>
+          아래 기술들은 각자 다른 일을 하지만, 결국 하나를 위해 모입니다 — 흩어진 경험을 확인 가능한 증거 하나로 만드는 일입니다.
+        </p>
+        <StackConverge
+          nodes={[
+            { label: "Next.js · vinext", short: "Next" },
+            { label: "React 19 · TypeScript", short: "React" },
+            { label: "Cloudflare Workers", short: "Workers" },
+            { label: "Upstage Solar", short: "Solar" },
+            { label: "Gemini (영상 학습)", short: "Gemini" },
+            { label: "Supabase (회원 데이터)", short: "Supabase" },
+            { label: "node:test · Playwright", short: "Tests" },
+          ]}
+        />
         <ul className="info-cards">
           {STACK.map((item) => (
             <li key={item.name}><b><item.Icon />{item.name}</b><p>{item.reason}</p></li>
