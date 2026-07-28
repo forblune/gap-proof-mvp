@@ -57,29 +57,23 @@ export function FeedbackWidget() {
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  // 상태 업데이터는 순수하게 두고, 사용자 안내는 밖에서 정한다.
   const addFiles = useCallback((incoming: File[]) => {
-    setError(null);
     setAttachments((current) => {
       const room = MAX_ATTACHMENTS - current.length;
-      if (room <= 0) {
-        setError(`이미지는 최대 ${MAX_ATTACHMENTS}장까지 첨부할 수 있습니다.`);
-        return current;
-      }
-      const accepted: Attachment[] = [];
-      for (const file of incoming.slice(0, room)) {
-        if (file.size > MAX_ATTACHMENT_BYTES) {
-          setError(`${file.name || "이미지"}는 5MB를 넘어 첨부할 수 없습니다.`);
-          continue;
-        }
-        accepted.push({
-          id: crypto.randomUUID(),
-          file,
-          previewUrl: URL.createObjectURL(file),
-        });
-      }
-      if (incoming.length > room) {
-        setError(`이미지는 최대 ${MAX_ATTACHMENTS}장까지 첨부할 수 있습니다.`);
-      }
+      const tooMany = incoming.length > room;
+      const oversized = incoming.slice(0, Math.max(room, 0)).filter((f) => f.size > MAX_ATTACHMENT_BYTES);
+      const accepted = incoming
+        .slice(0, Math.max(room, 0))
+        .filter((f) => f.size <= MAX_ATTACHMENT_BYTES)
+        .map((file) => ({ id: crypto.randomUUID(), file, previewUrl: URL.createObjectURL(file) }));
+
+      queueMicrotask(() => {
+        if (tooMany) setError(`이미지는 최대 ${MAX_ATTACHMENTS}장까지 첨부할 수 있습니다.`);
+        else if (oversized.length > 0) setError(`${oversized[0].name || "이미지"}는 5MB를 넘어 첨부할 수 없습니다.`);
+        else setError(null);
+      });
+
       return [...current, ...accepted];
     });
   }, []);
@@ -182,7 +176,7 @@ export function FeedbackWidget() {
           {error && <p className="auth-error" role="alert">{error}</p>}
 
           <fieldset className="feedback-field">
-            <legend>분류 <span aria-hidden="true">*</span></legend>
+            <legend>분류 (필수)</legend>
             <div className="feedback-chips">
               {CATEGORIES.map((item) => (
                 <label key={item.id} className={`feedback-chip ${category === item.id ? "selected" : ""}`}>
@@ -220,7 +214,7 @@ export function FeedbackWidget() {
           </fieldset>
 
           <div className="feedback-field">
-            <label htmlFor="feedback-message">피드백 글 <span aria-hidden="true">*</span></label>
+            <label htmlFor="feedback-message">피드백 글 (필수)</label>
             <textarea
               id="feedback-message"
               rows={5}
@@ -255,6 +249,7 @@ export function FeedbackWidget() {
                 accept="image/png,image/jpeg,image/webp"
                 multiple
                 className="sr-only"
+                aria-label="화면 캡처 파일 선택"
                 onChange={(event) => {
                   addFiles(Array.from(event.target.files ?? []));
                   event.target.value = "";
@@ -272,7 +267,13 @@ export function FeedbackWidget() {
                     {/* 미리보기는 로컬 blob이며 서버로 미리 올리지 않는다 */}
                     {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 blob 미리보기(최적화 대상 아님) */}
                     <img src={item.previewUrl} alt={`첨부 미리보기: ${item.file.name || "이미지"}`} />
-                    <button type="button" className="secondary" onClick={() => removeAttachment(item.id)} disabled={busy}>
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => removeAttachment(item.id)}
+                      disabled={busy}
+                      aria-label={`첨부 빼기: ${item.file.name || "이미지"}`}
+                    >
                       빼기
                     </button>
                   </li>
@@ -298,9 +299,19 @@ export function FeedbackWidget() {
                 </button>
               </>
             ) : (
-              <button type="button" className="primary full" onClick={() => setConfirming(true)} disabled={!canSubmit}>
-                검토하고 보내기
-              </button>
+              <>
+                {!canSubmit && !busy && (
+                  <div role="status">
+                    <ul className="cert-missing">
+                      {category === "" && <li>분류를 선택해 주십시오.</li>}
+                      {message.trim().length < 5 && <li>피드백 글을 5자 이상 적어 주십시오.</li>}
+                    </ul>
+                  </div>
+                )}
+                <button type="button" className="primary full" onClick={() => setConfirming(true)} disabled={!canSubmit}>
+                  검토하고 보내기
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -13,7 +13,17 @@ export function safeNext(raw: string | null | undefined, origin: string): string
   try {
     const resolved = new URL(raw, origin);
     if (resolved.origin !== new URL(origin).origin) return SAFE_REDIRECT_FALLBACK;
-    return resolved.pathname + resolved.search + resolved.hash;
+
+    const path = resolved.pathname + resolved.search + resolved.hash;
+
+    // 반환값이 한 번 더 해석된다는 점이 함정이다.
+    // "/..//evil.com" 은 여기서 origin 검사를 통과하지만 pathname 이 "//evil.com" 이 되고,
+    // 호출부가 그 문자열을 다시 new URL(path, origin) 으로 해석하면 프로토콜 상대 URL이 되어
+    // https://evil.com 으로 나간다. 그래서 결과 자체가 안전한 형태인지 마지막에 다시 본다.
+    if (!path.startsWith("/") || path.startsWith("//")) return SAFE_REDIRECT_FALLBACK;
+    if (new URL(path, origin).origin !== new URL(origin).origin) return SAFE_REDIRECT_FALLBACK;
+
+    return path;
   } catch {
     return SAFE_REDIRECT_FALLBACK;
   }

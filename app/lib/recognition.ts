@@ -257,12 +257,17 @@ export function recognitionKindsFor(record: LearningRecord): RecognitionKindId[]
 }
 
 // 이 학습 기록만으로 도달 가능한 최대 증거등급.
-// 영상 학습·퀴즈만 있으면 0을 반환한다 — 등급을 올리려면 수행·산출물이 필요하다.
-export function maxTierFromRecord(record: LearningRecord): number {
-  return recognitionKindsFor(record).reduce((max, id) => {
+//
+// hasConfirmedEvidence: 이 역량에 사용자가 확인한 근거가 이미 있는지.
+// 기획서 §6.2의 Lv.2 전제가 "그 역량에 확인된 근거가 이미 있고"이므로, 확인 증거가 없으면
+// 수행 기록이나 산출물을 붙여도 Lv.1을 넘지 못한다 — 학습 기록 하나만으로 등급이
+// 올라가는 것처럼 보이면 화면이 실제보다 큰 약속을 하게 된다.
+export function maxTierFromRecord(record: LearningRecord, hasConfirmedEvidence = false): number {
+  const raw = recognitionKindsFor(record).reduce((max, id) => {
     const kind = findRecognitionKind(id);
     return kind ? Math.max(max, kind.maxTier) : max;
   }, 0);
+  return hasConfirmedEvidence ? raw : Math.min(raw, 1);
 }
 
 // ── 증거 충족도 ────────────────────────────────────────────────────────────

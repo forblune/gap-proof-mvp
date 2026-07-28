@@ -181,10 +181,13 @@ export async function POST(request: Request) {
     }
 
     if (uploadedPaths.length > 0) {
-      await supabase
+      // 개수 갱신이 실패하면 성공으로 넘기지 않는다 — 파일은 있는데 개수가 0인 행이 남으면
+      // 운영자가 첨부를 못 찾는다. 아래 catch로 보내 파일·행을 함께 되돌린다.
+      const { error: countError } = await supabase
         .from("feedback_submissions")
         .update({ attachment_count: uploadedPaths.length })
         .eq("id", feedbackId);
+      if (countError) throw new Error("count_update_failed");
     }
   } catch {
     // 고아 파일·반쪽 행을 남기지 않는다.

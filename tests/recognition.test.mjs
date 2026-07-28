@@ -159,13 +159,15 @@ test("영상 학습 + 퀴즈만으로 도달하는 최대 증거등급은 0이�
   assert.equal(maxTierFromRecord(record), 0);
 });
 
-test("산출물이 연결되면 최대 증거등급이 2까지 올라간다", () => {
+test("산출물이 연결되고 그 역량에 확인 증거가 있을 때만 최대 증거등급이 2까지 올라간다", () => {
   const record = baseRecord({
     understandingChecked: true,
     performanceNote: "직접 만들어 봤다",
     artifacts: [{ url: "https://github.com/me/repo" }],
   });
-  assert.equal(maxTierFromRecord(record), 2);
+  // 기획서 §6.2의 Lv.2 전제("그 역량에 확인된 근거가 이미 있고")를 코드가 지킨다.
+  assert.equal(maxTierFromRecord(record, false), 1, "확인 증거 없이 Lv.2에 도달함");
+  assert.equal(maxTierFromRecord(record, true), 2);
 });
 
 test("유효하지 않은 링크는 산출물로 세지 않는다", () => {
@@ -269,4 +271,44 @@ test("engine 교차검증: hasConfirmedEvidenceFor 가 두 모듈에서 같은 �
   // 매칭 증거가 있을 때만 퀴즈가 등급에 반영된다.
   assert.equal(competencyStrength(engineComp, [matching()], { [engineComp.id]: true }), 3);
   assert.equal(competencyStrength(engineComp, [matching()], {}), 1);
+});
+
+// ── 심사 지적 반영: 링크 판정과 최대 등급 전제 ──────────────────────────────
+import { tierFromLink, isVerifiableLink } from "../app/lib/engine.ts";
+
+test("engine 교차검증: 링크 판정 기준이 산출물 판정 기준과 같다", () => {
+  // 기획서 §6.2 Lv.1 금지 조건("링크 없이 설명만 덧붙이기")을 두 함수가 같은 기준으로 지켜야 한다.
+  for (const input of ["설명만 적음", "메모장에 정리함", "", "   ", "/local/path", "javascript:alert(1)", "ftp://x/y"]) {
+    assert.equal(isVerifiableLink(input), false, `${input} 를 링크로 인정함`);
+    assert.equal(isValidArtifactUrl(input), false, `${input} 를 산출물로 인정함`);
+    assert.equal(tierFromLink(input), 0, `${input} 로 등급이 올라감`);
+  }
+  for (const input of ["https://github.com/me/repo", "http://example.com/a"]) {
+    assert.equal(isVerifiableLink(input), true);
+    assert.equal(isValidArtifactUrl(input), true);
+    assert.equal(tierFromLink(input), 1);
+  }
+});
+
+test("설명 문장을 근거 링크 칸에 적어도 증거등급이 오르지 않는다", () => {
+  const comp = {
+    id: "problem_framing", label: "문제 정의", required: 3, importance: 2,
+    proof: "문제 정의 문서", keywords: ["정의"],
+    learn: { title: "l", time: "t", rule: "r" }, project: { title: "p", time: "t", rule: "r" },
+  };
+  const claim = { skill: "문제 정의", quote: "문제를 정의했다", tier: tierFromLink("메모장에 정리함") };
+  assert.equal(claim.tier, 0);
+  assert.equal(competencyStrength(comp, [claim], {}), 1); // tier 0 + 1
+});
+
+test("확인 증거가 없으면 학습 기록만으로 Lv.2에 도달하지 않는다", () => {
+  const record = baseRecord({
+    understandingChecked: true,
+    performanceNote: "직접 해 봤다",
+    artifacts: [{ url: "https://github.com/me/repo" }],
+  });
+  // 이 역량에 확인된 근거가 없는 경우 — 기획서 §6.2의 Lv.2 전제 미충족
+  assert.equal(maxTierFromRecord(record, false), 1);
+  // 확인된 근거가 있으면 그때 Lv.2까지 열린다
+  assert.equal(maxTierFromRecord(record, true), 2);
 });

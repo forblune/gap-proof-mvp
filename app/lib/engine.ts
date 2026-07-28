@@ -47,10 +47,27 @@ export type ActionRec = {
   rule: string;
 };
 
-// 텍스트만 입력된 근거는 Lv.0(자기기록), 링크가 붙으면 Lv.1(근거 연결).
+// 텍스트만 입력된 근거는 Lv.0(자기기록), 확인 가능한 링크가 붙으면 Lv.1(근거 연결).
 // 수행 확인(Lv.2)·기관 확인(Lv.3)은 MVP 범위 밖이므로 임의로 올리지 않는다.
+//
+// "확인 가능한 링크"는 http/https 주소만 뜻한다. 설명 문장("메모장에 정리함")을 링크 칸에
+// 적는 것으로는 오르지 않는다 — 기획서 §6.2의 Lv.1 금지 조건이 그렇게 적혀 있고,
+// 산출물 검증(recognition.ts의 isValidArtifactUrl)과 같은 기준을 쓴다.
 export function tierFromLink(link: string | undefined | null): number {
-  return typeof link === "string" && link.trim().length > 0 ? 1 : 0;
+  return isVerifiableLink(link) ? 1 : 0;
+}
+
+// engine.ts는 React·다른 모듈에 의존하지 않는 순수 로직이라 판정을 여기 둔다.
+// recognition.ts의 isValidArtifactUrl과 규칙이 같아야 하며, 그 일치는 테스트가 강제한다.
+export function isVerifiableLink(link: string | undefined | null): boolean {
+  const trimmed = (link ?? "").trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 // 학습확인(퀴즈)을 통과한 역량 id 집합. 퀴즈는 이해도 점검일 뿐, 그 자체로는

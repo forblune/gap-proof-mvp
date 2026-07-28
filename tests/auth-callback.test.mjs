@@ -18,6 +18,14 @@ test("절대 URL·프로토콜 상대 경로는 거부한다", () => {
   assert.equal(safeNext("//evil.com/x", ORIGIN), "/profile");
 });
 
+test("dot-segment 우회를 거부한다 — 반환값이 다시 해석돼 //evil.com 이 되는 경로", () => {
+  for (const attempt of ["/..//evil.com", "/.//evil.com", "/a/../..//evil.com", "/x/..//evil.com/y"]) {
+    const result = safeNext(attempt, ORIGIN);
+    assert.equal(new URL(result, ORIGIN).origin, ORIGIN, `${attempt} → ${result} 가 외부로 나간다`);
+    assert.ok(!result.startsWith("//"), `${attempt} → ${result} 가 프로토콜 상대 경로다`);
+  }
+});
+
 test("역슬래시 우회를 거부한다 — WHATWG URL은 \\ 를 / 와 같게 취급한다", () => {
   for (const attempt of ["/\\evil.com", "/\\\\evil.com", "\\/evil.com", "/a\\b", "\\\\evil.com"]) {
     const result = safeNext(attempt, ORIGIN);
@@ -32,6 +40,7 @@ test("어떤 입력이든 결과는 항상 우리 origin 안에 머문다", () =
     null, "", "   ", "javascript:alert(1)", "data:text/html,x",
     "https://evil.com", "//evil.com", "/\\evil.com", "\\\\evil.com",
     "/legit", "/legit?a=1", "///evil.com", "/%2F%2Fevil.com",
+    "/..//evil.com", "/.//evil.com", "/a/../..//evil.com", "/x/..//evil.com/y",
   ];
   for (const attempt of attempts) {
     const result = safeNext(attempt, ORIGIN);

@@ -446,7 +446,10 @@ export default function Home() {
     [learningRecord],
   );
   const activeRecognitions = useMemo(() => recognitionKindsFor(learningRecord), [learningRecord]);
-  const recordMaxTier = useMemo(() => maxTierFromRecord(learningRecord), [learningRecord]);
+  const recordMaxTier = useMemo(() => {
+    const confirmedInputs = confirmedClaims.map((claim) => ({ skill: claim.skill, quote: claim.quote, tier: claim.tier }));
+    return maxTierFromRecord(learningRecord, hasConfirmedEvidenceFor(lookIntoComp, confirmedInputs));
+  }, [learningRecord, confirmedClaims, lookIntoComp]);
 
   // 증거 충족도 — 이 서비스가 쓰는 유일한 비율 수치. 취업 가능성·적성 예측이 아니라
   // "목표 직무가 요구하는 증거 중 확인된 항목의 비율"이며, 산정식과 근거를 함께 보여 준다.
@@ -1218,7 +1221,7 @@ export default function Home() {
                 <div className="claim-source"><span>출처</span><b>{claim.source}</b></div>
                 <div className="evidence-link">
                   <label htmlFor={`claim-link-${claim.id}`}>근거 링크 (선택)</label>
-                  <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="GitHub·수료증·노트 URL" onChange={(event) => attachLink(claim.id, event.target.value)} />
+                  <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="https://... (GitHub·수료증·노트 주소)" onChange={(event) => attachLink(claim.id, event.target.value)} />
                   <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작합니다"}</small>
                 </div>
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
