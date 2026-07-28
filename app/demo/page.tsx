@@ -660,6 +660,21 @@ export default function Home() {
     setLessonEditing(false);
   };
 
+  // 발급 대상 식별자. 로그인 사용자가 생기기 전까지는 이 기기에만 존재하는 무작위 값이며,
+  // 개인정보를 담지 않는다. 같은 날 같은 학습을 마친 다른 사람과 번호가 겹치지 않게 하는 용도다.
+  const ownerKey = () => {
+    const KEY = "gp_owner_key";
+    try {
+      const existing = window.localStorage.getItem(KEY);
+      if (existing) return existing;
+      const created = crypto.randomUUID();
+      window.localStorage.setItem(KEY, created);
+      return created;
+    } catch {
+      return "local"; // 저장이 막힌 환경(프라이빗 모드 등)에서도 발급 자체는 가능해야 한다
+    }
+  };
+
   // 발급 — 조건 미충족이면 아무것도 만들지 않는다(버튼도 비활성이지만 방어적으로 한 번 더 막는다).
   const issueCertificate = (kind: CertificateKindId) => {
     const decision = kind === "performance" ? performanceDecision : learningDecision;
@@ -670,7 +685,7 @@ export default function Home() {
     const issuedAt = formatProofDate(new Date());
     setIssuedCert({
       kind,
-      serial: certificateSerial(kind, learningRecord, issuedAt),
+      serial: certificateSerial(kind, learningRecord, issuedAt, ownerKey()),
       issuedAt,
       competencyLabel: learningRecord.competencyLabel,
       sourceTitle: learningRecord.sourceTitle,

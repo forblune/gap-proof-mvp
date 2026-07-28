@@ -175,9 +175,9 @@ test("유효하지 않은 링크는 산출물로 세지 않는다", () => {
 
 test("고유번호는 문서 유형별로 다르고, 같은 입력이면 같은 값이다(재발행 안정)", () => {
   const record = baseRecord();
-  const a = certificateSerial("learning", record, "2026-07-28");
-  const b = certificateSerial("learning", record, "2026-07-28");
-  const c = certificateSerial("performance", record, "2026-07-28");
+  const a = certificateSerial("learning", record, "2026-07-28", "user-1");
+  const b = certificateSerial("learning", record, "2026-07-28", "user-1");
+  const c = certificateSerial("performance", record, "2026-07-28", "user-1");
   assert.equal(a, b);
   assert.notEqual(a, c);
   assert.match(a, /^GP-L-\d{8}-[0-9A-Z]{6}$/);
@@ -221,4 +221,11 @@ test("요구 목록에 없는 항목은 충족으로 세지 않는다(임의 가
   const coverage = evidenceCoverage(["a"], ["a", "관계없는 항목", "b"]);
   assert.equal(coverage.metCount, 1);
   assert.equal(coverage.percent, 100);
+});
+
+test("고유번호는 발급 대상이 다르면 달라진다 — 같은 날 같은 학습이어도 사람이 다르면 번호가 다르다", () => {
+  const record = baseRecord();
+  const userA = certificateSerial("learning", record, "2026-07-28", "user-A");
+  const userB = certificateSerial("learning", record, "2026-07-28", "user-B");
+  assert.notEqual(userA, userB, "서로 다른 사용자가 같은 번호를 받으면 '고유번호'가 거짓이 된다");
 });

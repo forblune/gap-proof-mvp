@@ -305,13 +305,17 @@ export function evidenceCoverage(requiredItems: string[], metItems: string[]): E
 
 // 발급 문서 고유번호 — 사람이 읽을 수 있고 문서마다 구분된다.
 // 난수를 쓰지 않는다(같은 입력이면 같은 번호 → 인쇄본 재발행 시에도 번호가 흔들리지 않는다).
+// ownerKey: 발급 대상을 구분하는 값(로그인 사용자 id, 비로그인은 기기 로컬 식별자).
+// 이 값이 없으면 같은 날 같은 학습을 마친 서로 다른 사람이 같은 번호를 받게 되므로
+// "고유번호"라는 표기가 거짓이 된다 — 그래서 필수 인자다.
 export function certificateSerial(
   kind: CertificateKindId,
   record: LearningRecord,
   issuedAt: string,
+  ownerKey: string,
 ): string {
   const prefix = kind === "learning" ? "L" : kind === "performance" ? "P" : "E";
-  const basis = `${kind}|${record.competencyId}|${record.sourceTitle}|${issuedAt}`;
+  const basis = `${kind}|${ownerKey}|${record.competencyId}|${record.sourceTitle}|${issuedAt}`;
   let hash = 0;
   for (let i = 0; i < basis.length; i++) {
     hash = (hash * 31 + basis.charCodeAt(i)) >>> 0;
