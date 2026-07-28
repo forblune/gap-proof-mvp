@@ -67,7 +67,8 @@ const CASES = [
 
 export default function HomePage() {
   return (
-    <main className="home">
+    <>
+      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
       <header className="topbar info-bar">
         <a className="brand" href="/" aria-label="GapProof 홈">
           {/* 첫 진입 화면에서만 1회 재생한다. 다른 페이지는 정적 심벌(BrandGlyph)을 쓴다 —
@@ -85,6 +86,8 @@ export default function HomePage() {
         </nav>
         <MobileDrawerNav />
       </header>
+
+      <main id="main" className="home">
 
       {/* 1. Hero — 하이브리드 방향: 핵심 진입 구간은 다크 네이비로 무게감을 준다 */}
       <section className="home-hero" aria-labelledby="home-hero-title">
@@ -262,6 +265,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      </main>
+
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
         <nav className="footer-nav" aria-label="정보 페이지">
@@ -274,6 +279,6 @@ export default function HomePage() {
         </nav>
         <p>취업 또는 적성 판정이 아닙니다</p>
       </footer>
-    </main>
+    </>
   );
 }

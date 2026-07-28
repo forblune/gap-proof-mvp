@@ -16,7 +16,7 @@ export type DraftClaim = {
   quote: string;
   source: string;
   tier: number;
-  confidence: "높음" | "확인 필요";
+  confidence: "확인 필요";
   question: string;
   status: "pending" | "confirmed" | "rejected";
   link?: string;
@@ -40,7 +40,8 @@ export type DraftV1 = {
   proofDate: string | null;
 };
 
-const CONFIDENCE = new Set(["높음", "확인 필요"]);
+// "높음" 은 어디에서도 생성되지 않는다. 초안에 들어 있다면 손댄 값이므로 받지 않는다.
+const CONFIDENCE = new Set(["확인 필요"]);
 const STATUS = new Set(["pending", "confirmed", "rejected"]);
 const SOURCE = new Set(["idle", "solar", "sample"]);
 

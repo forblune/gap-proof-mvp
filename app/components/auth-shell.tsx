@@ -25,13 +25,16 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <main className="auth-page">
+    <div className="auth-page">
+      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
       <header className="auth-topbar">
         <Link className="brand" href="/" aria-label="GapProof 홈">
           <span className="brand-mark"><BrandGlyph /></span>
           <span>GapProof</span>
         </Link>
       </header>
+
+      <main id="main">
       <section className="auth-card">
         <span className="eyebrow">{eyebrow}</span>
         <h1>{title}</h1>
@@ -43,7 +46,8 @@ export function AuthShell({
         로그인은 결과를 이어서 보관하기 위한 것입니다. 로그인하지 않아도 <Link href="/demo">데모 분석</Link>은 그대로 쓸 수 있고,
         인정 범위와 증거등급은 로그인 여부와 관계없이 똑같습니다.
       </p>
-    </main>
+      </main>
+    </div>
   );
 }
 

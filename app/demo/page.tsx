@@ -52,7 +52,9 @@ type Claim = {
   quote: string;
   source: string;
   tier: number;
-  confidence: "높음" | "확인 필요";
+  // "높음" 값을 만드는 코드가 없다. 실제로 route.ts·samples.ts 는 언제나 "확인 필요" 를 넣는다.
+  // 이 제품은 AI 결과를 스스로 높은 신뢰라고 말하지 않는다 — 확정은 사용자가 한다.
+  confidence: "확인 필요";
   question: string;
   status: ClaimStatus;
   link?: string;
@@ -113,6 +115,14 @@ const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동�
 // 숫자만 홀로 두면 실력 점수로 읽힌다 — 확인된 사실을 늘 함께 붙인다.
 // (벤치마킹: Open Badges 3.0 은 achievedLevel 을 발급기관 루브릭이 있을 때만 쓴다)
 const TIER_LABELS = ["자기기록", "근거 연결", "수행 확인", "기관 확인"];
+
+// AI 가 인용문을 읽고 내린 판단을 사용자에게 보여 줄 때 쓰는 말.
+// factStatus 값(확인됨·부분 확인·계획·관심)을 그대로 쓰면 "확인"이 사용자 행위와 겹친다.
+const AI_READ_LABEL: Record<string, string> = {
+  "확인됨": "원문에 결과까지 있음",
+  "부분 확인": "원문에 행동만 있음",
+  "계획·관심": "원문은 계획·관심 단계",
+};
 const TIER_MEANS = [
   "사용자가 원문에서 확인한 내용입니다.",
   "확인 가능한 링크가 연결됐습니다.",
@@ -186,7 +196,7 @@ export default function Home() {
   const [editingSkill, setEditingSkill] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [proofDate, setProofDate] = useState<string | null>(null);
-  // 전체 데모 진입 게이트: 인증 전에는 메인 5단계 흐름을 렌더하지 않는다.
+  // 전체 데모 진입 게이트: 인증 전에는 메인 6단계 흐름을 렌더하지 않는다.
   const [gateOpen, setGateOpen] = useState(false);
   // Gate 2b(#37): 코드 없는 샘플 체험 — 실제 Solar 호출 없이 전체 흐름을 보여준다.
   const [sampleMode, setSampleMode] = useState(false);
@@ -1038,7 +1048,8 @@ export default function Home() {
   };
 
   return (
-    <main>
+    <>
+      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="GapProof 처음으로">
           <span className="brand-mark"><BrandGlyph /></span>
@@ -1077,6 +1088,8 @@ export default function Home() {
         )}
         <ThemeToggle />
       </header>
+
+      <main id="main">
 
       {sampleMode && journeyOpen && (
         <div className="sample-strip">
@@ -1375,7 +1388,7 @@ export default function Home() {
             {claims.map((claim) => (
               <article key={claim.id} className={`claim-card ${claim.status}`}>
                 <div className="claim-top">
-                  <span className={`confidence ${claim.confidence === "높음" ? "high" : "low"}`}>{claim.confidence === "높음" ? "근거 일치 높음" : "근거 확인 필요"}</span>
+                  <span className="confidence low">근거 확인 필요</span>
                   <TierBadge tier={claim.tier} />
                 </div>
                 {editingClaimId === claim.id ? (
@@ -1399,7 +1412,7 @@ export default function Home() {
                       ? "링크가 없으면 Lv.0 자기기록으로 시작합니다"
                       : isVerifiableLink(claim.link)
                         ? "링크 연결됨 → 증거등급 Lv.1 근거 연결"
-                        : "이 주소로는 등급이 오르지 않습니다. http:// 또는 https:// 로 시작하는 주소만 인정됩니다."}
+                        : "이 주소로는 등급이 오르지 않아 Lv.0 자기기록에 머뭅니다. http:// 또는 https:// 로 시작하는 주소만 인정됩니다."}
                   </small>
                 </div>
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
@@ -1408,13 +1421,18 @@ export default function Home() {
                     {/* 이 화면에서 사용자가 할 일은 인용문을 읽고 맞는지 판단하는 것이다.
                         AI 판단·근거 강도·신호를 각각 칩으로 띄우면 카드당 4~5개가 되어
                         정작 읽어야 할 원문과 확인 버튼을 가린다. 판단은 한 칩으로 합치고
-                        신호는 아래 설명 줄로 내린다. */}
+                        신호는 아래 설명 줄로 내린다.
+
+                        "확인"이라는 말은 사용자가 하는 일에만 쓴다. 예전에는 AI 판단도
+                        "원문에 확인됨"이라고 적어, 아래 "N개 내가 확인함"·"확인된 현재 역량"과
+                        같은 단어가 되어 누가 무엇을 확인한 것인지 흐려졌다. AI 쪽은 읽은
+                        결과를 그대로 서술한다. */}
                     <div className="v2-badges">
                       {claim.factStatus && (
                         <span
                           className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}
                         >
-                          AI 판단: 원문에 {claim.factStatus}
+                          AI가 읽은 결과: {AI_READ_LABEL[claim.factStatus] ?? claim.factStatus}
                           {claim.evidenceStrength ? ` · 근거 ${claim.evidenceStrength}` : ""}
                         </span>
                       )}
@@ -1998,6 +2016,8 @@ export default function Home() {
         </div>
       </dialog>
 
+      </main>
+
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
         <nav className="footer-nav" aria-label="정보 페이지">
@@ -2013,6 +2033,6 @@ export default function Home() {
           <button className="text-button" onClick={sampleMode ? exitSample : lockDemo}>{sampleMode ? "체험 나가기" : "데모 나가기"}</button>
         )}
       </footer>
-    </main>
+    </>
   );
 }

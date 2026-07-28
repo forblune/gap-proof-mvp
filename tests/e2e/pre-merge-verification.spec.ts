@@ -29,7 +29,7 @@ const DRAFT_FIXTURE = {
       quote: "엑셀로 데이터를 정리하고 표로 요약했습니다.",
       source: "사용자 입력",
       tier: 0,
-      confidence: "높음",
+      confidence: "확인 필요",
       question: "관련 파일이 남아있나요?",
       status: "confirmed",
       link: "",

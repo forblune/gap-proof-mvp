@@ -18,7 +18,8 @@ test("링크 칸의 안내 문구가 실제 증거등급과 어긋나지 않는�
   // 링크가 아닌 설명 문장 — 등급이 오르지 않으므로 Lv.1 이라고 말하면 안 된다.
   await input.fill("메모장에 정리함");
   await expect(caption).not.toContainText("Lv.1 근거 연결");
-  await expect(caption).toContainText("등급이 오르지 않습니다");
+  // 어느 등급도 말하지 않으면 "그래서 지금 뭔데?" 가 남는다. 세 상태 모두 현재 등급을 밝힌다.
+  await expect(caption).toContainText("Lv.0 자기기록");
 
   await input.fill("https://github.com/example/repo");
   await expect(caption).toContainText("Lv.1 근거 연결");

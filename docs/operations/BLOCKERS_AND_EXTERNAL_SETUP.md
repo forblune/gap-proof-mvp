@@ -14,6 +14,7 @@
 | **Naver 로그인** | **차단됨** | Supabase 기본 제공 provider 가 아닙니다. `auth.custom_oauth_providers` 테이블은 존재하나 대시보드 노출 여부를 확인하지 못했습니다. 확인 전까지 구현하지 않습니다 | 버튼을 만들지 않았습니다. 확인 없이 만들면 동작하지 않는 로그인을 제공하게 됩니다 |
 | GitHub 저장소 공개 전환 | 미완료 | 저장소 소유자가 직접 Settings → Change visibility | 대회 제출 링크가 열리지 않습니다 |
 | 제출 이메일 본문의 실명·연락처 | 미완료 | 사람이 직접 입력 | 초안(`SUBMISSION_EMAIL_DRAFT.txt`)에 자리표시자로 남아 있습니다 |
+| **탈퇴 함수 마이그레이션 `0009` 적용** | **미적용 — 승인 대기** | 운영 Supabase 에 `supabase/migrations/0009_delete_account_covers_all_user_tables.sql` 적용 | 적용 전에는 탈퇴 요청을 처리해도 `proof_cards`·`learning_records`·`certificates`·`experiences`·`analyses`·`external_credentials`·`feedback_*` 8개 테이블이 **그대로 남습니다**. 자동 탈퇴 UI 는 없고 수동 요청 절차이므로 당장 사용자에게 노출되는 경로는 없지만, **첫 탈퇴 요청을 처리하기 전에 반드시 적용해야 합니다** |
 
 ## 2. 기술적 차단 요소
 

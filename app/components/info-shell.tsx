@@ -1,5 +1,5 @@
 // 정보 페이지 공용 셸 (#9). 서버 컴포넌트 — 게이트 없이 공개 접근(#6 정책의 "공개 소개 페이지").
-// 메인 데모(5단계 흐름)는 렌더하지 않으며, 데모 진입은 항상 게이트를 거친다.
+// 메인 데모(6단계 흐름)는 렌더하지 않으며, 데모 진입은 항상 게이트를 거친다.
 import BrandGlyph from "./brand-mark";
 import MobileDrawerNav from "./mobile-drawer-nav";
 import ThemeToggle from "./theme-toggle";
@@ -21,7 +21,8 @@ export function InfoShell({
   children: React.ReactNode;
 }) {
   return (
-    <main>
+    <>
+      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
       <header className="topbar info-bar">
         <a className="brand" href="/" aria-label="GapProof 홈으로 이동">
           <span className="brand-mark"><BrandGlyph /></span>
@@ -38,6 +39,8 @@ export function InfoShell({
         <MobileDrawerNav active={active} />
       </header>
 
+      <main id="main">
+
       <section className="page-shell info-shell">
         <span className="eyebrow">{eyebrow}</span>
         <h1>{title}</h1>
@@ -50,6 +53,8 @@ export function InfoShell({
         </div>
       </section>
 
+      </main>
+
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
         <nav className="footer-nav" aria-label="정보 페이지">
@@ -61,6 +66,6 @@ export function InfoShell({
         </nav>
         <p>취업 또는 적성 판정이 아닙니다</p>
       </footer>
-    </main>
+    </>
   );
 }

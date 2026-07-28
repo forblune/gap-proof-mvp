@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 const STACK = [
   { name: "Next.js App Router + vinext (Vite)", Icon: IconNextjs, reason: "파일 기반 라우팅과 서버 라우트를 Cloudflare Workers에서 실행하기 위해" },
-  { name: "React 19 · TypeScript(strict)", Icon: IconReact, reason: "5단계 상태 흐름을 타입 안전하게 관리하기 위해" },
+  { name: "React 19 · TypeScript(strict)", Icon: IconReact, reason: "6단계 상태 흐름을 타입 안전하게 관리하기 위해" },
   { name: "Cloudflare Workers", Icon: IconCloudflare, reason: "공개 배포와 엣지 실행, 환경변수(secret) 바인딩을 위해" },
   { name: "Upstage Solar API", Icon: IconSolar, reason: "한국어 경험 문장의 구조화(JSON 출력)에 적합하고, 국내 생태계 확장성을 고려" },
   { name: "node:test 통합 테스트", Icon: IconNode, reason: "빌드 산출물 Worker를 직접 호출해 실제 응답 계약을 검증하기 위해" },

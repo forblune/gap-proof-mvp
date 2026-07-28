@@ -4,7 +4,7 @@ import { InfoShell } from "../components/info-shell";
 export const metadata: Metadata = {
   alternates: { canonical: "/guide" },
   title: "이용 가이드 | GapProof",
-  description: "GapProof 데모 5단계 사용 순서와 각 단계가 필요한 이유",
+  description: "GapProof 데모 6단계 사용 순서와 각 단계가 필요한 이유",
 };
 
 const STEPS = [
@@ -27,6 +27,12 @@ const STEPS = [
     time: "약 1분",
   },
   {
+    name: "먼저 알아보기",
+    action: "목표 직무를 고르고, 학습 자료·공공 제도 검색 출발점을 직접 열어 봅니다.",
+    why: "AI가 고른 것을 그대로 받지 않고, 실제로 있는지·지금 나에게 맞는지를 사용자가 먼저 판단하게 하기 위해서입니다.",
+    time: "약 1분",
+  },
+  {
     name: "격차·행동",
     action: "목표 직무를 고르고 우선 격차를 확인한 뒤, 이번 주 행동 1개를 선택합니다. 원하면 30초 학습확인도 볼 수 있습니다.",
     why: "미래 전체가 아니라 이번 주 한 걸음에 집중하기 위해서입니다.",
@@ -46,7 +52,7 @@ export default function GuidePage() {
       active="/guide"
       eyebrow="Guide"
       title="3분이면 전체 흐름을 볼 수 있습니다."
-      lead="다섯 단계를 순서대로 지나며, 각 단계는 이전 단계에서 사용자가 확인한 것만 사용합니다."
+      lead="여섯 단계를 순서대로 지나며, 각 단계는 이전 단계에서 사용자가 확인한 것만 사용합니다."
     >
       <section className="info-section">
         <h2>사용 순서</h2>

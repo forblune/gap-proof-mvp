@@ -205,7 +205,7 @@ STEP3 먼저 알아보기(자료·영상 학습·이해 확인·발급) → STEP
 
 ## 14. QA 결과 [구현됨 — 기록 기준]
 
-- 자동: 15/15 테스트 · 5뷰포트 0 overflow/0 console error · 인쇄(배경 OFF/흑백/PDF) · Lighthouse 기준선(home 67/95/100/100, about 90/95/100/100 — Phase A)
+- 자동: 147/147 테스트(node:test 11파일) · 5뷰포트 0 overflow/0 console error · 인쇄(배경 OFF/흑백/PDF) · Lighthouse 기준선(home 67/95/100/100, about 90/95/100/100 — Phase A)
 - 운영(B-1): 라우트 14×200 · 보안 헤더 5종 · 쿠키 3속성 · 실 Solar 1회 · PII 0건 · 429/Retry-After 실측
 - 수동 대기: 실기기 10항목(iPhone/Android/카카오톡 실공유/실인쇄/회전/3분 시연 실측)
 
