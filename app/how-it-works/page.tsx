@@ -25,7 +25,7 @@ const PIPELINE = [
 const TIERS = [
   { level: "Lv.0", name: "자기기록", condition: "서술만 있고 연결 자료·평가가 없는 상태 (모든 후보의 시작점)" },
   { level: "Lv.1", name: "근거 연결", condition: "노트·저장소·수료증 등 링크가 연결된 상태" },
-  { level: "Lv.2", name: "수행 확인", condition: "학습확인(2문항, 최대 3회) 통과 등 수행이 확인된 상태" },
+  { level: "Lv.2", name: "수행 확인", condition: "그 역량에 확인한 근거가 이미 있는 상태에서 학습확인(2문항, 최대 3회)까지 통과한 상태 — 학습확인 통과만으로는 오르지 않음" },
   { level: "Lv.3", name: "기관 확인", condition: "학교·교육기관·상담사 등 지정 주체가 확인한 상태 (이번 데모 범위 밖)" },
 ];
 

@@ -76,6 +76,8 @@
 
 ### 2.4 (#4) 확인된 증거만 격차·행동에 연결 — **CONFLICT**
 
+> **상태 갱신(2026-07-28, 최소 갱신)**: `fix/evidence-grade-integrity` 브랜치(Draft PR, main 미병합)에서 STEP4→5 게이트를 `confirmedClaims.length === 0`만으로 단순화해 이 CONFLICT를 수정했다. 테스트·독립 리뷰 완료. 상세는 `docs/devlog/2026-07-28-evidence-grade-integrity.md` 참고. **아직 main에는 병합되지 않았다** — 이 문서의 나머지 서술(CONFLICT 판정 등)은 병합 전까지 유효한 것으로 유지한다.
+
 - 기준 문서: 기준서 §7.3("확인된 역량이 0개면 격차 단계로 진행할 수 없다"), §1.4(결과물=확인된 증거+실행 약속).
 - 코드 근거 `[코드 검증]`: `app/demo/page.tsx:1195` — STEP4→5("GapProof 만들기") 게이트가 `disabled={confirmedClaims.length === 0 && passedComps.length === 0}`. 즉 원문 인용으로 **확인된 증거가 0개**여도, 퀴즈만 통과(`passedComps`)하면 진행 가능하다. §6.6/§6.4 원칙(단순 퀴즈 통과가 "확인"을 대체할 수 없음)과 근본 원인이 #6(증거등급 CONFLICT)과 동일하다.
 - 사용자/대회 위험: 원문 근거 없이도 "GapProof 결과"를 완주할 수 있어, 대회 심사 기준(§7.3의 핵심 신뢰 규칙)을 시연 중 직접 깨뜨릴 수 있음.
@@ -96,6 +98,8 @@
 - **주의**: 이 판정은 "조용히 해석"하지 않기 위해 CONFLICT로 명시한다. STEP3이 `gaps[0]`을 올바르게 재사용한다는 점에서 완전한 MISSING은 아니며, 순서 조정만으로 해결 가능한 정도의 CONFLICT임을 함께 기록한다.
 
 ### 2.6 (#6) 퀴즈·수료·수행·산출물과 증거등급의 관계 — **CONFLICT (최고 우선순위)**
+
+> **상태 갱신(2026-07-28, 최소 갱신)**: `fix/evidence-grade-integrity` 브랜치(Draft PR, main 미병합)에서 `engine.ts`에 `hasConfirmedEvidenceFor()`를 추가해 퀴즈 통과가 이 역량에 매칭되는 확인 증거 없이는 Lv.3에 도달하지 않도록 수정했다. 리뷰 과정에서 STEP4/STEP5 화면 표시(`passedComps`)가 계산 로직과 별개로 동일 문제를 재현하고 있음을 추가로 발견해 함께 수정했다(`verifiedPassedComps` 분리). 단위 9개·E2E 21개(3브라우저)·독립 리뷰 4관점 전부 완료. 상세는 `docs/devlog/2026-07-28-evidence-grade-integrity.md` 참고. **아직 main에는 병합되지 않았다.**
 
 - 기준 문서: 기준서 §6.4 — "단순 수강 완료가 아니라 수행 또는 산출물까지 연결돼야 증거등급이 오른다."
 - 코드 근거 `[코드 검증]` (직접 확인, `app/lib/engine.ts:50-76`):

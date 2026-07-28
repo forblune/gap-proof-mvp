@@ -8,6 +8,7 @@ import {
   recommendNextActions,
   tierFromLink,
   makeCheck,
+  hasConfirmedEvidenceFor,
 } from "../lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
 import { buildLookIntoItResources } from "../lib/resources";
@@ -199,7 +200,13 @@ export default function Home() {
     }
     const draft = loadDraft(window.localStorage);
     if (!draft) return;
-    setStep(draft.step);
+    // 증거등급 무결성 P0: 예전 버전에서 저장됐거나 손상된 draft가 STEP5(step:5)를 확인된
+    // 증거 0개 상태로 가리키면, 복원 즉시(첫 페인트 전) STEP4로 낮춰 잘못된 화면이 잠깐이라도
+    // 그려지지 않게 한다(아래 가드 effect는 이후의 상태 변화만 담당).
+    const restoredConfirmedCount = ((draft.claims as Claim[]) ?? []).filter(
+      (claim) => claim.status === "confirmed",
+    ).length;
+    setStep(draft.step === 5 && restoredConfirmedCount === 0 ? 4 : draft.step);
     setStoreConsent(draft.storeConsent);
     setAggregateConsent(draft.aggregateConsent);
     setExperience(draft.experience);
@@ -324,10 +331,25 @@ export default function Home() {
     [confirmedClaims, role, passedChecks],
   );
 
+  // 학습확인(퀴즈)을 통과한 모든 역량 — "퀴즈를 시도해 봤다"는 사실 자체를 나타낼 뿐,
+  // 화면에 "수행 확인"으로 표시해도 되는지는 verifiedPassedComps로 별도 판정한다.
   const passedComps = useMemo(
     () => role.competencies.filter((c) => passedChecks[c.id]),
     [role, passedChecks],
   );
+
+  // 증거등급 무결성 P0: 퀴즈를 통과했고, 이 역량에 매칭되는 확인 증거(원문 인용)가
+  // 최소 1개 있는 역량만 "수행 확인(Lv.2)"으로 화면에 표시한다 — engine.ts의
+  // competencyStrength와 동일한 hasConfirmedEvidenceFor 기준을 재사용해 계산·표시 로직이
+  // 어긋나지 않게 한다.
+  const verifiedPassedComps = useMemo(() => {
+    const confirmedInputs = confirmedClaims.map((claim) => ({
+      skill: claim.skill,
+      quote: claim.quote,
+      tier: claim.tier,
+    }));
+    return passedComps.filter((c) => hasConfirmedEvidenceFor(c, confirmedInputs));
+  }, [passedComps, confirmedClaims]);
 
   const recommended = useMemo(() => recommendNextActions(gaps, role), [gaps, role]);
   const chosenAction =
@@ -396,6 +418,14 @@ export default function Home() {
     setStep(next);
     scrollToTop();
   };
+
+  // Gate: 확인된 증거(원문 인용) 없이는 STEP5로 진행할 수 없다 — 학습확인(퀴즈) 통과나
+  // localStorage draft 복원만으로 이 화면에 도달한 상태(예: 이전 버전에서 저장된 draft,
+  // 또는 직접 조작된 상태)가 있으면 즉시 STEP4로 되돌린다.
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- 잘못 복원된 step 값을 정정하는 가드(연쇄 렌더 없음) */
+    if (step === 5 && confirmedClaims.length === 0) setStep(4);
+  }, [step, confirmedClaims.length]);
 
   // Gate 6(#42): 정리 프롬프트 복사
   const copyAiPrompt = async () => {
@@ -508,7 +538,17 @@ export default function Home() {
     if (ok) {
       setPassedChecks((prev) => ({ ...prev, [quiz.compId]: true }));
       setQuiz({ ...quiz, status: "passed" });
-      showNotice("학습확인 통과 · 수행 확인(Lv.2)으로 기록했습니다.", "success");
+      // 증거등급 무결성 P0: 퀴즈 통과 자체는 항상 일어나지만, "수행 확인(Lv.2)"으로
+      // 기록되는지는 이 역량에 매칭되는 확인 증거가 있을 때만 참이므로 안내 문구를 그에 맞춘다.
+      const quizComp = role.competencies.find((c) => c.id === quiz.compId);
+      const confirmedInputs = confirmedClaims.map((claim) => ({ skill: claim.skill, quote: claim.quote, tier: claim.tier }));
+      const reflectedInGrade = quizComp ? hasConfirmedEvidenceFor(quizComp, confirmedInputs) : false;
+      showNotice(
+        reflectedInGrade
+          ? "학습확인 통과 · 수행 확인(Lv.2)으로 기록했습니다."
+          : "학습확인 통과 · 이 역량에 확인한 근거가 아직 없어 등급에는 반영되지 않았습니다.",
+        "success",
+      );
     } else if (quiz.attempt >= 3) {
       setQuiz({ ...quiz, status: "locked" });
     } else {
@@ -630,7 +670,7 @@ export default function Home() {
   // 공유 문구를 "내 결과"로 개인화 — 목표직무명·확인된 역량 개수·선택한 행동명(전부 프리셋/집계값)만 사용하고,
   // 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
   const buildResultShareText = () => {
-    const totalSkills = confirmedClaims.length + passedComps.length;
+    const totalSkills = confirmedClaims.length + verifiedPassedComps.length;
     if (totalSkills === 0) return SHARE_TEXT;
     const actionPart = chosenAction ? ` · 이번 주 행동 "${chosenAction.title}"` : "";
     return `${role.label} 목표로 역량 ${totalSkills}개 확인${actionPart} — GapProof`;
@@ -1125,12 +1165,12 @@ export default function Home() {
             <section className="paper-card strengths">
               <div className="card-kicker">확인된 현재 역량</div>
               <h2>이미 출발점이 있습니다.</h2>
-              {confirmedClaims.length || passedComps.length ? (
+              {confirmedClaims.length || verifiedPassedComps.length ? (
                 <>
                   {confirmedClaims.map((claim) => (
                     <div className="strength-row" key={claim.id}><span>✓</span><p><b>{claim.skill}</b><small>{claim.quote}</small></p><TierBadge tier={claim.tier} /></div>
                   ))}
-                  {passedComps.map((c) => (
+                  {verifiedPassedComps.map((c) => (
                     <div className="strength-row" key={c.id}><span>✓</span><p><b>{c.label}</b><small>학습확인 통과 · 수행 확인</small></p><TierBadge tier={2} /></div>
                   ))}
                 </>
@@ -1166,13 +1206,13 @@ export default function Home() {
               const comp = role.competencies.find((c) => c.id === quiz.compId);
               const label = comp?.label ?? "";
               if (quiz.status === "passed") return (
-                <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 수행 확인 완료</h3><div className="check-result pass">Lv.2 수행 확인으로 기록했습니다. 위 격차 지도에서 이 역량이 닫힌 것을 확인하십시오.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+                <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 이해도 확인 완료</h3><div className="check-result pass">이해도 확인을 통과했습니다. 이 역량에 확인한 근거가 있으면 수행 확인(Lv.2)에 반영되고, 아직 없으면 근거를 먼저 확인해 주십시오.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               if (quiz.status === "locked") return (
                 <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">등급을 올리지 않았습니다. 추천 학습을 완료한 뒤 다시 확인해 주십시오.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               return (
-                <div className="check-panel"><div className="card-kicker">학습확인 · 통과 시 Lv.2 수행 확인</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. 통과하면 이 역량의 격차가 닫힙니다.</p>
+                <div className="check-panel"><div className="card-kicker">학습확인 · 이해도 점검</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. 통과 자체가 증거가 되지는 않으며, 확인한 근거가 있을 때만 수행 확인(Lv.2)에 반영됩니다.</p>
                   {quiz.questions.map((qq, qi) => (
                     <div className="check-q" key={qi}><p>Q{qi + 1}. {qq.q}</p><div className="check-opts">{qq.options.map((op, oi) => (<button key={oi} className={`check-opt ${quiz.picks[qi] === oi ? "picked" : ""}`} onClick={() => pickAnswer(qi, oi)}>{op}</button>))}</div></div>
                   ))}
@@ -1182,17 +1222,22 @@ export default function Home() {
             }
             if (!gaps.length) return null;
             return (
-              <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인하고, 통과하면 수행 확인(Lv.2)으로 기록합니다.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
+              <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인합니다. 통과 자체가 증거가 되지는 않으며, 이 역량에 확인한 근거가 있을 때만 수행 확인(Lv.2)에 반영됩니다.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
             );
           })()}
-          {confirmedClaims.length === 0 && passedComps.length === 0 && (
-            <div className="zero-note" role="status">아직 확인된 역량이 없습니다. ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주십시오.</div>
+          {confirmedClaims.length === 0 && (
+            <div className="zero-note" role="status">
+              다음 단계로 가려면 내 경험에서 확인할 수 있는 근거를 하나 이상 선택해 주십시오.
+              {passedComps.length > 0
+                ? " 학습확인은 이해도를 점검할 뿐, 그 자체로는 증거를 대신하지 않습니다."
+                : " ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주십시오."}
+            </div>
           )}
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(3)}>이전</button>
             <button
               className="primary"
-              disabled={confirmedClaims.length === 0 && passedComps.length === 0}
+              disabled={confirmedClaims.length === 0}
               onClick={() => { setProofDate(formatProofDate(new Date())); moveTo(5); }}
             >
               GapProof 만들기 <span>→</span>
@@ -1212,7 +1257,7 @@ export default function Home() {
             <article className="proof-card personal-proof">
               <div className="proof-header"><div><span className="brand-mark small"><BrandGlyph /></span><b>GapProof</b></div><span>개인용 증거카드</span></div>
               <div className="identity"><small>목표직무</small><h2>{role.label}</h2><p>{role.blurb}</p></div>
-              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{passedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
+              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{verifiedPassedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주십시오."}”</blockquote></div>
               <div className="chosen-action"><span>이번 주 다음 행동</span><b>{chosenAction?.title}</b><small>{chosenAction?.rule}</small></div>
               <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>{proofDate}</b></footer>
