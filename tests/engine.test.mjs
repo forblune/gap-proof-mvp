@@ -148,6 +148,10 @@ test("배지 등급 계산과 게이트 판정이 같은 함수를 쓴다", () =
 // /전무/ 가 직함 "전무님" 에, /없음/ 이 "누락 없음" 에, /못 해/ 가 "잘못 해석" 에,
 // /모르/ 가 "모르는 동료도" 에 걸렸다. 양방향 코퍼스로 고정한다.
 const KEEP_CASES = [
+  // 재현율을 올릴 때 가장 먼저 깨지는 문장들이다. 창을 넓히거나 "못 하", "모르" 를
+  // 통째로 넣으면 아래가 다시 지워진다 — 증거를 놓치는 것보다 한 일을 지우는 쪽이 나쁘다.
+  ["개발팀이 못 하던 자동화를 제가 만들었습니다", "개발"],
+  ["데이터 누락이 없도록 검증 절차를 만들었습니다", "데이터"],
   ["항공물류 전무님께 보고할 운영 자료를 직접 만들었습니다", "물류"],
   ["데이터 누락 없음을 매일 확인했습니다", "데이터"],
   ["데이터를 잘못 해석해 다시 분석했습니다", "데이터"],
@@ -157,6 +161,14 @@ const KEEP_CASES = [
   ["API 문서를 매일 정리하는 일을 멈추지 않았습니다", "API"],
 ];
 const DROP_CASES = [
+  // 6라운드 심사: 아래 6건이 전부 통과하고 있었다(검출률 9건 중 1건).
+  ["저는 개발을 못합니다", "개발"],
+  ["개발은 아무것도 모릅니다", "개발"],
+  ["API는 잘 모릅니다", "API"],
+  ["개발을 배운 적이 없어요", "개발"],
+  ["개발은 제 담당이 아니었습니다", "개발"],
+  ["개발 경험 제로", "개발"],
+  ["개발 경험은 솔직히 말씀드리면 거의 전무한 수준입니다", "개발"],
   ["API도 못 다루고 개발도 해본 적이 전혀 없다", "API"],
   ["데이터를 다뤄 본 적이 전혀 없다", "데이터"],
   ["개발 경험 없음", "개발"],
@@ -179,4 +191,32 @@ test("경험이 없다는 문장은 증거로 세지 않는다", () => {
   for (const [quote, keyword] of DROP_CASES) {
     assert.equal(keywordIsNegated(quote, keyword), true, `통과됨: ${quote}`);
   }
+});
+
+// 6라운드 심사 자동 FAIL: Solar 실연결 경로(sanitizeClaimsV2)에는 부정 판정이 없었다.
+// route.ts 의 샘플 폴백만 걸러지고, 운영 트래픽이 지나는 정상 경로는 무필터였다.
+test("인용문 전체가 부정 진술이면 역량 후보로 만들지 않는다", async () => {
+  const { sanitizeClaimsV2 } = await import("../app/lib/engine-v2.ts");
+  const source = "저는 개발을 해 본 적이 전혀 없습니다";
+  const raw = {
+    claims: [{
+      skill: "개발 역량",
+      quote: source,
+      factStatus: "확인됨",
+      evidenceStrength: "강함",
+      question: "어떤 언어를 써 보셨습니까?",
+    }],
+  };
+  assert.equal(sanitizeClaimsV2(raw, source).length, 0);
+});
+
+test("한 일과 못 한 일이 섞인 인용문은 폐기하지 않는다 — 과잉 차단 방지", async () => {
+  const { sanitizeClaimsV2, quoteIsOnlyNegation } = await import("../app/lib/engine-v2.ts")
+    .then(async (m) => ({ ...m, ...(await import("../app/lib/engine.ts")) }));
+  const source = "항공물류 현장에서 3년 일했습니다. 개발은 해 본 적이 없습니다";
+  assert.equal(quoteIsOnlyNegation(source), false);
+  const raw = {
+    claims: [{ skill: "현장 운영", quote: source, factStatus: "확인됨", evidenceStrength: "보통", question: "어떤 일을 하셨습니까?" }],
+  };
+  assert.equal(sanitizeClaimsV2(raw, source).length, 1);
 });

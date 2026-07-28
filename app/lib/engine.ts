@@ -94,20 +94,35 @@ export type PassedChecks = Record<string, boolean>;
 // /못 해/ 가 "잘못 해석" 에, /모르/ 가 "모르는 동료도 쓸 수 있게" 에 걸렸다.
 // 증거를 놓치는 것보다 한 일을 지우는 쪽이 나쁘므로, 뜻이 분명한 형태만 잡고
 // 키워드에서 24자 안쪽에 있을 때만 그 키워드에 붙은 부정으로 본다.
-const NEGATION_PATTERNS: RegExp[] = [
+// 1단 — 거리로 판정하는 부정. "없/않" 은 긍정문에도 흔히 쓰이므로("장애가 한 번도 없었습니다")
+// 키워드에서 24자 안쪽에 있을 때만 그 키워드에 붙은 부정으로 본다.
+const NEGATION_NEAR_PATTERNS: RegExp[] = [
   // "…해 본 적/일/경험이 없다" 계열. 동사를 열거하지 않고 "본/한 + 적|일|경험 + 없" 구조로 잡는다.
-  /(본|한|짠|쓴|만든)\s*(적|일|경험)[이은도]?\s*(전혀|한\s?번도|거의|아직)?\s*없/,
+  /(본|한|짠|쓴|만든|배운|다룬|써본)\s*(적|일|경험)[이은도]?\s*(전혀|한\s?번도|거의|아직)?\s*없/,
   // "경험이 없다" — "누락 없음" 같은 다른 명사의 부재와 섞이지 않도록 반드시 "경험" 을 요구한다.
   /경험[이은도]?\s*[:：]?\s*(전혀|거의|아직)?\s*없/,
-  /미경험/,
-  // "경험은 전무합니다" — 직함 "전무님" 에 걸리지 않도록 반드시 "경험" 뒤에 올 때만 본다.
-  /경험[이은도]?\s*[:：]?\s*(전혀|거의|아직)?\s*전무/,
   // "해보지 않았다 / 해 본 적 없다" 계열.
   /(해|써|다뤄|만들어|배워)\s?보?지\s*(전혀|아직)?\s*않/,
   /(해|써|다뤄|만들어|배워)\s?본\s*(적|일)[이은]?\s*없/,
   // "못 다루다 / 못 만들다" — "잘못 해석" 에 걸리지 않도록 "잘" 뒤가 아닌 경우만 본다.
   /(^|[^잘])못\s?(다루|만들|배웠|배워|씁|쓴)/,
-  /(영역|분야|전공|쪽)[이가은]?\s*아닙?니다?/,
+];
+
+// 2단 — 거리를 보지 않는 부정. 여기에는 **긍정문에 등장할 수 없는 종결형만** 넣는다.
+// 창을 넓혀서 1단의 재현율을 올리려 하면 "장애가 한 번도 없었습니다"(키워드에서 17자)처럼
+// 실제로 한 일이 다시 지워진다. 그래서 창을 넓히는 대신, 형태만으로 뜻이 확정되는
+// 표현을 따로 모아 절 전체에서 찾는다. 각 패턴은 아래 KEEP 코퍼스로 오탐 0을 확인했다.
+const NEGATION_ABSOLUTE_PATTERNS: RegExp[] = [
+  /미경험/,
+  /경험\s*[:：]?\s*제로/,
+  // "전무합니다/전무한" — 직함 "전무님" 과 갈라내려고 서술어 어미를 요구한다.
+  /전무(합|한|해|했|입니다)/,
+  // "못합니다/못해요/못한다" — 종결형만. "개발팀이 못 하던 일을 제가 만들었습니다" 는 걸리지 않는다.
+  /(^|[^잘])못\s?(합니다|해요|한다)/,
+  // "모릅니다/모르겠습니다/아무것도 모른다" — "모르는 동료도" 같은 관형형은 제외한다.
+  /모릅니다|모르겠[습다]|(전혀|하나도|아무것도)\s*모르/,
+  // "제 분야가/담당이 아닙니다"
+  /(영역|분야|전공|쪽|담당)[이가은]?\s*아(니|닙)/,
 ];
 
 // 부정 표현이 "이 대상에 대한 경험이 없다" 를 뜻하려면 키워드 가까이 있어야 한다.
@@ -133,9 +148,30 @@ export function keywordIsNegated(text: string, keyword: string): boolean {
   if (clauses.length === 0) return false;
   return clauses.every((clause) => {
     const after = clause.slice(clause.indexOf(keyword) + keyword.length);
+    if (NEGATION_ABSOLUTE_PATTERNS.some((pattern) => pattern.test(after))) return true;
     const predicate = after.slice(0, NEGATION_WINDOW);
-    return NEGATION_PATTERNS.some((pattern) => pattern.test(predicate));
+    return NEGATION_NEAR_PATTERNS.some((pattern) => pattern.test(predicate));
   });
+}
+
+// 이 절이 "경험이 없다" 는 진술 그 자체인가.
+// keywordIsNegated 와 달리 특정 역량 키워드를 기준으로 삼지 않는다. AI 가 붙인 skill 라벨은
+// 사용자가 쓴 말이 아니라 판정 기준이 될 수 없으므로, 인용문 자체가 부정 진술인지만 본다.
+function clauseIsNegation(clause: string): boolean {
+  return (
+    NEGATION_ABSOLUTE_PATTERNS.some((pattern) => pattern.test(clause)) ||
+    NEGATION_NEAR_PATTERNS.some((pattern) => pattern.test(clause))
+  );
+}
+
+// 인용문이 통째로 "그건 못 한다/안 해봤다" 는 말인가.
+// 한 절이라도 부정이 아니면 false 다 — "물류에서 일했습니다. 데이터는 다뤄 본 적이 없습니다."
+// 처럼 실제로 한 일이 섞여 있으면 그 부분은 살려야 하고, 어느 역량에 붙일지는
+// 뒤쪽의 claimSupports·competencyStrength 가 절 단위로 다시 판정한다.
+export function quoteIsOnlyNegation(quote: string): boolean {
+  const clauses = clausesOf(quote);
+  if (clauses.length === 0) return false;
+  return clauses.every(clauseIsNegation);
 }
 
 // 이 확인 근거가 해당 역량을 실제로 뒷받침하는가.

@@ -7,6 +7,7 @@ import {
   computeGapMap,
   recommendNextActions,
   tierFromLink,
+  isVerifiableLink,
   makeCheck,
   claimSupports,
   hasConfirmedEvidenceFor,
@@ -1287,8 +1288,10 @@ export default function Home() {
               <p className="input-guide">학교, 일, 돌봄, 게임, 취미, SNS, 쉬었던 시기처럼 작아 보였던 경험도 괜찮습니다. 잘 정리하지 않아도 됩니다.</p>
               <textarea id="experience" placeholder="여기에 자유롭게 적어 주십시오. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮습니다." value={experience} onChange={(event) => setExperience(event.target.value)} />
               <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 됩니다.</span><b className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
+              {/* 넘은 글자 수를 role="alert" 안에 넣으면 타자 한 글자마다 내용이 바뀌어 스크린리더가 계속 다시 읽는다.
+                  문구를 고정하면 초과 상태가 될 때 한 번만 읽힌다. 남은 글자 수는 바로 위 카운터(.input-meta)에 보인다. */}
               {OVER_LIMIT && (
-                <p className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있으니 {(experienceLength - 10000).toLocaleString()}자만 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
+                <p className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있습니다. 위 글자 수를 보고 10,000자 아래로 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
               )}
               {experience.trim().length < 20 && (
                 <p className="length-hint">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜집니다.</p>
@@ -1388,7 +1391,16 @@ export default function Home() {
                 <div className="evidence-link">
                   <label htmlFor={`claim-link-${claim.id}`}>근거 링크 (선택)</label>
                   <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="https://... (GitHub·수료증·노트 주소)" onChange={(event) => attachLink(claim.id, event.target.value)} />
-                  <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작합니다"}</small>
+                  {/* 등급을 정하는 것은 tierFromLink(=isVerifiableLink)이지 "칸이 비었는가"가 아니다.
+                      link 유무로 문구를 고르면 "메모장에 정리함"을 적었을 때 배지는 Lv.0인데
+                      캡션만 Lv.1이라고 말한다 — 화면이 코드가 하지 않은 일을 주장하게 된다. */}
+                  <small>
+                    {!claim.link
+                      ? "링크가 없으면 Lv.0 자기기록으로 시작합니다"
+                      : isVerifiableLink(claim.link)
+                        ? "링크 연결됨 → 증거등급 Lv.1 근거 연결"
+                        : "이 주소로는 등급이 오르지 않습니다. http:// 또는 https:// 로 시작하는 주소만 인정됩니다."}
+                  </small>
                 </div>
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (

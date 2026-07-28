@@ -5,6 +5,8 @@
 //  3) 열거형 밖 값은 안전 기본값으로 강등한다(요청을 실패시키지 않되 과장 방지 방향으로).
 //  4) 적성·취업 가능성 판정 어휘가 섞인 가설 제목은 폐기한다.
 
+import { quoteIsOnlyNegation } from "./engine.ts";
+
 export const FACT_STATUS = ["확인됨", "부분 확인", "계획·관심"] as const;
 export const SIGNALS = ["반복", "책임", "문제 해결", "몰입"] as const;
 export const EVIDENCE_STRENGTH = ["강함", "보통", "약함"] as const;
@@ -83,6 +85,10 @@ export function sanitizeClaimsV2(raw: unknown, source: string): ClaimV2[] {
     const question = cleanString(record.question, 200);
     if (!skill || !quote || !question) continue;
     if (!quoteInSource(quote, source)) continue; // 환각 방지 — 원문에 없으면 폐기
+    // 사용자가 "없다" 고 적은 것을 역량 후보로 만들지 않는다.
+    // quoteInSource 는 인용 위조만 막는다 — 원문에 그대로 있는 "개발은 못합니다" 는 통과시킨다.
+    // 이 경로(Solar 응답)가 운영의 정상 경로이므로 여기서 막지 않으면 어디서도 막히지 않는다.
+    if (quoteIsOnlyNegation(quote)) continue;
 
     const factStatus = FACT_STATUS.includes(record.factStatus as FactStatus)
       ? (record.factStatus as FactStatus)

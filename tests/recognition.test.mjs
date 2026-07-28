@@ -265,7 +265,7 @@ test("engine 교차검증: TIER_RULES의 Lv.2 금지 조건이 competencyStrengt
   const lv2 = TIER_RULES.find((r) => r.tier === 2);
   assert.match(lv2.neverWhen, /이해 확인|퀴즈/);
   // 매칭 증거 없이 퀴즈만 통과 → 3에 도달하면 안 된다.
-  assert.notEqual(competencyStrength(engineComp, [], { [engineComp.id]: true }), 3);
+  assert.notEqual(competencyStrength(engineComp, []), 3);
 });
 
 test("engine 교차검증: 인정 유형의 maxTier 0이 엔진 동작과 일치한다", () => {
@@ -273,18 +273,17 @@ test("engine 교차검증: 인정 유형의 maxTier 0이 엔진 동작과 일치
   assert.equal(findRecognitionKind("learning_completed").maxTier, 0);
   assert.equal(findRecognitionKind("understanding_checked").maxTier, 0);
   // 따라서 확인 증거가 하나도 없으면 엔진 강도도 0이어야 한다.
-  assert.equal(competencyStrength(engineComp, [], { [engineComp.id]: true }), 0);
+  assert.equal(competencyStrength(engineComp, []), 0);
 });
 
 test("engine 교차검증: hasConfirmedEvidenceFor 가 두 모듈에서 같은 전제로 쓰인다", () => {
   assert.equal(hasConfirmedEvidenceFor(engineComp, []), false);
   assert.equal(hasConfirmedEvidenceFor(engineComp, [matching()]), true);
   // 퀴즈는 어느 경우에도 강도를 바꾸지 않는다 — 인정 유형 understanding_checked 의 maxTier 0 과 일치한다.
-  assert.equal(
-    competencyStrength(engineComp, [matching()], { [engineComp.id]: true }),
-    competencyStrength(engineComp, [matching()], {}),
-  );
-  assert.equal(competencyStrength(engineComp, [matching()], {}), 1);
+  // 퀴즈 통과 여부를 넘길 자리가 아예 없다는 것이 이 규칙의 실제 집행 방식이다.
+  // 인자를 넘겨서 "무시되더라" 를 확인하면 시그니처가 바뀌어도 테스트가 통과해 버린다.
+  assert.equal(competencyStrength.length, 2, "competencyStrength 가 퀴즈 인자를 다시 받고 있습니다");
+  assert.equal(competencyStrength(engineComp, [matching()]), 1);
   assert.equal(findRecognitionKind("understanding_checked").maxTier, 0);
 });
 

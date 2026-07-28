@@ -16,21 +16,35 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .brand-mark svg { width: 74%; height: 74%; display: block; }
 /* 어두운 배경 위에서는 단색 흰색으로 그린다(그라데이션의 인디고 끝이 네이비에 묻힌다). */
 .brand-mark.on-dark { --brand-stroke: var(--color-brand-fill-contrast); }
-/* 키네틱 워드마크 — 획이 ㄱ → ㅜ → 화살표 → 가로획으로 바뀐 뒤 링이 닫힌다.
-   d 속성은 보간되지 않으므로 단계마다 갈아 끼우고, 전환감은 위치·불투명도로만 준다.
-   레이아웃을 건드리지 않도록 크기는 고정한다(CLS 0). */
-.brand-motion { display: grid; place-items: center; background: var(--color-brand-fill); color: var(--color-brand-fill-contrast); border-radius: 9px 9px 16px 9px; }
+/* 키네틱 워드마크 — 가로획이 ㄱ자 지점에서 꺾여 화살표로 자란다.
+   d 속성은 보간되지 않으므로 단계마다 갈아 끼우고, 전환감은 화살촉의 위치·불투명도로만 준다.
+   .brand-mark 와 같은 크기·같은 그리기 방식이라 애니메이션이 끝나면 정적 심벌과 구분되지 않는다.
+   레이아웃을 건드리지 않도록 크기는 인라인으로 고정한다(CLS 0). */
+.brand-motion { display: grid; place-items: center; }
 .brand-motion svg { width: 74%; height: 74%; display: block; }
-.brand-motion .brand-motion-bar { transition: opacity 140ms ease; }
-.brand-motion .brand-motion-bridge {
-  stroke: var(--color-brand-accent-on-dark);
-  opacity: 0; transform: rotate(-18deg); transform-origin: 50% 50%;
+/* 가로획 4단계가 모두 그려져 있다. 기본값은 마지막 단계만 보이는 것 —
+   JS 가 없거나 아직 실행되지 않았을 때 남는 모양이 곧 최종 로고여야 하기 때문이다. */
+.brand-motion .brand-motion-bar { opacity: 0; }
+.brand-motion .brand-motion-bar[data-bar="3"] { opacity: 1; }
+.brand-motion[data-step="0"] .brand-motion-bar[data-bar="3"],
+.brand-motion[data-step="1"] .brand-motion-bar[data-bar="3"],
+.brand-motion[data-step="2"] .brand-motion-bar[data-bar="3"] { opacity: 0; }
+.brand-motion[data-step="0"] .brand-motion-bar[data-bar="0"],
+.brand-motion[data-step="1"] .brand-motion-bar[data-bar="1"],
+.brand-motion[data-step="2"] .brand-motion-bar[data-bar="2"] { opacity: 1; }
+/* 화살촉은 곡선이 자란 뒤(마지막 단계)에만 드러난다. */
+.brand-motion .brand-motion-head {
+  opacity: 1; transform: none; transform-origin: 50% 50%;
   transition: opacity 240ms ease, transform 320ms cubic-bezier(.22, 1, .36, 1);
 }
-.brand-motion .brand-motion-bridge.is-in { opacity: 1; transform: none; }
+.brand-motion[data-step="0"] .brand-motion-head,
+.brand-motion[data-step="1"] .brand-motion-head,
+.brand-motion[data-step="2"] .brand-motion-head { opacity: 0; transform: translate(-3px, 3px); }
+/* 움직임을 원하지 않으면 전환 자체를 끈다. 컴포넌트도 재생을 시작하지 않으므로
+   data-step 은 최종값(3)에 머물고, 위 기본 규칙이 그대로 최종 모양을 그린다. */
 @media (prefers-reduced-motion: reduce) {
   .brand-motion .brand-motion-bar,
-  .brand-motion .brand-motion-bridge { transition: none; transform: none; opacity: 1; }
+  .brand-motion .brand-motion-head { transition: none; }
 }
 
 .brand-mark.small { width: 28px; height: 28px; }
@@ -124,7 +138,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 .primary, .secondary { min-height: 48px; padding: 0 20px; border-radius: 11px; font-weight: 800; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease; }
 .primary { border: 1px solid var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); box-shadow: 0 8px 20px rgba(23, 36, 61, .16); } /* 다크에서 채움/글자가 함께 뒤집혀야 해서 --ink 별칭 대신 전용 토큰 사용 */
-.primary span { color: var(--color-primary-accent); margin-left: 8px; }
+.primary span { color: currentColor; margin-left: 8px; }
 .primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(23, 36, 61, .22); }
 .primary:disabled { opacity: .38; cursor: not-allowed; }
 .primary.full { width: 100%; margin-top: 12px; }
@@ -192,7 +206,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .drawer-nav a:hover, .drawer-nav a:focus-visible { background: var(--ivory); color: var(--ink); }
 .drawer-nav a[aria-current="page"] { background: var(--green-soft); color: var(--green); }
 .drawer-cta { margin: 10px 14px max(14px, env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; background: var(--color-primary); color: var(--color-primary-contrast); border-radius: 999px; font-weight: 800; text-decoration: none; }
-.drawer-cta:hover { color: var(--color-primary-accent); }
+.drawer-cta:hover { color: currentColor; }
 body.drawer-open { overflow: hidden; }
 @media (min-width: 721px) {
   /* 데스크톱은 드로어를 open 상태와 무관하게 완전히 비활성화 — 리사이즈 중 열림 상태가 남아도 무해 */
@@ -220,14 +234,14 @@ body.drawer-open { overflow: hidden; }
 .step-fields div:first-child { margin-top: 0; }
 .step-fields dt { display: inline; font-weight: 800; color: var(--green); margin-right: 6px; }
 .step-fields dd { display: inline; margin: 0; color: var(--color-text); }
-.info-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.info-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 10px; }
 .info-cards li { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--color-surface); font-size: 13px; }
 .info-cards li b { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--green); }
 .info-cards li b svg { width: 16px; height: 16px; flex: 0 0 auto; }
 .info-cards li p { margin: 0; color: var(--color-text-muted); line-height: 1.6; }
 .info-cta { margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .info-demo-link { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 11px; border: 1px solid var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); font-weight: 800; text-decoration: none; }
-.info-demo-link span { color: var(--color-primary-accent); margin-left: 8px; }
+.info-demo-link span { color: currentColor; margin-left: 8px; }
 .info-cta small { color: var(--color-text-muted); }
 .info-repo { margin-top: 12px; color: var(--muted); font-size: 13px; }
 .footer-nav { display: flex; flex-wrap: wrap; gap: 2px 12px; }
@@ -868,7 +882,6 @@ body.drawer-open { overflow: hidden; }
   --color-highlight: var(--color-brand-primary);
   --color-highlight-contrast: var(--color-on-fill);
   --color-fill-contrast: var(--color-on-fill);
-  --color-primary-accent: #9fb0f5;
   --ivory: var(--color-background);
   --paper: var(--color-surface);
   --ink: var(--color-text-primary);
@@ -932,7 +945,6 @@ body.drawer-open { overflow: hidden; }
   --hero-gradient: linear-gradient(165deg, #1b2133 0%, #171d2c 55%, #131824 100%);
 
   /* 별칭 중 라이트에서 고정값이던 것만 다시 지정한다(나머지는 위 토큰을 따라간다) */
-  --color-primary-accent: var(--color-brand-on-dark);
 }
 
 

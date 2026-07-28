@@ -58,7 +58,7 @@ STEP0 동의 → STEP1 경험 입력(개인정보 자동 마스킹) → STEP2 So
 
 ## 6. 현재 구현 기능
 
-**[운영 중 — 1차 버전 `cece759c`]** 5단계 흐름·모델 allowlist·게이트·PII 마스킹·rate limit·실연결/샘플 구분·정보 페이지 4종·SEO/브랜드·인쇄 대응
+**[운영 중 — 1차 버전 `cece759c`]** 6단계 흐름·모델 allowlist·게이트·PII 마스킹·rate limit·실연결/샘플 구분·정보 페이지 4종·SEO/브랜드·인쇄 대응
 
 **[RC 완료 — 재배포 승인 대기]**
 - 공개 홈 10섹션 + /why /who /privacy /terms — 설명 없는 이해(30초 테스트)
@@ -68,7 +68,7 @@ STEP0 동의 → STEP1 경험 입력(개인정보 자동 마스킹) → STEP2 So
 - 발견 엔진 V2(사실 상태·행동·신호·근거 강도·과장 위험·직업 가설(단정 차단)·작은 실험)
 - 모델 카드 다이얼로그([공식]/[자체]·평가 중), AI 정리 프롬프트·TXT/MD 첨부(업로드 없음)
 - 회원·이용량·초대 코드 **로컬 기반**(RLS 실검증) — 운영 공개는 전체 세트+승인 후
-- 자동 테스트 32종·e2e 6스위트·QA 스윕
+- 자동 테스트 147종(node:test 11파일)·e2e 6스위트·QA 스윕
 
 ## 6.1 인정 유형 — 무엇을 말해 주고, 무엇을 말해 주지 않는가 [구현됨]
 
@@ -165,7 +165,7 @@ STEP0 동의 → STEP1 경험 입력(개인정보 자동 마스킹) → STEP2 So
 ## 8. AI 설계 원칙 [구현됨]
 
 - 입력 원문만 근거로 사용(인용 불일치 후보 폐기) · 마스킹본 기준 분석
-- 모델 allowlist(서버 최종 검증, 임의 모델 400) · 12초 타임아웃 · 실패 시 명시적 샘플 폴백
+- 모델 allowlist(서버 최종 검증, 임의 모델 400) · 30초 타임아웃 · 실패 시 명시적 샘플 폴백
 - AI 산출물은 "제안" 라벨: "Solar solar-pro3 제안 → 사용자 확인 완료"처럼 출처·확정 주체 병기
 
 ## 9. 화면 구조 [구현됨]
@@ -180,7 +180,7 @@ STEP3 먼저 알아보기(자료·영상 학습·이해 확인·발급) → STEP
 - Cloudflare Workers 단일 워커 `gapproof-mvp` + Custom Domain, 정적 자산 ASSETS 바인딩
 - 시크릿 3종(GATE_ACCESS_CODE·GATE_SESSION_SECRET·UPSTAGE_API_KEY)만 운영 등록
 - Rate Limiting API 바인딩 2종(analyze/gate), 보안 헤더 5종, robots/sitemap/manifest 라우트
-- 테스트: node:test 15종(빌드 산출물 대상) + Playwright 캡처 하니스
+- 테스트: node:test 147종(11파일) + Playwright 캡처 하니스
 
 ## 11. 개인정보·법률 계획
 
