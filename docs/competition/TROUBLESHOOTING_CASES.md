@@ -1,6 +1,6 @@
 # GapProof 트러블슈팅 사례
 
-**작성일**: 2026-07-28. 모든 사례는 실제 커밋·devlog에 근거한 실제 발생 문제다. 지어낸 사례 없음. 사례 2~5는 PR #78(`perf/lighthouse-90` 브랜치)의 devlog `docs/devlog/2026-07-28-lighthouse-90.md`를 `git show perf/lighthouse-90:docs/devlog/2026-07-28-lighthouse-90.md`로 직접 읽어 근거를 확인했다 — **이 devlog 파일은 PR #78이 아직 main에 병합되지 않아 이 브랜치(`feat/competition-about`)의 작업 트리에는 존재하지 않는다.** 사례 1은 `wrangler.jsonc`의 `compatibility_date` 커밋 이력·주석에 근거했다.
+**작성일**: 2026-07-28(2026-07-28 PR #78 병합 반영으로 갱신). 모든 사례는 실제 커밋·devlog에 근거한 실제 발생 문제다. 지어낸 사례 없음. 사례 2~5는 `docs/devlog/2026-07-28-lighthouse-90.md`에 근거했다 — 최초 작성 시점에는 PR #78이 아직 main에 병합되지 않아 이 파일이 이 브랜치의 작업 트리에 없었고 `git show perf/lighthouse-90:...`로 직접 읽어 확인했으나, PR #78이 2026-07-28 main에 병합·배포된 이후로는 이 브랜치에도 `docs/devlog/2026-07-28-lighthouse-90.md`가 그대로 존재한다. 사례 1은 `wrangler.jsonc`의 `compatibility_date` 커밋 이력·주석에 근거했다.
 
 ---
 

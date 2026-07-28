@@ -2,7 +2,9 @@
 
 **작성일**: 2026-07-28 (제출 목표: 2026-07-29) · **버전**: 1차본 · **상태 표기**: `[구현됨]` 현재 코드/운영에 존재 · `[코드 검증]` 소스코드를 직접 열람해 확인 · `[테스트 확인]` 자동화 테스트로 확인 · `[운영 확인]` 운영 사이트에서 직접 확인 · `[가설]` 아직 사용자/기관 검증 전 · `[예정]` 계획이며 미구현
 
-이 문서는 `GapProof_제품기획_기준서_v3.0.pdf`, `GapProof_원페이지_기획정의서_v3.0.pdf`, `docs/planning/GAPPROOF_ALIGNMENT_AUDIT_2026-07-28.md`, `docs/planning/GAPPROOF_ROADMAP_TO_2026-08-03.md`, `docs/planning/GAPPROOF_NEXT_PR_SPEC.md`, 실제 코드(`app/`), `docs/devlog/`, PR #78(`perf/lighthouse-90`) 검증 결과를 근거로 작성했다. 사용자 수·기관 반응·성과는 지어내지 않았으며, 확인되지 않은 항목은 `[가설]`로 명시한다.
+이 문서는 `GapProof_제품기획_기준서_v3.0.pdf`, `GapProof_원페이지_기획정의서_v3.0.pdf`, `docs/planning/GAPPROOF_ALIGNMENT_AUDIT_2026-07-28.md`, `docs/planning/GAPPROOF_ROADMAP_TO_2026-08-03.md`, `docs/planning/GAPPROOF_NEXT_PR_SPEC.md`, 실제 코드(`app/`), `docs/devlog/`, PR #78(`perf/lighthouse-90`, 2026-07-28 main 병합 및 운영 배포 완료) 검증 결과를 근거로 작성했다. 사용자 수·기관 반응·성과는 지어내지 않았으며, 확인되지 않은 항목은 `[가설]`로 명시한다.
+
+**갱신 이력**: 최초 작성 2026-07-28(PR #78 미병합 시점) → 2026-07-28 갱신(PR #78 병합·배포·운영 스모크 확인 반영, merge SHA `38a8274ab11225f2763a93a54d7601f5158fd943`, main SHA 동일).
 
 ---
 
@@ -109,7 +111,7 @@
 - e2e(Playwright, Chromium+Firefox+WebKit): **189/189 통과**.
 - 접근성(axe-core, wcag2a/aa): **serious/critical 위반 0건**.
 - 린트: 기존 4건(오늘 작업과 무관, `<a>` vs `next/link` 2건 + 미이스케이프 따옴표 2건), 신규 0건.
-- Lighthouse(모바일, `wrangler dev` 기준, PR #78 최종 재측정 — **main에는 아직 미병합**, `[예정]` 병합 시점은 로드맵 참고): `/` Performance 99·Accessibility 100·Best Practices 96·SEO 100, `/demo?sample=1` 98·100·96·100, `/how-it-works` 99·100·96·100, `/technology` 99·100·96·100.
+- Lighthouse(모바일, `wrangler dev` 기준, 2026-07-28 재측정): `/` Performance 97·Accessibility 100·Best Practices 96·SEO 100, `/demo?sample=1` 94~98(median 97, 1회 이상치 59는 직전 Playwright 3브라우저 실행 직후 리소스 경합으로 판단해 재측정으로 확인)·100·96·100, `/how-it-works` 97·100·96·100, `/technology` 98·100·96·100. **PR #78은 2026-07-28 06:23 UTC에 `main`에 squash merge(merge SHA `38a8274ab11225f2763a93a54d7601f5158fd943`)됐고, 같은 날 운영에 배포됐다(`[운영 확인]`).** 배포 후 `curl`로 `/demo`·`/demo?sample=1` 모두 `<link rel="canonical" href=".../demo">`(자기 참조, 이전의 홈 자기참조 버그 아님)임을 확인했다.
 
 **정직한 한계**(`[코드 검증]`): 리터럴 엔티티(`&ldquo;`/`&rdquo;`) 렌더링 결함이 `app/why`, `app/about`, `app/terms`, `app/privacy`, `app/demo/page.tsx` 5개 파일 26곳에 남아 있다(핵심 페인포인트 인용구 "저는 한 게 없어요" 포함). 아직 수정되지 않았다 — `docs/planning/GAPPROOF_ALIGNMENT_AUDIT_2026-07-28.md` §2.14, P0.
 
@@ -132,6 +134,7 @@
 4. **리터럴 엔티티 렌더링(P0)**: 위 §9 참고.
 5. **3분 시연 대본이 실제 화면과 불일치**했던 이력(P0, 이번 제출에서 `docs/competition/THREE_MINUTE_DEMO_SCRIPT.md`로 갱신해 해결).
 6. **STEP4 정보 밀도**: 390px 기준 약 2700px 스크롤 — 사용자 3명 실측 전까지는 `[가설]`.
+7. **모바일 헤더에서 테마 전환 버튼이 보이지 않음(P1, 신규 발견)** `[코드 검증]`: 사이트는 다크 테마를 지원하고 실제로 렌더링하지만(예: 시스템 다크 모드를 따라가는 경우), 전환 버튼(`ThemeToggle`) 자체는 `app/globals.css:362`의 `.info-nav { display: none; }`(≤720px) 규칙 때문에 모바일 헤더에서 완전히 숨겨진다. 햄버거 메뉴(`MobileDrawerNav`) 안에 동일 컴포넌트가 한 번 더 렌더링되어 있어 기능은 존재하지만, 메뉴를 열기 전에는 발견할 수 없다. 헤더는 전 페이지가 공유하는 컴포넌트라 About 페이지 단독 PR에 안전하게 포함하기엔 범위가 크다고 판단해 이번 PR에서는 수정하지 않고 `[예정]`으로만 기록한다.
 
 이 문서와 이 대회 제출 전체는 위 한계를 숨기지 않는다.
 
@@ -176,7 +179,7 @@
 
 ## 15. 서비스 링크와 기술 증빙
 
-- 운영 데모: `https://gapproof.forblune.com`(`/`, `/demo`) — `[운영 확인]` HTTP 200(직전 세션에서 확인).
+- 운영 데모: `https://gapproof.forblune.com`(`/`, `/demo?sample=1`, `/how-it-works`, `/technology`, `/about`) — `[운영 확인]` 전부 HTTP 200(2026-07-28 PR #78 배포 직후 스모크 테스트로 확인, Cloudflare Worker 버전 `d8cf6a5a-cdc4-47f0-9c54-86394e07157c`, 직전 버전 `c18e56c4-4248-443d-8612-b1b3a925b8d4`).
 - 저장소: 비공개, 심사 시 필요하면 별도 공유(이 문서 자체에는 실제 GitHub 조직/계정 정보를 포함하지 않음).
 - 기술 증빙 문서: `docs/competition/SYSTEM_ARCHITECTURE.md`, `docs/competition/TROUBLESHOOTING_CASES.md`, `docs/planning/GAPPROOF_ALIGNMENT_AUDIT_2026-07-28.md`.
 
