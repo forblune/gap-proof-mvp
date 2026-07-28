@@ -10,12 +10,30 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 .topbar { height: 76px; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--topbar-tint); position: sticky; top: 0; z-index: 20; backdrop-filter: blur(12px); }
 .brand { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; color: var(--ink); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.04em; }
-.brand-mark { width: 35px; height: 35px; display: grid; place-items: center; background: var(--color-brand-fill); color: var(--color-brand-fill-contrast); border-radius: 9px 9px 16px 9px; } /* 로고 마크는 테마와 무관하게 고정(브랜드 정체성) */
+/* 심벌은 그라데이션으로 그린다. 칩(배경 사각형) 없이 심벌만 두는 것이 기본이다 —
+   칩을 두면 헤더에서 로고가 버튼처럼 보인다. 앱 아이콘 자리에서만 칩을 쓴다. */
+.brand-mark { width: 35px; height: 35px; display: grid; place-items: center; }
 .brand-mark svg { width: 74%; height: 74%; display: block; }
-/* 심벌의 "잇는 획". 네이비 칩 위에서 읽혀야 하므로 본문용 틸(#0d7c73, 3.21:1)보다
-   밝은 값을 쓴다(7.19:1). 로고는 1.4.11 대상이 아니지만 보이지 않으면 의미가 없다. */
-.brand-mark .mark-bridge { stroke: var(--color-brand-accent-on-dark); }
-.brand-mark.small { width: 28px; height: 28px; border-radius: 7px 7px 12px 7px; }
+/* 어두운 배경 위에서는 단색 흰색으로 그린다(그라데이션의 인디고 끝이 네이비에 묻힌다). */
+.brand-mark.on-dark { --brand-stroke: var(--color-brand-fill-contrast); }
+/* 키네틱 워드마크 — 획이 ㄱ → ㅜ → 화살표 → 가로획으로 바뀐 뒤 링이 닫힌다.
+   d 속성은 보간되지 않으므로 단계마다 갈아 끼우고, 전환감은 위치·불투명도로만 준다.
+   레이아웃을 건드리지 않도록 크기는 고정한다(CLS 0). */
+.brand-motion { display: grid; place-items: center; background: var(--color-brand-fill); color: var(--color-brand-fill-contrast); border-radius: 9px 9px 16px 9px; }
+.brand-motion svg { width: 74%; height: 74%; display: block; }
+.brand-motion .brand-motion-bar { transition: opacity 140ms ease; }
+.brand-motion .brand-motion-bridge {
+  stroke: var(--color-brand-accent-on-dark);
+  opacity: 0; transform: rotate(-18deg); transform-origin: 50% 50%;
+  transition: opacity 240ms ease, transform 320ms cubic-bezier(.22, 1, .36, 1);
+}
+.brand-motion .brand-motion-bridge.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .brand-motion .brand-motion-bar,
+  .brand-motion .brand-motion-bridge { transition: none; transform: none; opacity: 1; }
+}
+
+.brand-mark.small { width: 28px; height: 28px; }
 .top-actions { display: flex; align-items: center; gap: 18px; }
 /* design-loop-10: 헤더 테마 토글 — 아이콘+텍스트로 현재 상태를 알리고, 다른 버튼과 동일한 44px 터치 타깃 유지 */
 .theme-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 13px; font-weight: 750; cursor: pointer; flex: 0 0 auto; }
@@ -503,8 +521,7 @@ body.drawer-open { overflow: hidden; }
   .identity, .identity h2 { color: var(--color-brand-fill) !important; }
   .identity small { color: #4a5568 !important; }
   .identity p { color: #333f52 !important; }
-  .brand-mark, .brand-mark.small { background: #fff !important; color: var(--color-brand-fill) !important; border: 2px solid var(--color-brand-fill); }
-  .brand-mark .mark-bridge { stroke: var(--color-brand-fill) !important; } /* 흰 배경 인쇄에서는 단색으로 */
+  .brand-mark, .brand-mark.small { --brand-stroke: var(--color-brand-fill) !important; background: none !important; border: 0 !important; } /* 인쇄는 단색 */
   .primary span { color: var(--color-brand-fill) !important; }
 }
 
@@ -758,7 +775,7 @@ body.drawer-open { overflow: hidden; }
      border 는 정보를 전달하지 않는 장식용이라 1.4.11 대상이 아니다. 컨트롤 경계용으로
      border-strong 을 따로 두어 두 배경 모두에서 3:1 이상(3.18 / 3.01)을 만족시킨다. */
 
-  --color-page: #f7f9fc;
+  --color-page: #f2f4f8;
   --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
   --color-surface-muted: #f0f3f8;
@@ -799,6 +816,11 @@ body.drawer-open { overflow: hidden; }
   --color-brand-fill-contrast: #ffffff;
   --color-brand-accent: #0d7c73;
   --color-brand-accent-on-dark: #3fbfae;
+  /* 심벌·워드마크 전용 그라데이션. 로고는 WCAG 대비 예외 대상이라 밝은 그린을 쓸 수 있지만,
+     UI 텍스트에는 쓰지 않는다(#0eb178 은 흰 배경에서 2.77:1). 텍스트 강조는 --color-accent. */
+  --color-brand-indigo: #4057c8;
+  --color-brand-mid: #1f86ae;
+  --color-brand-green: #0eb178;
   --color-highlight: #4057c8;
   --color-highlight-contrast: #ffffff;
   --color-fill-contrast: #ffffff;
