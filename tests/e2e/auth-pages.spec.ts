@@ -1,5 +1,59 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFileSync, existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+
+// ── 서버 전용 값 유출 검사 ────────────────────────────────────────────────────
+// 번들러는 환경변수를 "값만" 인라인한다. 이름 옆에 값이 붙은 형태를 찾는 검사는
+// 실제 유출을 절대 잡지 못한다(심사 지적). 그래서 진짜 값 자체를 찾는다.
+// 값은 읽기만 하고 어디에도 기록·출력하지 않는다.
+
+const CANARY = "gp-canary-value-do-not-ship-4f2a9c";
+
+// NEXT_PUBLIC_* 은 브라우저에 나가는 것이 설계다. 나머지는 서버 전용이다.
+const CLIENT_SAFE_PREFIXES = ["NEXT_PUBLIC_", "KAKAO_JS_KEY"];
+
+function findEnvFile(): string | null {
+  // 워크트리에는 없고 원본 체크아웃에만 있을 수 있어 위로 거슬러 올라가며 찾는다.
+  let dir = resolve(process.cwd());
+  for (let depth = 0; depth < 6; depth++) {
+    const candidate = join(dir, ".dev.vars");
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+function serverSecretEntries(): { name: string; value: string }[] {
+  const file = findEnvFile();
+  if (!file) return [];
+  const entries: { name: string; value: string }[] = [];
+  for (const line of readFileSync(file, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const name = trimmed.slice(0, eq).trim();
+    const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    // 너무 짧은 값은 우연히 어디에나 나타나 거짓 실패를 만든다.
+    if (value.length < 12) continue;
+    if (CLIENT_SAFE_PREFIXES.some((prefix) => name.startsWith(prefix))) continue;
+    entries.push({ name, value });
+  }
+  return entries;
+}
+
+export function containsSecretValue(haystack: string, value: string): boolean {
+  return haystack.includes(value);
+}
+
+function serverSecretNamesLeakedIn(haystack: string): string[] {
+  return serverSecretEntries()
+    .filter((entry) => containsSecretValue(haystack, entry.value))
+    .map((entry) => entry.name); // 이름만 — 값은 절대 남기지 않는다.
+}
 
 // 인증 화면 검증.
 // 이 환경에는 Supabase 공개 설정이 없으므로 "설정되지 않음" 화면이 정직하게 뜨는 것이
@@ -37,17 +91,17 @@ test.describe("인증 화면", () => {
     await page.goto("/login", { waitUntil: "networkidle" });
     const all = scripts.join("\n") + (await page.content());
 
-    // 실제 "값"이 번들에 들어갔는지를 본다.
-    // 주의: @supabase/auth-js는 "Never expose your `service_role` key in the browser" 라는
-    // 경고 주석을 포함하므로, 단어 자체가 아니라 값의 형태(할당·키 접두사)로 판정한다.
-    expect(all, "client secret 값이 번들에 있음").not.toMatch(
-      /(GOOGLE|KAKAO|NAVER)_CLIENT_SECRET["'\s]*[:=]\s*["'][^"']+["']/,
-    );
+    // 심사 지적: 이름 옆에 값이 붙은 형태(NAME:"value")만 찾으면 절대 걸리지 않는다.
+    // 번들러는 값을 "그대로" 인라인하므로 이름은 사라진다. 그래서 실제 값 자체를 찾는다.
+    // 값은 어디에도 출력하지 않는다 — 실패해도 이름만 보고한다.
+    const leaked = serverSecretNamesLeakedIn(all);
+    expect(leaked, `서버 전용 값이 클라이언트 번들에 인라인됨: ${leaked.join(", ")}`).toEqual([]);
+    // 이 검사가 실제로 동작하는지(값을 심으면 잡히는지) 같은 자리에서 증명한다.
+    expect(containsSecretValue("prefix " + CANARY + " suffix", CANARY)).toBe(true);
+
+    // 형태 기반 검사 — 로컬 환경 파일이 없어도 항상 실행된다.
     expect(all, "service role / secret 키 값이 번들에 있음").not.toMatch(/sb_secret_[A-Za-z0-9_-]{8,}/);
     expect(all, "service_role JWT가 번들에 있음").not.toMatch(/"role"\s*:\s*"service_role"/);
-    expect(all, "서버 전용 키 값이 번들에 있음").not.toMatch(
-      /(GEMINI_API_KEY|UPSTAGE_API_KEY|KMOOC_SERVICE_KEY|GATE_SESSION_SECRET|GATE_ACCESS_CODE)["'\s]*[:=]\s*["'][^"']+["']/,
-    );
     expect(all, "Google API 키 형식이 번들에 있음").not.toMatch(/AIza[0-9A-Za-z_-]{30,}/);
     expect(all, "Upstage 키 형식이 번들에 있음").not.toMatch(/\bup_[A-Za-z0-9]{20,}/);
   });

@@ -114,7 +114,10 @@ export async function POST(request: Request) {
     rating = parsed;
   }
 
-  const pagePath = String(form.get("pagePath") ?? "").trim().slice(0, 300) || null;
+  // 클라이언트가 보내는 값이므로 앱 내부 경로 모양만 받는다.
+  // 길이만 자르면 외부 URL·스크립트 문자열이 그대로 운영 화면에 실려 들어온다.
+  const pagePathRaw = String(form.get("pagePath") ?? "").trim().slice(0, 300);
+  const pagePath = /^\/[A-Za-z0-9\-._~/?=&%]*$/.test(pagePathRaw) && !pagePathRaw.startsWith("//") ? pagePathRaw : null;
 
   const files = form.getAll("attachments").filter((entry): entry is File => entry instanceof File);
   if (files.length > MAX_ATTACHMENTS) {
@@ -191,11 +194,20 @@ export async function POST(request: Request) {
     }
   } catch {
     // 고아 파일·반쪽 행을 남기지 않는다.
+    // 되돌리기 자체가 실패할 수 있다(세션 만료 등). 실패했는데 "되돌렸다"고 적으면
+    // 로그가 사실과 달라져 운영자가 잔여물을 영영 찾지 못한다 — 결과를 실제로 확인해 남긴다.
+    let filesRemoved = true;
+    let rowDeleted = true;
     if (uploadedPaths.length > 0) {
-      await supabase.storage.from(BUCKET).remove(uploadedPaths);
+      const { error: removeError } = await supabase.storage.from(BUCKET).remove(uploadedPaths);
+      filesRemoved = !removeError;
     }
-    await supabase.from("feedback_submissions").delete().eq("id", feedbackId);
-    console.error("feedback attachment failed; rolled back");
+    const { error: deleteError } = await supabase.from("feedback_submissions").delete().eq("id", feedbackId);
+    rowDeleted = !deleteError;
+    // 본문·이미지 내용은 절대 남기지 않는다. 잔여물 위치 판단에 필요한 사실만 적는다.
+    console.error(
+      `feedback attachment failed; rollback files=${filesRemoved ? "ok" : "FAILED"} row=${rowDeleted ? "ok" : "FAILED"} paths=${uploadedPaths.length}`,
+    );
     return json(
       { error: "attachment_failed", message: "이미지를 저장하지 못했습니다. 글만 다시 보내시거나 잠시 후 다시 시도해 주십시오." },
       500,

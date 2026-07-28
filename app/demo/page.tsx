@@ -19,10 +19,14 @@ import {
   CERTIFICATE_ISSUER,
   CERTIFICATE_KINDS,
   RECOGNITION_KINDS,
+  MIN_ANSWER_CHARS,
   canIssueLearningCertificate,
   canIssuePerformanceCertificate,
+  certificateScope,
   certificateSerial,
+  countAnswered,
   evidenceCoverage,
+  isAnsweredEnough,
   maxTierFromRecord,
   recognitionKindsFor,
   type CertificateKindId,
@@ -167,6 +171,8 @@ export default function Home() {
   const [lessonBusy, setLessonBusy] = useState(false);
   const [lessonError, setLessonError] = useState<string | null>(null);
   const [lessonAnswers, setLessonAnswers] = useState<string[]>([]);
+  // 자료를 끝까지 봤는지는 시스템이 측정할 수 없다 — 본인이 표시한 값으로만 다룬다.
+  const [sourceCompleted, setSourceCompleted] = useState(false);
   const [lessonEditing, setLessonEditing] = useState(false);
   const [performanceNote, setPerformanceNote] = useState("");
   const [artifactUrl, setArtifactUrl] = useState("");
@@ -430,14 +436,13 @@ export default function Home() {
       sourceTitle: lesson?.title ?? "",
       sourceUrl: lesson?.videoUrl,
       requiredQuestionCount: lesson?.questions.length ?? 0,
-      answeredQuestionCount: lesson
-        ? lessonAnswers.filter((answer) => (answer ?? "").trim().length > 0).length
-        : 0,
+      answeredQuestionCount: lesson ? countAnswered(lessonAnswers) : 0,
+      sourceCompleted: Boolean(lesson) && sourceCompleted,
       understandingChecked: Boolean(passedChecks[lookIntoComp.id]),
       performanceNote,
       artifacts: artifactUrl.trim() ? [{ url: artifactUrl.trim() }] : [],
     }),
-    [lookIntoComp, lesson, lessonAnswers, passedChecks, performanceNote, artifactUrl],
+    [lookIntoComp, lesson, lessonAnswers, sourceCompleted, passedChecks, performanceNote, artifactUrl],
   );
 
   const learningDecision = useMemo(() => canIssueLearningCertificate(learningRecord), [learningRecord]);
@@ -655,6 +660,7 @@ export default function Home() {
       }
       setLesson(data.lesson);
       setLessonAnswers(new Array(data.lesson.questions.length).fill(""));
+      setSourceCompleted(false);
       setIssuedCert(null);
       if (data.notice) showNotice(data.notice, "info");
     } catch {
@@ -670,6 +676,7 @@ export default function Home() {
   const clearLesson = () => {
     setLesson(null);
     setLessonAnswers([]);
+    setSourceCompleted(false);
     setLessonError(null);
     setIssuedCert(null);
     setLessonEditing(false);
@@ -707,10 +714,7 @@ export default function Home() {
       issuedAt,
       competencyLabel: learningRecord.competencyLabel,
       sourceTitle: learningRecord.sourceTitle,
-      scope:
-        kind === "performance"
-          ? "학습 자료 완료 · 필수 질문 응답 · 사용자가 남긴 수행 기록과 산출물 링크"
-          : "학습 자료 완료 · 필수 질문 응답",
+      scope: certificateScope(kind === "performance" ? "performance" : "learning"),
       artifactUrl: kind === "performance" ? artifactUrl.trim() : undefined,
     });
   };
@@ -1409,21 +1413,42 @@ export default function Home() {
 
                 <div className="lesson-questions">
                   <div className="card-kicker">스스로 확인하기 (필수 {lesson.questions.length}문항)</div>
-                  {lesson.questions.map((question, index) => (
-                    <label className="lesson-question" key={`${question.kind}-${index}`}>
-                      <span className="lesson-q-head">
-                        <span className="v2-badge">{LESSON_QUESTION_LABELS[question.kind]}</span>
-                        {question.question}
-                      </span>
-                      <textarea
-                        rows={2}
-                        value={lessonAnswers[index] ?? ""}
-                        placeholder="내 말로 적어 주십시오"
-                        onChange={(event) => updateLessonAnswer(index, event.target.value)}
-                      />
-                      <small className="lesson-guide">도움말: {question.answerGuide}</small>
-                    </label>
-                  ))}
+                  {/* 시청 시간을 측정하지 않으므로 완료는 본인 표시로만 받는다(자기기록 Lv.0). */}
+                  <label className="check-row lesson-done">
+                    <input
+                      type="checkbox"
+                      checked={sourceCompleted}
+                      onChange={(event) => setSourceCompleted(event.target.checked)}
+                    />
+                    <span>
+                      이 학습 자료를 끝까지 봤습니다.
+                      <small>본인이 표시한 값입니다. GapProof는 시청 시간을 측정하지 않습니다.</small>
+                    </span>
+                  </label>
+                  {lesson.questions.map((question, index) => {
+                    const answer = lessonAnswers[index] ?? "";
+                    const enough = isAnsweredEnough(answer);
+                    return (
+                      <label className="lesson-question" key={`${question.kind}-${index}`}>
+                        <span className="lesson-q-head">
+                          <span className="v2-badge">{LESSON_QUESTION_LABELS[question.kind]}</span>
+                          {question.question}
+                        </span>
+                        <textarea
+                          rows={2}
+                          value={answer}
+                          placeholder={`내 말로 ${MIN_ANSWER_CHARS}자 이상 적어 주십시오`}
+                          onChange={(event) => updateLessonAnswer(index, event.target.value)}
+                        />
+                        <small className="lesson-guide">도움말: {question.answerGuide}</small>
+                        <small className={enough ? "lesson-count ok" : "lesson-count"}>
+                          {enough
+                            ? `응답으로 인정됩니다 (${answer.trim().length}자)`
+                            : `${MIN_ANSWER_CHARS}자 이상 필요합니다 (현재 ${answer.trim().length}자)`}
+                        </small>
+                      </label>
+                    );
+                  })}
                 </div>
 
                 <div className="lesson-practice">

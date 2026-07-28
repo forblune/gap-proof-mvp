@@ -175,6 +175,9 @@ export type LearningRecord = {
   sourceUrl?: string;
   requiredQuestionCount: number;
   answeredQuestionCount: number;
+  // 자료를 끝까지 봤다고 사용자가 직접 표시한 값(자기기록, Lv.0).
+  // 시스템이 시청을 측정하지는 않으므로 증서 문구도 "본인이 표시함"으로만 적는다.
+  sourceCompleted: boolean;
   understandingChecked: boolean; // 이해 확인(퀴즈) 통과 여부
   performanceNote?: string; // 사용자가 직접 쓴 수행 기록
   artifacts: ArtifactLink[];
@@ -202,21 +205,43 @@ export function validArtifacts(record: LearningRecord): ArtifactLink[] {
   return (record.artifacts ?? []).filter((artifact) => isValidArtifactUrl(artifact.url));
 }
 
-// 학습 수료증: 자료를 끝까지 보고 필수 질문에 전부 답했으면 발급 가능.
+// 응답 1건으로 인정하는 최소 길이. 한 글자짜리 답으로 증서가 나오지 않게 한다.
+// 화면·판정·문서가 같은 값을 보도록 여기 한 곳에만 둔다.
+export const MIN_ANSWER_CHARS = 10;
+
+export function isAnsweredEnough(answer: string | undefined | null): boolean {
+  return (answer ?? "").trim().length >= MIN_ANSWER_CHARS;
+}
+
+export function countAnswered(answers: readonly (string | undefined | null)[]): number {
+  return answers.filter(isAnsweredEnough).length;
+}
+
+// 학습 수료증: 자료 완료를 본인이 표시하고 필수 질문에 전부(각 MIN_ANSWER_CHARS자 이상) 답했으면 발급 가능.
 // 이해 확인(퀴즈) 통과는 요구하지 않는다 — 학습 수료증은 "봤다"는 사실만 말한다.
 export function canIssueLearningCertificate(record: LearningRecord): IssueDecision {
   const missing: string[] = [];
+  if (!record.sourceCompleted) {
+    missing.push("학습 자료를 끝까지 봤다고 아직 표시하지 않았습니다.");
+  }
   if (record.requiredQuestionCount <= 0) {
     missing.push("학습 질문이 아직 준비되지 않았습니다.");
   } else if (record.answeredQuestionCount < record.requiredQuestionCount) {
     const left = record.requiredQuestionCount - record.answeredQuestionCount;
-    missing.push(`필수 질문 ${left}개에 아직 답하지 않았습니다.`);
+    missing.push(`필수 질문 ${left}개에 아직 ${MIN_ANSWER_CHARS}자 이상 답하지 않았습니다.`);
   }
   return {
     eligible: missing.length === 0,
     missing,
-    nextStep: missing.length === 0 ? null : "학습 질문에 먼저 답해 주십시오.",
+    nextStep: missing.length === 0 ? null : !record.sourceCompleted ? "학습 자료를 끝까지 본 뒤 완료를 표시해 주십시오." : "학습 질문에 먼저 답해 주십시오.",
   };
+}
+
+// 증서에 인쇄되는 "확인 범위" — 실제로 검사한 조건만 적는다.
+// 이 문자열과 위 판정 함수가 어긋나면 확인하지 않은 것을 확인했다고 인쇄하게 된다.
+export function certificateScope(kind: "learning" | "performance"): string {
+  const base = "본인이 표시한 학습 자료 완료 · 필수 질문 전체 응답";
+  return kind === "performance" ? `${base} · 사용자가 남긴 수행 기록과 산출물 링크` : base;
 }
 
 // 수행 확인서: 학습 수료 조건에 더해 실제 수행 기록과 유효한 산출물 링크가 있어야 한다.

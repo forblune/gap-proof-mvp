@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { reachLookIntoStep as sharedReachLookIntoStep } from "./journey";
 import AxeBuilder from "@axe-core/playwright";
 
 // 인정 체계 UI 검증: 영상 학습·수료증·수행 확인서·증거 충족도.
@@ -7,35 +8,8 @@ import AxeBuilder from "@axe-core/playwright";
 
 // 각 단계가 실제로 반영된 것을 확인하고 다음으로 넘어간다.
 // 전체 스위트를 동시에 돌릴 때(자원 경합) 클릭이 렌더보다 앞서면서 단계가 유실되던 문제를 막는다.
-async function reachLookIntoStep(page) {
-  await page.goto("/demo?sample=1", { waitUntil: "networkidle" });
-
-  const consent = page.locator(".check-row input").first();
-  await consent.check();
-  await expect(consent).toBeChecked();
-
-  const start = page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ });
-  await expect(start).toBeEnabled();
-  await start.click();
-
-  const analyze = page.getByRole("button", { name: /가능성 찾기/ });
-  await expect(analyze).toBeEnabled({ timeout: 10_000 });
-  await analyze.click();
-  await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 15_000 });
-
-  // 확인 클릭이 렌더보다 앞서면 유실된다. 반영(.selected)될 때까지 다시 누른다.
-  const confirmButton = page.getByRole("button", { name: /맞습니다/ }).first();
-  await expect(async () => {
-    const cls = (await confirmButton.getAttribute("class")) ?? "";
-    if (!cls.includes("selected")) await confirmButton.click();
-    expect((await confirmButton.getAttribute("class")) ?? "").toContain("selected");
-  }).toPass({ timeout: 15_000 });
-
-  // 확인이 반영돼야 다음 단계 버튼이 활성화된다 — 그 상태를 기다린 뒤 누른다.
-  const next = page.getByRole("button", { name: /먼저 알아보기/ });
-  await expect(next).toBeEnabled({ timeout: 10_000 });
-  await next.click();
-
+async function reachLookIntoStep(page: Page) {
+  await sharedReachLookIntoStep(page);
   // STEP3 에 실제로 도착한 것을 확인한다.
   await expect(page.getByText("먼저 검색해보기 · 배워보기")).toBeVisible({ timeout: 10_000 });
 }

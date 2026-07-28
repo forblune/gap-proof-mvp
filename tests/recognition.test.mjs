@@ -12,6 +12,10 @@ import {
   isValidArtifactUrl,
   validArtifacts,
   canIssueLearningCertificate,
+  certificateScope,
+  isAnsweredEnough,
+  countAnswered,
+  MIN_ANSWER_CHARS,
   canIssuePerformanceCertificate,
   recognitionKindsFor,
   maxTierFromRecord,
@@ -27,6 +31,7 @@ const baseRecord = (over = {}) => ({
   sourceUrl: "https://www.youtube.com/watch?v=abcdefghijk",
   requiredQuestionCount: 3,
   answeredQuestionCount: 3,
+  sourceCompleted: true,
   understandingChecked: false,
   performanceNote: "",
   artifacts: [],
@@ -311,4 +316,48 @@ test("확인 증거가 없으면 학습 기록만으로 Lv.2에 도달하지 않
   assert.equal(maxTierFromRecord(record, false), 1);
   // 확인된 근거가 있으면 그때 Lv.2까지 열린다
   assert.equal(maxTierFromRecord(record, true), 2);
+});
+
+// 심사 지적: 증서가 "학습 자료 완료"를 인쇄하는데 시스템은 그것을 전혀 확인하지 않았다.
+// 확인하지 않은 사실을 인쇄하지 않도록, 조건과 문구를 같은 모듈에서 묶어 검증한다.
+test("자료 완료를 표시하지 않으면 학습 수료증이 발급되지 않는다", () => {
+  const decision = canIssueLearningCertificate(baseRecord({ sourceCompleted: false }));
+  assert.equal(decision.eligible, false);
+  assert.ok(decision.missing.some((m) => m.includes("끝까지")), decision.missing.join(" / "));
+  assert.ok(decision.nextStep && decision.nextStep.includes("완료"));
+});
+
+test("자료 완료 미표시는 수행 확인서도 막는다 — 상위 문서가 하위 조건을 건너뛰지 않는다", () => {
+  const decision = canIssuePerformanceCertificate(
+    baseRecord({
+      sourceCompleted: false,
+      performanceNote: "실제 문제 1개를 5문장으로 정의했습니다",
+      artifacts: [{ url: "https://github.com/me/repo" }],
+    }),
+  );
+  assert.equal(decision.eligible, false);
+});
+
+test("증서에 인쇄되는 확인 범위는 실제로 검사하는 조건만 담는다", () => {
+  const learning = certificateScope("learning");
+  const performance = certificateScope("performance");
+  // 시청 시간을 측정하지 않으므로 "본인이 표시한"이 빠지면 확인하지 않은 사실을 단정하게 된다.
+  assert.ok(learning.includes("본인이 표시한"), learning);
+  assert.ok(learning.includes("필수 질문"), learning);
+  assert.ok(performance.includes("산출물"), performance);
+  // 퀴즈(이해 확인)는 두 증서의 조건이 아니므로 범위에 적히면 안 된다.
+  assert.ok(!learning.includes("이해 확인"));
+  assert.ok(!performance.includes("이해 확인"));
+});
+
+test("한 글자 답은 응답으로 세지 않는다 — 형식만 채운 응답으로 증서가 나오지 않는다", () => {
+  assert.equal(isAnsweredEnough("네"), false);
+  assert.equal(isAnsweredEnough("   "), false);
+  assert.equal(isAnsweredEnough("가".repeat(MIN_ANSWER_CHARS)), true);
+  assert.equal(countAnswered(["네", "가".repeat(MIN_ANSWER_CHARS), null, undefined]), 1);
+
+  const record = baseRecord({ requiredQuestionCount: 3, answeredQuestionCount: countAnswered(["네", "응", "ㅇ"]) });
+  const decision = canIssueLearningCertificate(record);
+  assert.equal(decision.eligible, false);
+  assert.ok(decision.missing.some((m) => m.includes(String(MIN_ANSWER_CHARS))), decision.missing.join(" / "));
 });

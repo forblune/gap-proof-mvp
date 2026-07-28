@@ -832,6 +832,11 @@ body.drawer-open { overflow: hidden; }
 .lesson-q-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; font-size: 14px; font-weight: 650; line-height: 1.6; }
 .lesson-question textarea, .lesson-edit textarea, .lesson-edit input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--color-surface, var(--paper)); color: var(--ink); font-size: 14px; font-family: inherit; line-height: 1.6; }
 .lesson-guide { color: var(--color-text-muted); font-size: 13px; line-height: 1.75; }
+/* 응답 길이 안내 — 조건을 충족했는지 입력 중에 바로 알 수 있게 한다. */
+.lesson-count { color: var(--color-text-muted); font-size: 13px; line-height: 1.75; }
+.lesson-count.ok { color: var(--color-accent-strong, var(--color-text)); font-weight: 600; }
+.lesson-done { margin-bottom: 14px; }
+.lesson-done small { display: block; color: var(--color-text-muted); font-size: 13px; line-height: 1.7; }
 .lesson-edit { display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
 .lesson-practice { display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
 
