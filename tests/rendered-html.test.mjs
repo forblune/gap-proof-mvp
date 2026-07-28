@@ -122,7 +122,7 @@ test("server-renders the access gate for unauthenticated visitors", async () => 
   assert.match(html, /<title>GapProof \| 공백을 증거로<\/title>/i);
   // 게이트 화면: 서비스 이름 + 짧은 설명 + 데모 코드임을 명시
   assert.match(html, /심사·멘토링 데모/);
-  assert.match(html, /안내받은 데모 코드를 입력해 주세요/);
+  assert.match(html, /안내받은 데모 코드를 입력해 주십시오/);
   assert.match(html, /계정 로그인이나 개인 비밀번호가 아닙니다/);
   assert.match(html, /취업 가능성이나 적성을 판정하지 않습니다/);
   // 비인증 HTML에는 메인 데모 흐름이 노출되지 않는다 (전체 데모 진입 게이트 정책)

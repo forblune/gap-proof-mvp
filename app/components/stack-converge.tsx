@@ -8,7 +8,9 @@
 //  - 모인 뒤에도 각 기술 이름이 또렷하게 읽혀야 한다(흐려서 사라지게 하지 않는다).
 //  - 그림 자체가 목록이다. 스크린리더와 검색엔진에도 같은 이름이 텍스트로 전달된다.
 //  - prefers-reduced-motion이면 움직임 없이 최종 배치로 바로 보여 준다.
-//  - JS가 없어도 이름은 그대로 읽힌다(최종 위치가 CSS 기본값이다).
+//  - JS가 없어도 이름은 스크린리더·검색엔진에 그대로 전달된다(DOM에 텍스트로 있다).
+//    보이는 배치까지 JS 없이 보장하려면 CSS `@media (scripting: none)` 이 필요하다 —
+//    globals.css 에 두었다. 이 질의를 모르는 오래된 브라우저에서는 JS 없이 빈 영역이 된다.
 
 import { useEffect, useRef, useState } from "react";
 
@@ -70,10 +72,12 @@ export function StackConverge({ nodes }: { nodes: StackNode[] }) {
             role="listitem"
             style={
               {
-                "--from-x": `${Math.cos(angle) * 180}px`,
-                "--from-y": `${Math.sin(angle) * 180}px`,
-                "--to-x": `${Math.cos(angle) * 104}px`,
-                "--to-y": `${Math.sin(angle) * 104}px`,
+                // 반경은 CSS 변수로 둔다 — 좁은 화면에서 고리가 컨테이너를 넘지 않게
+                // 화면 폭에 맞춰 줄어들어야 하기 때문이다(320px 에서 좌우가 잘리던 문제).
+                "--from-x": `calc(${Math.cos(angle).toFixed(4)} * var(--converge-spread))`,
+                "--from-y": `calc(${Math.sin(angle).toFixed(4)} * var(--converge-spread))`,
+                "--to-x": `calc(${Math.cos(angle).toFixed(4)} * var(--converge-radius))`,
+                "--to-y": `calc(${Math.sin(angle).toFixed(4)} * var(--converge-radius))`,
                 "--delay": `${index * 80}ms`,
               } as React.CSSProperties
             }

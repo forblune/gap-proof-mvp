@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AuthError, AuthNotice, AuthShell, AuthUnconfigured } from "../components/auth-shell";
 import { createClient, isSupabaseConfigured } from "../lib/supabase";
+import { ROLES } from "../lib/engine";
+
+// 저장된 값은 role_id(내부 식별자)다. 화면에는 사람이 읽는 이름을 보여 준다.
+function roleLabel(roleId: string): string {
+  return ROLES.find((role) => role.id === roleId)?.label ?? roleId;
+}
 
 type SavedCard = { id: string; role_id: string; created_at: string; includes_quotes: boolean };
 type SavedCert = { id: string; kind: string; serial: string; issued_at: string };
@@ -19,6 +25,14 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  // 조회 실패와 "기록이 없음"은 완전히 다른 상태다. 구분하지 않으면
+  // 불러오기에 실패했을 뿐인데 사용자는 자기 기록이 사라졌다고 읽는다.
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // 확인 창이 열릴 때 첫 버튼으로 포커스를 옮긴다(콜백 ref — 마운트 시점에 정확히 한 번 실행된다).
+  const focusConfirm = useCallback((node: HTMLButtonElement | null) => {
+    node?.focus();
+  }, []);
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
@@ -37,7 +51,9 @@ export default function ProfilePage() {
       supabase.from("proof_cards").select("id, role_id, created_at, includes_quotes").order("created_at", { ascending: false }),
       supabase.from("certificates").select("id, kind, serial, issued_at").order("issued_at", { ascending: false }),
     ]);
-    if (cardResult.error || certResult.error) {
+    const failed = Boolean(cardResult.error || certResult.error);
+    setLoadFailed(failed);
+    if (failed) {
       setError("저장된 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주십시오.");
     }
     setCards((cardResult.data as SavedCard[]) ?? []);
@@ -117,14 +133,18 @@ export default function ProfilePage() {
 
       <section className="profile-section">
         <h2>저장한 증거카드 ({cards.length})</h2>
-        {cards.length === 0 ? (
+        {loadFailed ? (
+          <p className="auth-hint" role="status">
+            목록을 불러오지 못했습니다. 기록이 없다는 뜻이 아닙니다. 새로고침해 주십시오.
+          </p>
+        ) : cards.length === 0 ? (
           <p className="auth-hint">아직 저장한 증거카드가 없습니다. <Link href="/demo">데모</Link>에서 만들어 보십시오.</p>
         ) : (
           <ul className="profile-list">
             {cards.map((card) => (
               <li key={card.id}>
                 <div>
-                  <b>{card.role_id}</b>
+                  <b>{roleLabel(card.role_id)}</b>
                   <small>
                     {new Date(card.created_at).toLocaleDateString("ko-KR")}
                     {card.includes_quotes ? " · 경험 원문 포함(동의함)" : " · 경험 원문 미포함"}
@@ -133,7 +153,8 @@ export default function ProfilePage() {
                 {confirmingDelete === card.id ? (
                   <span className="profile-confirm" role="alertdialog" aria-label="삭제 확인">
                     <small>되돌릴 수 없습니다.</small>
-                    <button type="button" className="secondary" onClick={() => setConfirmingDelete(null)}>취소</button>
+                    {/* 삭제 버튼이 사라지면서 포커스가 body로 떨어진다 — 확인 안으로 옮긴다. */}
+                    <button type="button" className="secondary" ref={focusConfirm} onClick={() => setConfirmingDelete(null)}>취소</button>
                     <button type="button" className="danger" onClick={() => deleteCard(card.id)} disabled={deleting} aria-busy={deleting}>삭제</button>
                   </span>
                 ) : (
@@ -147,7 +168,11 @@ export default function ProfilePage() {
 
       <section className="profile-section">
         <h2>발급한 문서 ({certs.length})</h2>
-        {certs.length === 0 ? (
+        {loadFailed ? (
+          <p className="auth-hint" role="status">
+            목록을 불러오지 못했습니다. 기록이 없다는 뜻이 아닙니다. 새로고침해 주십시오.
+          </p>
+        ) : certs.length === 0 ? (
           <p className="auth-hint">아직 발급한 문서가 없습니다.</p>
         ) : (
           <ul className="profile-list">

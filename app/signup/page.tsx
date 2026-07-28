@@ -20,7 +20,14 @@ export default function SignupPage() {
 
   if (!isSupabaseConfigured()) return <AuthUnconfigured />;
 
-  const canSubmit = agreeService && agreeAge && email.trim() && password.length >= 8 && !busy;
+  // 버튼이 왜 눌리지 않는지 화면에 그대로 적는다 — 이유를 숨기면 사용자가 원인을 추측하게 된다.
+  const missing = [
+    email.trim() ? null : "이메일을 입력해 주십시오.",
+    password.length >= 8 ? null : "비밀번호를 8자 이상 입력해 주십시오.",
+    agreeService ? null : "이용약관과 개인정보 처리방침 동의가 필요합니다.",
+    agreeAge ? null : "만 14세 이상 확인이 필요합니다.",
+  ].filter((item): item is string => item !== null);
+  const canSubmit = missing.length === 0 && !busy;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -107,6 +114,14 @@ export default function SignupPage() {
             경험 원문을 저장할지는 여기서 묻지 않습니다. 실제로 저장하는 순간에 따로 여쭤보며, 동의하지 않아도 모든 기능을 쓸 수 있습니다.
           </p>
         </fieldset>
+
+        {missing.length > 0 && (
+          <div role="status">
+            <ul className="cert-missing">
+              {missing.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+        )}
 
         <button className="primary full" type="submit" disabled={!canSubmit} aria-busy={busy}>
           {busy ? "가입 중…" : "가입하고 확인 메일 받기"}

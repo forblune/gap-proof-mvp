@@ -169,7 +169,7 @@ export function FeedbackWidget() {
       <dialog ref={dialogRef} className="feedback-dialog" onClose={() => setOpen(false)} aria-label="피드백 보내기">
         <div className="feedback-panel">
           <div className="feedback-head">
-            <h2>무엇이 불편하셨나요?</h2>
+            <h2>불편한 점을 알려 주십시오.</h2>
             <button type="button" className="secondary" onClick={() => setOpen(false)}>닫기</button>
           </div>
 

@@ -10,7 +10,8 @@ const VIEWPORTS = [
   { label: "desktop-1440", width: 1440, height: 900 },
 ];
 
-const PATHS = ["/", "/demo", "/why"];
+// /technology 는 화면 폭에 맞춰 줄어드는 시각화가 있어 좁은 폭에서 반드시 확인해야 한다.
+const PATHS = ["/", "/demo", "/why", "/technology", "/login", "/privacy"];
 
 test.describe("반응형 뷰포트 검사", () => {
   for (const viewport of VIEWPORTS) {

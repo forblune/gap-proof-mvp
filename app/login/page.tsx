@@ -96,7 +96,7 @@ export default function LoginPage() {
       footer={
         <>
           <span>계정이 없으신가요? <Link href="/signup">회원가입</Link></span>
-          <span><Link href="/forgot-password">비밀번호를 잊으셨나요?</Link></span>
+          <span><Link href="/forgot-password">비밀번호 재설정하기</Link></span>
         </>
       }
     >

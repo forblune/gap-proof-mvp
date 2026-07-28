@@ -70,7 +70,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .eyebrow, .card-kicker { display: inline-block; color: var(--green); font-size: 12px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
 .hero h1, .section-head h1 { margin: 17px 0 22px; font-size: clamp(48px, 5.2vw, 78px); line-height: 1.05; letter-spacing: -.055em; font-weight: 700; }
 .hero h1 em { color: var(--green); font-style: normal; position: relative; }
-.hero h1 em::after { content: ""; position: absolute; height: 12px; bottom: 5px; left: -2px; right: -4px; background: var(--yellow); opacity: .65; z-index: -1; transform: rotate(-1deg); }
+.hero h1 em::after { content: ""; position: absolute; height: 12px; bottom: 5px; left: -2px; right: -4px; background: var(--yellow); opacity: var(--hero-underline-opacity, .65); z-index: -1; transform: rotate(-1deg); }
 .hero-lead { max-width: 690px; margin: 0; color: var(--color-text-muted); font-size: 18px; line-height: 1.78; word-break: keep-all; }
 .principles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
 .principles span { padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--color-surface); color: var(--color-text-muted); font-size: 13px; }
@@ -776,6 +776,10 @@ body.drawer-open { overflow: hidden; }
 }
 
 :root[data-theme="dark"] {
+  /* 히어로 밑줄은 장식이다. 어두운 테마에서 불투명도 .65 로 두면 노란 띠가
+     초록 글자 뒤에서 섞여 대비가 1.82:1 까지 떨어진다(큰 글씨 기준 3:1 미달).
+     밝은 테마(4.93:1)는 그대로 두고 어두운 테마에서만 옅게 깐다. */
+  --hero-underline-opacity: .22;
   --color-page: #1c2130;
   --color-surface: #262c40;
   --color-surface-raised: #2f3650;
@@ -834,7 +838,7 @@ body.drawer-open { overflow: hidden; }
 .lesson-guide { color: var(--color-text-muted); font-size: 13px; line-height: 1.75; }
 /* 응답 길이 안내 — 조건을 충족했는지 입력 중에 바로 알 수 있게 한다. */
 .lesson-count { color: var(--color-text-muted); font-size: 13px; line-height: 1.75; }
-.lesson-count.ok { color: var(--color-accent-strong, var(--color-text)); font-weight: 600; }
+.lesson-count.ok { color: var(--color-accent); font-weight: 600; }
 .lesson-done { margin-bottom: 14px; }
 .lesson-done small { display: block; color: var(--color-text-muted); font-size: 13px; line-height: 1.7; }
 .lesson-edit { display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
@@ -925,7 +929,16 @@ body.drawer-open { overflow: hidden; }
 /* ── 기술 스택 수렴 시각화 ────────────────────────────────────────────────── */
 /* 흩어진 조각이 가운데로 모여 고리를 이룬다. 모인 뒤에도 각 이름이 또렷하게 읽혀야 한다 —
    흐려서 사라지게 하면 그림은 남고 정보는 없어진다. */
-.stack-converge { position: relative; display: grid; place-items: center; width: 100%; height: 340px; margin: 6px 0 20px; }
+.stack-converge {
+  position: relative; display: grid; place-items: center;
+  width: 100%; height: 340px; margin: 6px 0 20px;
+  /* 고리 반경을 화면 폭에 묶는다. 320px 에서 고정 104px 를 쓰면
+     이름표(약 75px)까지 더해져 좌우가 잘리고 가로 스크롤이 생겼다. */
+  --converge-radius: min(104px, 24vw);
+  --converge-spread: min(180px, 42vw);
+  /* 출발 위치가 컨테이너 밖이라 잘려 나가는 것이 정상이다(가로 스크롤을 만들지 않는다). */
+  overflow: hidden;
+}
 .stack-converge-core {
   display: grid; place-items: center; gap: 3px; margin: 0;
   width: 116px; height: 116px; border-radius: 50%;
@@ -955,6 +968,12 @@ body.drawer-open { overflow: hidden; }
   .stack-converge-core { width: 96px; height: 96px; }
   .stack-converge-core b { font-size: 14px; }
   .stack-converge-node { padding: 6px 10px; font-size: 12px; }
+}
+
+/* JS가 실행되지 않는 환경에서는 애니메이션 없이 최종 배치를 바로 보여 준다.
+   (기본값이 opacity:0 이라, 이 규칙이 없으면 빈 영역만 남는다.) */
+@media (scripting: none) {
+  .stack-converge-node { transition: none; transform: translate(var(--to-x), var(--to-y)); opacity: 1; }
 }
 
 /* 움직임을 원치 않으면 애니메이션 없이 최종 배치로 바로 보여 준다(내용은 동일하게 읽힌다). */

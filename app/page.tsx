@@ -87,7 +87,7 @@ export default function HomePage() {
       <section className="home-hero" aria-labelledby="home-hero-title">
         <div className="home-hero-inner">
           <p className="eyebrow">삶의 경험 → 확인된 증거 → 이번 주 한 걸음</p>
-          <h1 id="home-hero-title">경력이라고 생각하지 않았던 경험에서<br /><em>다음 가능성</em>을 발견하세요.</h1>
+          <h1 id="home-hero-title">경력이라고 생각하지 않았던 경험에서<br /><em>다음 가능성</em>을 찾습니다.</h1>
           <p className="lead">
             돌봄, 아르바이트, 게임, 취미, 독학, 쉬었던 시간까지. GapProof는 삶에서 실제로 한 행동을
             근거로 역량 후보를 찾고, 확인 질문과 작은 실험을 통해 다음 진로 탐색으로 연결합니다.

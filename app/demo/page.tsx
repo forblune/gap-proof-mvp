@@ -1024,11 +1024,12 @@ export default function Home() {
           <div className="gate-card">
             <div className="gate-brand"><span className="brand-mark"><BrandGlyph /></span><b>GapProof</b></div>
             <div className="card-kicker">심사·멘토링 데모</div>
-            <h1>안내받은 데모 코드를 입력해 주세요.</h1>
+            <h1>안내받은 데모 코드를 입력해 주십시오.</h1>
             <p className="gate-guide">
               공백·전환 경험을 역량 증거와 이번 주 행동으로 바꾸는 <b>Solar 기반 진로 탐색 데모</b>입니다.
-              현재 버전은 제한된 테스트를 위해 운영되며, 심사·멘토링 공유용 <b>데모 코드</b>가 필요하고, 계정 로그인이나 개인 비밀번호가 아닙니다.
-              코드는 안내받은 채널에서 확인할 수 있습니다.
+              현재는 제한된 테스트로 운영합니다.
+              들어오려면 심사·멘토링 공유용 <b>데모 코드</b>가 필요합니다.
+              계정 로그인이나 개인 비밀번호가 아닙니다. 코드는 안내받은 채널에서 확인할 수 있습니다.
             </p>
             <label htmlFor="gate-code">데모 코드</label>
             <input
@@ -1096,7 +1097,7 @@ export default function Home() {
                 checked={aggregateConsent}
                 onChange={(event) => setAggregateConsent(event.target.checked)}
               />
-              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 핵심 기능을 모두 쓸 수 있습니다 · 현재 버전은 통계를 실제로 수집하지 않으며, 이 선택은 Gap Brief의 기관 공유 범위 표시에만 반영됩니다.</small></span>
+              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 핵심 기능을 모두 쓸 수 있습니다. 현재 버전은 통계를 실제로 수집하지 않습니다. 이 선택은 Gap Brief의 기관 공유 범위 표시에만 반영됩니다.</small></span>
             </label>
             <button className="primary full" disabled={!storeConsent} onClick={() => moveTo(1)}>
               {sampleMode ? "샘플로 둘러보기" : "내 경험에서 시작하기"} <span>→</span>
@@ -1109,7 +1110,7 @@ export default function Home() {
       {journeyOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어주세요.</h1></div>
+            <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어 주십시오.</h1></div>
             <span className="time-pill">약 2분</span>
           </div>
           {analysisSource === "loading" ? (
@@ -1141,7 +1142,12 @@ export default function Home() {
               <div className="import-box">
                 <details>
                   <summary>이미 사용하는 AI가 있습니까? (ChatGPT·Claude·Gemini)</summary>
-                  <p className="import-guide">쓰던 AI에 아래 프롬프트를 붙여넣으면 대화 속 경험을 정리해 줍니다. 받은 답을 이 입력창에 붙여넣으십시오. <b>외부 AI의 답은 확정된 사실이 아니라 초안입니다 — 붙여넣은 뒤 직접 확인·수정하십시오.</b> 붙여넣기 전에 이름·연락처 같은 개인정보가 섞이지 않았는지 확인해 주십시오.</p>
+                  <p className="import-guide">
+                    쓰던 AI에 아래 프롬프트를 붙여넣으면 대화 속 경험을 정리해 줍니다.
+                    받은 답을 이 입력창에 붙여넣으십시오.
+                    <b> 외부 AI의 답은 확정된 사실이 아니라 초안입니다. 붙여넣은 뒤 직접 확인·수정하십시오.</b>
+                    {" "}붙여넣기 전에 이름·연락처 같은 개인정보가 섞이지 않았는지 확인해 주십시오.
+                  </p>
                   <pre className="import-prompt">{AI_ORGANIZE_PROMPT}</pre>
                   <button type="button" className="secondary" onClick={copyAiPrompt}>정리 프롬프트 복사</button>
                 </details>
@@ -1428,25 +1434,35 @@ export default function Home() {
                   {lesson.questions.map((question, index) => {
                     const answer = lessonAnswers[index] ?? "";
                     const enough = isAnsweredEnough(answer);
+                    const fieldId = `lesson-q-${index}`;
                     return (
-                      <label className="lesson-question" key={`${question.kind}-${index}`}>
-                        <span className="lesson-q-head">
+                      // label 로 전체를 감싸면 도움말과 글자수까지 입력칸의 "이름"이 되어
+                      // 한 글자 칠 때마다 이름이 바뀐다. 이름은 질문만, 나머지는 설명으로 붙인다.
+                      <div className="lesson-question" key={`${question.kind}-${index}`}>
+                        <label className="lesson-q-head" htmlFor={fieldId}>
                           <span className="v2-badge">{LESSON_QUESTION_LABELS[question.kind]}</span>
                           {question.question}
-                        </span>
+                        </label>
                         <textarea
+                          id={fieldId}
                           rows={2}
                           value={answer}
+                          aria-describedby={`${fieldId}-guide ${fieldId}-count`}
                           placeholder={`내 말로 ${MIN_ANSWER_CHARS}자 이상 적어 주십시오`}
                           onChange={(event) => updateLessonAnswer(index, event.target.value)}
                         />
-                        <small className="lesson-guide">도움말: {question.answerGuide}</small>
-                        <small className={enough ? "lesson-count ok" : "lesson-count"}>
+                        <small className="lesson-guide" id={`${fieldId}-guide`}>도움말: {question.answerGuide}</small>
+                        {/* 조건을 넘긴 순간을 스크린리더에도 알린다. */}
+                        <small
+                          className={enough ? "lesson-count ok" : "lesson-count"}
+                          id={`${fieldId}-count`}
+                          role="status"
+                        >
                           {enough
                             ? `응답으로 인정됩니다 (${answer.trim().length}자)`
                             : `${MIN_ANSWER_CHARS}자 이상 필요합니다 (현재 ${answer.trim().length}자)`}
                         </small>
-                      </label>
+                      </div>
                     );
                   })}
                 </div>
@@ -1675,7 +1691,21 @@ export default function Home() {
               <div className="identity"><small>목표직무</small><h2>{role.label}</h2><p>{role.blurb}</p></div>
               <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{verifiedPassedComps.map(({ comp, tier }) => <div className="proof-skill" key={comp.id}><b>{comp.label} · 이해 확인</b><TierBadge tier={tier} /></div>)}</div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주십시오."}”</blockquote></div>
-              <div className="chosen-action"><span>이번 주 다음 행동</span><b>{chosenAction?.title}</b><small>{chosenAction?.rule}</small></div>
+              {/* 추천이 비어 있으면 빈 제목만 남은 칸이 인쇄된다 — 그럴 때는 무엇을 하라는 안내로 대체한다. */}
+              <div className="chosen-action">
+                <span>이번 주 다음 행동</span>
+                {chosenAction ? (
+                  <>
+                    <b>{chosenAction.title}</b>
+                    <small>{chosenAction.rule}</small>
+                  </>
+                ) : (
+                  <>
+                    <b>아직 정하지 않았습니다.</b>
+                    <small>부족한 근거를 하나 고르면 다음 행동을 제안해 드립니다.</small>
+                  </>
+                )}
+              </div>
               <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>{proofDate}</b></footer>
             </article>
 

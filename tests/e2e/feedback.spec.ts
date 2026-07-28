@@ -67,7 +67,7 @@ test("열린 피드백 패널의 마크업에 심각한 접근성 위반이 없�
     const host = document.createElement("div");
     host.innerHTML = `
       <div class="feedback-panel">
-        <div class="feedback-head"><h2>무엇이 불편하셨나요?</h2><button type="button">닫기</button></div>
+        <div class="feedback-head"><h2>불편한 점을 알려 주십시오.</h2><button type="button">닫기</button></div>
         <fieldset class="feedback-field">
           <legend>분류 (필수)</legend>
           <div class="feedback-chips">

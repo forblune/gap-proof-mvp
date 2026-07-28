@@ -1,0 +1,60 @@
+# 남은 외부 설정과 차단 요소
+
+작성일: 2026-07-28 · 대상 브랜치: `feat/recognition-system`
+
+이 문서는 **코드로 끝낼 수 없는 일**만 모읍니다. 각 항목은 "누가 무엇을 해야 풀리는가"를 먼저 적습니다.
+구현이 끝났는데 동작하지 않는 것처럼 보이는 기능은 대부분 여기에 이유가 있습니다.
+
+## 1. 사람이 직접 해야 하는 외부 설정
+
+| 항목 | 지금 상태 | 풀리는 조건 | 막히면 생기는 일 |
+|---|---|---|---|
+| Supabase Google 로그인 | 코드 구현 완료, 대시보드 미설정 | Supabase Dashboard → Authentication → Providers → Google 에 Client ID/Secret 입력 | `/login` 에서 Google 버튼을 누르면 `?auth=unconfigured` 로 되돌아옵니다(가짜 성공 화면을 만들지 않습니다) |
+| Supabase Kakao 로그인 | 코드 구현 완료, 대시보드 미설정 | 같은 화면에서 Kakao 활성화 | 위와 동일 |
+| **Naver 로그인** | **차단됨** | Supabase 기본 제공 provider 가 아닙니다. `auth.custom_oauth_providers` 테이블은 존재하나 대시보드 노출 여부를 확인하지 못했습니다. 확인 전까지 구현하지 않습니다 | 버튼을 만들지 않았습니다. 확인 없이 만들면 동작하지 않는 로그인을 제공하게 됩니다 |
+| GitHub 저장소 공개 전환 | 미완료 | 저장소 소유자가 직접 Settings → Change visibility | 대회 제출 링크가 열리지 않습니다 |
+| 제출 이메일 본문의 실명·연락처 | 미완료 | 사람이 직접 입력 | 초안(`SUBMISSION_EMAIL_DRAFT.txt`)에 자리표시자로 남아 있습니다 |
+
+## 2. 기술적 차단 요소
+
+### K-MOOC 연동 — 비활성
+공공데이터포털 기본 주소(`https://apis.data.go.kr/B552881/kmooc_v2_0`)는 서버 상수로 두었고
+`KMOOC_SERVICE_KEY` 는 서버에서만 읽습니다. 그러나 **실제 operation 경로를 확인하지 못했습니다** —
+후보 18개를 시도해 전부 404 였습니다. 경로를 추측해 넣는 대신 연동을 꺼 둔 채로 둡니다.
+풀리는 조건: 포털의 해당 API 상세 명세에서 operation 이름을 확인.
+
+### Gemini 모델 고정 — `gemini-flash-latest`
+`gemini-2.0-flash` 와 `gemini-2.5-flash` 는 이 프로젝트에서 404 입니다(전자는 제공 종료, 후자는 신규 프로젝트 미제공).
+현재 `gemini-flash-latest` 로 호출하며 실제 응답과 `usageMetadata` 를 확인했습니다.
+모델이 다시 바뀌면 같은 증상이 재발할 수 있어 `app/api/lesson/route.ts` 한 곳에서만 지정합니다.
+
+### `worker/index.ts` 타입 오류 2건 — 기존 문제
+`Fetcher`, `D1Database` 는 Cloudflare Workers 타입이며 앱 tsconfig 범위 밖입니다.
+빌드와 배포에는 영향이 없고, 이번 작업에서 생긴 것이 아닙니다.
+
+### 레거시 `.cjs` 검증 스크립트 lint 오류 17건 — 기존 문제
+`tests/e2e/*.cjs` 는 예전 수동 검증 스크립트입니다. `require()` 금지 규칙에 걸리지만
+현재 스위트가 쓰지 않습니다. 지우거나 옮기는 것은 별도 정리 작업으로 둡니다.
+
+## 3. 의도적으로 하지 않은 것
+
+- **취업 가능성·합격 확률 예측**: 만들지 않습니다. 숫자는 `증거 충족도`(목표 직무가 요구하는 증거 중
+  확인된 항목의 비율)로만 제공하며, 산정식과 "채용 가능성을 뜻하지 않는다"는 고지를 함께 표시합니다.
+- **공개 검증 페이지·영구 발급 이력**: Phase 2 로 미룹니다. 지금 만들면 검증할 수 없는 것을
+  검증된 것처럼 보이게 합니다.
+- **외부 자격의 진위 확인**: GapProof 는 하지 않습니다. 외부 증빙은 별도 기록으로만 남깁니다.
+- **브랜드 컬러·레이아웃 대개편**: 기능 완성 전까지 보류합니다. 발견 사항은
+  `docs/planning/DESIGN_TODO_BRAND_READABILITY.md` 에 TODO 로만 적었습니다.
+
+## 4. 로컬에서 다시 확인하는 방법
+
+```bash
+npx tsc --noEmit          # worker/index.ts 2건 외에 0건이어야 합니다
+npx eslint .              # 기존 21건(app 4 + 레거시 .cjs 17) 외에 0건이어야 합니다
+node --test tests/*.test.mjs
+npm run build
+npx playwright test       # 반드시 한 번에 하나만 — 동시 실행은 결과를 오염시킵니다
+```
+
+E2E 를 여러 개 동시에 돌리면 개발 서버 하나를 공유해 서로의 상태를 망칩니다.
+자세한 규칙은 `docs/operations/TEST_ORCHESTRATION.md` 에 있습니다.
