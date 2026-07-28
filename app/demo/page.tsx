@@ -1393,17 +1393,26 @@ export default function Home() {
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
                   <div className="claim-v2">
+                    {/* 이 화면에서 사용자가 할 일은 인용문을 읽고 맞는지 판단하는 것이다.
+                        AI 판단·근거 강도·신호를 각각 칩으로 띄우면 카드당 4~5개가 되어
+                        정작 읽어야 할 원문과 확인 버튼을 가린다. 판단은 한 칩으로 합치고
+                        신호는 아래 설명 줄로 내린다. */}
                     <div className="v2-badges">
                       {claim.factStatus && (
                         <span
                           className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}
                         >
                           AI 판단: 원문에 {claim.factStatus}
+                          {claim.evidenceStrength ? ` · 근거 ${claim.evidenceStrength}` : ""}
                         </span>
                       )}
-                      {claim.evidenceStrength && <span className="v2-badge">근거 {claim.evidenceStrength}</span>}
-                      {claim.signals?.map((signal) => <span className="v2-badge signal" key={signal}>{signal}</span>)}
+                      {!claim.factStatus && claim.evidenceStrength && (
+                        <span className="v2-badge">근거 {claim.evidenceStrength}</span>
+                      )}
                     </div>
+                    {claim.signals && claim.signals.length > 0 && (
+                      <p className="v2-line"><b>AI가 본 신호</b>{claim.signals.join(" · ")}</p>
+                    )}
                     {claim.context && <p className="v2-line"><b>상황</b>{claim.context}</p>}
                     {claim.behaviors && claim.behaviors.length > 0 && (
                       <p className="v2-line"><b><IconCheck />AI가 원문에서 뽑은 행동</b>{claim.behaviors.join(" · ")}</p>
@@ -1466,12 +1475,9 @@ export default function Home() {
                   <span className="lookinto-platform">{card.platform}</span>
                   <h3>{card.title}</h3>
                   <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
-                  <div className="v2-badges">
-                    {card.hypothesis && <span className="v2-badge">{card.hypothesis}</span>}
-                    <span className="v2-badge">{card.time}</span>
-                    <span className="v2-badge">{card.difficulty}</span>
-                    <span className="v2-badge">{card.free}</span>
-                  </div>
+                  {/* 예상 정보는 긴 문장이라 칩에 넣으면 읽히지 않고 카드만 어지럽힌다.
+                      한 줄 설명으로 내린다. AI 가설은 카드마다 같은 문구라 목록 위에 한 번만 둔다. */}
+                  <p className="lookinto-estimate">{card.time} · {card.difficulty} · {card.free}</p>
                   <p className="follow-up"><b><IconQuestion />확인할 포인트</b>{card.verify}</p>
                   <a className="lookinto-link" href={card.href} target="_blank" rel="noopener noreferrer" aria-label={card.ariaLabel}>
                     {card.linkLabel} <span aria-hidden="true">↗</span>
@@ -1490,12 +1496,9 @@ export default function Home() {
                   <h3>{card.title}</h3>
                   <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
                   {card.searchHint && <p className="lookinto-hint">{card.searchHint}</p>}
-                  <div className="v2-badges">
-                    {card.hypothesis && <span className="v2-badge">{card.hypothesis}</span>}
-                    <span className="v2-badge">{card.time}</span>
-                    <span className="v2-badge">{card.difficulty}</span>
-                    <span className="v2-badge">{card.free}</span>
-                  </div>
+                  {/* 예상 정보는 긴 문장이라 칩에 넣으면 읽히지 않고 카드만 어지럽힌다.
+                      한 줄 설명으로 내린다. AI 가설은 카드마다 같은 문구라 목록 위에 한 번만 둔다. */}
+                  <p className="lookinto-estimate">{card.time} · {card.difficulty} · {card.free}</p>
                   <p className="follow-up"><b><IconQuestion />확인할 포인트</b>{card.verify}</p>
                   <a className="lookinto-link" href={card.href} target="_blank" rel="noopener noreferrer" aria-label={card.ariaLabel}>
                     {card.linkLabel} <span aria-hidden="true">↗</span>
