@@ -55,7 +55,9 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .sample-badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .progress-wrap { max-width: 1440px; margin: 0 auto; padding: 22px 36px 0; }
-.progress { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; list-style: none; margin: 0; padding: 0; }
+.progress { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; list-style: none; margin: 0; padding: 0; min-width: 0; }
+/* 좁은 화면에서 라벨이 숨을 때 현재 위치를 글로 알린다. 넓은 화면에서는 라벨이 보이므로 감춘다. */
+.progress-current { display: none; margin: 0 0 8px; font-size: 13px; font-weight: 750; color: var(--ink); }
 .progress li { position: relative; display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 13px; }
 .progress li::after { content: ""; height: 2px; background: var(--line); flex: 1; order: 2; }
 .progress li:last-child::after { display: none; }
@@ -377,8 +379,14 @@ body.drawer-open { overflow: hidden; }
     .sample-badge { padding: 6px; max-width: none; }
   }
   .progress-wrap { padding: 14px 18px 0; overflow: hidden; }
+  /* 좁은 화면에서는 숫자 점만 남긴다. 라벨을 붙들고 있으면 마지막 단계들이 잘려 나가
+     "몇 단계 중 몇 번째" 라는 정보 자체가 사라진다. */
+  .progress-current { display: block; }
   .progress li b { display: none; }
-  .progress li.active b { display: inline; font-size: 12px; white-space: nowrap; }
+  .progress li.active b { display: none; }
+  .progress li { gap: 4px; min-width: 0; }
+  .progress li span { flex: none; }
+  .progress li::after { min-width: 4px; }
   .progress li::after { min-width: 12px; }
   .page-shell { padding: 38px 18px 54px; padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
   .hero { min-height: auto; }

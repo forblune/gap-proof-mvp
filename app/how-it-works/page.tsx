@@ -70,10 +70,14 @@ export default function HowItWorksPage() {
           학습을 끝낸 것, 이해했는지 확인한 것, 실제로 해 본 것, 결과물을 남긴 것은 <b>서로 다른 인정</b>입니다.
           GapProof는 이 넷을 섞지 않습니다.
         </p>
+        <p className="length-hint">
+          아래 <b>상한</b>은 그 인정만으로 저절로 도달한다는 뜻이 아닙니다.
+          해당 역량에 사용자가 확인한 근거가 이미 있어야 하며, 그 위에서 넘지 못하는 천장을 뜻합니다.
+        </p>
         <ul className="info-cards">
           {RECOGNITION_KINDS.filter((kind) => kind.id !== "third_party_reviewed").map((kind) => (
             <li key={kind.id}>
-              <b>{kind.label} · 단독 최대 Lv.{kind.maxTier}</b>
+              <b>{kind.label} · 상한 Lv.{kind.maxTier}</b>
               <p>{kind.means} <b>다만</b> {kind.limits}</p>
             </li>
           ))}

@@ -2,7 +2,7 @@
 // 확인된 증거(원문 인용)와 매칭되지 않는 퀴즈 통과는 등급에 반영되지 않는다.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasConfirmedEvidenceFor, keywordIsNegated, competencyStrength, tierFromLink } from "../app/lib/engine.ts";
+import { hasConfirmedEvidenceFor, keywordIsNegated, claimSupports, competencyStrength, tierFromLink } from "../app/lib/engine.ts";
 
 const comp = {
   id: "data-cleaning",
@@ -103,4 +103,43 @@ test("부정 판정은 키워드가 든 절만 본다", () => {
   assert.equal(keywordIsNegated("데이터를 다뤄 본 적이 없습니다", "데이터"), true);
   assert.equal(keywordIsNegated("데이터로 표를 만들었습니다", "데이터"), false);
   assert.equal(keywordIsNegated("돈이 없다. 데이터로 표를 만들었습니다", "데이터"), false);
+});
+
+// 4라운드 심사 지적 — 부정 판정이 뚫리거나 반대로 실제 한 일을 지우던 경우들.
+test("AI 라벨(skill)로 부정 판정을 우회할 수 없다 — 판정 대상은 사용자 원문뿐", () => {
+  const bypass = {
+    skill: "데이터 활용",
+    quote: "항공물류 현장에서 일했습니다. 데이터는 한 번도 다뤄 본 적이 없습니다.",
+    tier: 1,
+  };
+  assert.equal(hasConfirmedEvidenceFor(comp, [bypass]), false);
+  assert.equal(competencyStrength(comp, [bypass]), 0);
+});
+
+test("경험 없음을 뜻하는 다른 표현도 증거로 세지 않는다", () => {
+  for (const quote of ["데이터 경험 없음", "데이터 미경험", "데이터 경험은 전무합니다", "데이터는 제 분야가 아닙니다"]) {
+    assert.equal(hasConfirmedEvidenceFor(comp, [{ skill: "x", quote, tier: 1 }]), false, quote);
+  }
+});
+
+test("긍정문을 부정으로 잘못 지우지 않는다 — 사용자가 한 일을 없애는 쪽이 더 나쁘다", () => {
+  for (const quote of [
+    "데이터 연동을 직접 구현했고 장애가 한 번도 없었습니다",
+    "데이터 정리를 계속했고 포기하지 않았습니다",
+    "데이터 문서를 매일 정리하는 일을 멈추지 않았습니다",
+  ]) {
+    assert.equal(hasConfirmedEvidenceFor(comp, [{ skill: "x", quote, tier: 1 }]), true, quote);
+  }
+});
+
+test("부정은 키워드 뒤 서술부에서만 찾는다 — 다른 명사에 붙은 부정을 가져오지 않는다", () => {
+  assert.equal(keywordIsNegated("데이터를 다뤄 본 적이 없습니다", "데이터"), true);
+  assert.equal(keywordIsNegated("예산이 없어서 데이터를 직접 정리했습니다", "데이터"), false);
+});
+
+test("배지 등급 계산과 게이트 판정이 같은 함수를 쓴다", () => {
+  // 화면이 뒷받침하지 않는 근거에서 등급을 가져오지 않도록 두 곳이 같은 기준이어야 한다.
+  const negationWithLink = { skill: "데이터 활용", quote: "데이터는 다뤄 본 적이 없습니다", tier: 1 };
+  assert.equal(claimSupports(comp, negationWithLink), false);
+  assert.equal(hasConfirmedEvidenceFor(comp, [negationWithLink]), false);
 });

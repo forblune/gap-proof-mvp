@@ -8,6 +8,7 @@ import {
   recommendNextActions,
   tierFromLink,
   makeCheck,
+  claimSupports,
   hasConfirmedEvidenceFor,
 } from "../lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
@@ -125,8 +126,8 @@ function TierLegend() {
     <p className="tier-legend">
       <b>Lv. 표기는 무엇이 확인됐는지를 뜻하며 숙련도 점수가 아닙니다.</b>{" "}
       Lv.0 {TIER_MEANS[0]} · Lv.1 {TIER_MEANS[1]} · Lv.2 {TIER_MEANS[2]} · Lv.3 {TIER_MEANS[3]}
-      {" "}이 데모에서 역량 배지는 Lv.0과 Lv.1까지만 붙습니다. Lv.2는 학습 기록에 산출물이 연결될 때,
-      Lv.3은 기관 확인 절차가 생길 때(Phase 2) 도달합니다.
+      {" "}이 데모에서 역량 배지는 Lv.0과 Lv.1까지만 붙습니다. Lv.2는 그 역량에 확인된 근거가
+      이미 있고 산출물이 연결될 때, Lv.3은 기관 확인 절차가 생길 때(Phase 2) 도달합니다.
     </p>
   );
 }
@@ -432,8 +433,10 @@ export default function Home() {
         // 배지 등급을 2로 못박지 않는다. 이 역량에 실제로 연결된 확인 증거의 등급을 그대로 쓴다
         // (링크 없는 자기기록이면 Lv.0). 퀴즈 통과는 "이해 확인"일 뿐 수행이 아니므로
         // 등급을 올리는 근거가 되지 못한다 — recognition.ts의 인정 유형과 같은 규칙이다.
+        // 뒷받침 판정은 게이트와 같은 함수를 쓴다. 원시 키워드 매칭을 쓰면
+        // 부정문 근거에서 등급을 가져와, 증거가 뒷받침하지 않는 Lv.을 배지에 찍는다.
         tier: confirmedInputs
-          .filter((claim) => c.keywords.some((k) => `${claim.skill} ${claim.quote}`.includes(k)))
+          .filter((claim) => claimSupports(c, claim))
           .reduce((max, claim) => Math.max(max, claim.tier), 0),
       }));
   }, [passedComps, confirmedClaims]);
@@ -977,8 +980,12 @@ export default function Home() {
   // 확인창을 연 버튼을 기억해 두었다가 그 자리로 되돌린다.
   // 항상 헤더 버튼으로 보내면 복원 배너나 화면 하단에서 연 사용자는 포커스를 잃는다(WCAG 2.4.3).
   const deleteOpener = useRef<HTMLElement | null>(null);
+  // 초기화 직후 포커스를 받을 자리(첫 화면의 저장 동의 체크박스).
+  const resetFocusRef = useRef<HTMLInputElement | null>(null);
   const requestDelete = (event?: { currentTarget?: HTMLElement }) => {
     deleteOpener.current = event?.currentTarget ?? null;
+    // 확인 바가 공지 위 4px 에 뜬다 — 공지를 남겨 두면 가려진다.
+    setNotice(null);
     setConfirmingDelete(true);
   };
   const cancelDelete = () => {
@@ -996,14 +1003,28 @@ export default function Home() {
       document.querySelector<HTMLButtonElement>(".actions-toggle")?.focus();
     }
   };
+  // aria-modal="true" 를 선언한 이상 Tab 만 가두는 것으로는 부족하다.
+  // 마우스 클릭이나 주소창 → Shift+Tab 복귀로 배경에 포커스가 가면 확인 바가 그 위를 덮어
+  // 포커스가 보이지 않게 된다(WCAG 2.2 SC 2.4.11). 벗어나면 바 안으로 되돌린다.
+  const confirmBarRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!confirmingDelete) return;
+    const keepFocusInside = (event: FocusEvent) => {
+      const bar = confirmBarRef.current;
+      if (!bar || bar.contains(event.target as Node)) return;
+      bar.querySelector<HTMLButtonElement>("button")?.focus();
+    };
+    document.addEventListener("focusin", keepFocusInside);
+    return () => document.removeEventListener("focusin", keepFocusInside);
+  }, [confirmingDelete]);
+
   const confirmDelete = () => {
     setConfirmingDelete(false);
     deleteRecords();
     // 취소 경로만 포커스를 되돌리고 파괴 경로는 body 로 떨어뜨리면 안 된다.
     // 초기화 후 첫 화면의 주요 입력으로 옮긴다.
-    requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(".gate-page input, #experience, .consent-card input")?.focus();
-    });
+    // 셀렉터 나열은 문서 순서에 기대므로 쓰지 않는다 — 명시 ref 로 옮긴다.
+    requestAnimationFrame(() => resetFocusRef.current?.focus());
   };
 
   return (
@@ -1056,6 +1077,8 @@ export default function Home() {
 
       {journeyOpen && (
         <section className="progress-wrap" aria-label="진행 단계">
+          {/* 좁은 화면에서는 라벨이 숨는다 — 점만 남으면 어디인지 알 수 없어 한 줄로 적는다. */}
+          <p className="progress-current">{step + 1}/{steps.length} · {steps[step]}</p>
           <ol className="progress">
             {steps.map((label, index) => (
               <li key={label} className={index === step ? "active" : index < step ? "done" : ""}>
@@ -1079,6 +1102,7 @@ export default function Home() {
         // (WCAG 2.2 SC 2.4.11). 버튼이 둘뿐이므로 Tab 을 두 버튼 사이로 가둬 실제 모달로 만든다.
         // 포커스를 가두므로 role=dialog + aria-modal 이 지킬 수 있는 약속이 된다.
         <div
+          ref={confirmBarRef}
           className="confirm-bar"
           role="dialog"
           aria-modal="true"
@@ -1177,6 +1201,7 @@ export default function Home() {
             <p>키가 연결되면 실제 Solar를 호출하고, 없으면 원문 기반 샘플로 안전하게 전환합니다.</p>
             <label className="check-row">
               <input
+                ref={resetFocusRef}
                 type="checkbox"
                 checked={storeConsent}
                 onChange={(event) => setStoreConsent(event.target.checked)}
@@ -1485,7 +1510,7 @@ export default function Home() {
             <h3 className="lesson-title">본 영상을 학습 기록으로 남깁니다.</h3>
             <p className="length-hint">
               공개 YouTube 주소를 넣으면 요약·핵심 개념·질문을 정리해 드립니다. 정리된 내용은 직접 고칠 수 있습니다.
-              영상 학습과 질문은 <b>학습 완료·이해 확인</b>까지만 인정됩니다 — 증거등급은 실제로 해 보고 결과물을 남겨야 오릅니다.
+              영상 학습과 질문은 <b>학습 완료·이해 확인</b>까지만 인정되며 <b>Lv.0 자기기록</b>을 넘지 않습니다 — 증거등급은 실제로 해 보고 결과물을 남겨야 오릅니다.
             </p>
             <div className="lesson-input-row">
               <label className="sr-only" htmlFor="lesson-url">공개 YouTube 영상 주소</label>

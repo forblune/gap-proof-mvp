@@ -25,7 +25,10 @@ export type RecognitionKind = {
   label: string;
   means: string; // 이 인정이 말해 주는 것
   limits: string; // 이 인정이 말해 주지 않는 것 (필수)
-  maxTier: number; // 이 유형 단독으로 도달 가능한 최대 증거등급
+  // 이 인정이 있을 때 넘지 못하는 증거등급 천장.
+  // "이 인정만으로 저절로 도달한다" 는 뜻이 아니다 — 해당 역량에 사용자가 확인한 근거가
+  // 이미 있어야 하고(maxTierFromRecord 의 hasConfirmedEvidence), 그 위에서의 상한이다.
+  maxTier: number;
 };
 
 export const RECOGNITION_KINDS: RecognitionKind[] = [

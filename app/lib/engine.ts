@@ -84,12 +84,25 @@ export type PassedChecks = Record<string, boolean>;
 // 한국어 부정은 형태가 다양해 완벽히 잡을 수 없다. 여기서는 흔한 형태만 보수적으로 거른다 —
 // 놓치는 쪽(증거로 셈)보다 잘못 거르는 쪽이 안전하지만, 과하게 거르면 진짜 경험을 잃으므로
 // 키워드가 들어 있는 절(clause)에 한정해 판정한다.
-const NEGATION_MARKERS = [
-  "없다", "없습니다", "없어요", "없었", "없고", "없으", "없지",
-  "못 하", "못하", "못 다루", "못다루", "못 해", "못해", "못 했", "못했",
-  "안 해", "안해", "안 했", "안했", "않았", "않습니다", "않았습니다", "않아",
-  "해본 적이 없", "해 본 적이 없", "한 적이 없", "경험이 없", "전혀 없",
-  "모르", "모릅니다", "해보지 못", "다뤄 본 적 없", "다룬 적 없",
+// "그 일을 하지 않았다" 는 문장을 증거로 세지 않는다.
+//
+// 왜 필요한가: 키워드 매칭만 하면 "API도 못 다루고 개발도 해본 적이 전혀 없다" 가 키워드 API 에
+// 걸려 증거가 된다. 예측이 아니라 사실이 거짓이라 고지 문구로는 치유되지 않는다.
+//
+// 왜 이렇게 좁게 잡는가: 앞선 판에서는 "없었/않았" 같은 어미를 통째로 걸렀는데,
+// "API 연동을 직접 구현했고 장애가 한 번도 없었습니다" 나 "개발을 계속했고 포기하지 않았습니다"
+// 처럼 **실제로 한 일**까지 지워졌다. 증거를 놓치는 것보다 사용자가 한 일을 지우는 쪽이 나쁘다.
+// 그래서 "이 대상에 대한 경험이 없다" 는 뜻이 분명한 형태만 잡는다.
+const NEGATION_PATTERNS: RegExp[] = [
+  /(해\s?본|한|다뤄\s?본|써\s?본|만들어\s?본|배워\s?본)\s*적[이은]?\s*(전혀|한\s?번도|거의)?\s*없/,
+  /경험[이은도]?\s*(전혀|거의|아직)?\s*없/,
+  /미경험/,
+  /전무/,
+  /못\s?(다루|하|해|했|만들|배웠|배워)/,
+  /안\s?(해\s?봤|했|배웠)/,
+  /모르(겠|ㅂ니다|릅니다|고)?/,
+  /없음/,
+  /(영역|분야|전공|쪽)[이가은]?\s*아닙?니다?/,
 ];
 
 // 문장을 절 단위로 자른다. 한 문장 안에서 "A는 했고 B는 못 했다" 처럼 섞이는 경우가 흔하다.
@@ -104,22 +117,27 @@ function clausesOf(text: string): string[] {
 }
 
 // 이 키워드가 부정 문맥에서만 등장하는가.
+// 부정은 키워드 뒤에 오는 서술부에서만 찾는다(한국어는 서술어가 뒤에 온다).
+// 그래야 "장애가 한 번도 없었습니다" 처럼 다른 명사에 붙은 부정을 잘못 가져오지 않는다.
 export function keywordIsNegated(text: string, keyword: string): boolean {
   const clauses = clausesOf(text).filter((clause) => clause.includes(keyword));
   if (clauses.length === 0) return false;
-  return clauses.every((clause) => NEGATION_MARKERS.some((marker) => clause.includes(marker)));
+  return clauses.every((clause) => {
+    const predicate = clause.slice(clause.indexOf(keyword));
+    return NEGATION_PATTERNS.some((pattern) => pattern.test(predicate));
+  });
 }
 
 // 이 확인 근거가 해당 역량을 실제로 뒷받침하는가.
-// 키워드가 들어 있되 그 절이 전부 부정문이면 뒷받침으로 세지 않는다.
+//
+// 판정 대상은 **사용자 원문(quote)** 뿐이다. skill 은 AI 가 붙인 라벨이라 그것만으로
+// 뒷받침을 인정하면 "사용자의 원문에서 확인되는 근거만 쓴다" 는 원칙이 깨진다.
+// (실제로 skill 라벨이 별도 절이 되어 부정 판정을 우회하던 경로가 있었다.)
 export function claimSupports(comp: Competency, claim: EvidenceInput): boolean {
-  const text = `${claim.skill} ${claim.quote}`;
-  return comp.keywords.some((keyword) => text.includes(keyword) && !keywordIsNegated(text, keyword));
+  const source = claim.quote ?? "";
+  return comp.keywords.some((keyword) => source.includes(keyword) && !keywordIsNegated(source, keyword));
 }
 
-// 확인된 증거(원문) 중 이 역량(keywords)을 실제로 뒷받침하는 것이 있는지.
-// 증거카드에 "이해 확인" 항목을 적을 수 있는지, 증거 충족도에서 요구 증거를 충족으로
-// 셀 수 있는지, 격차를 얼마나 메웠는지를 모두 같은 기준으로 판정한다.
 export function hasConfirmedEvidenceFor(comp: Competency, confirmed: EvidenceInput[]): boolean {
   return confirmed.some((claim) => claimSupports(comp, claim));
 }
