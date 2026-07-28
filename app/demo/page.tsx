@@ -835,6 +835,8 @@ export default function Home() {
     setArtifactUrl("");
     setIssuedCert(null);
     setRestoredAt(null);
+    // 가져온 파일 미리보기도 지운다 — 남겨 두면 "지웠다" 고 말한 뒤 클릭 한 번으로 되살아난다.
+    setImportPreview(null);
   };
 
   // 샘플 체험 진입·초기화·종료 — 사용자의 실제 draft는 건드리지 않는다
@@ -983,12 +985,17 @@ export default function Home() {
   // 초기화 직후 포커스를 받을 자리(첫 화면의 저장 동의 체크박스).
   const resetFocusRef = useRef<HTMLInputElement | null>(null);
   const requestDelete = (event?: { currentTarget?: HTMLElement }) => {
+    closingConfirm.current = false;
     deleteOpener.current = event?.currentTarget ?? null;
     // 확인 바가 공지 위 4px 에 뜬다 — 공지를 남겨 두면 가려진다.
     setNotice(null);
     setConfirmingDelete(true);
   };
   const cancelDelete = () => {
+    // 닫는 중임을 먼저 표시한다. React 는 discrete 이벤트의 setState 를 핸들러가 끝난 뒤 커밋하므로,
+    // 여기서 바로 focus() 를 부르면 아직 살아 있는 focusin 가드가 포커스를 도로 빼앗고
+    // 그 직후 언마운트되어 결국 body 로 떨어진다.
+    closingConfirm.current = true;
     setConfirmingDelete(false);
     const opener = deleteOpener.current;
     // 연 버튼이 아직 화면에 있으면 그리로, 없으면 데스크톱 헤더 버튼, 그것도 숨어 있으면
@@ -1007,9 +1014,11 @@ export default function Home() {
   // 마우스 클릭이나 주소창 → Shift+Tab 복귀로 배경에 포커스가 가면 확인 바가 그 위를 덮어
   // 포커스가 보이지 않게 된다(WCAG 2.2 SC 2.4.11). 벗어나면 바 안으로 되돌린다.
   const confirmBarRef = useRef<HTMLDivElement | null>(null);
+  const closingConfirm = useRef(false);
   useEffect(() => {
     if (!confirmingDelete) return;
     const keepFocusInside = (event: FocusEvent) => {
+      if (closingConfirm.current) return; // 닫는 중에는 복귀 포커스를 빼앗지 않는다
       const bar = confirmBarRef.current;
       if (!bar || bar.contains(event.target as Node)) return;
       bar.querySelector<HTMLButtonElement>("button")?.focus();
@@ -1097,6 +1106,7 @@ export default function Home() {
         </div>
       )}
 
+      {confirmingDelete && <div className="confirm-backdrop" onClick={cancelDelete} aria-hidden="true" />}
       {confirmingDelete && (
         // 고정 확인 바가 뒤쪽 내용을 덮는데 그쪽이 계속 탭으로 들어가면 포커스가 가려진다
         // (WCAG 2.2 SC 2.4.11). 버튼이 둘뿐이므로 Tab 을 두 버튼 사이로 가둬 실제 모달로 만든다.

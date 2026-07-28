@@ -143,3 +143,40 @@ test("배지 등급 계산과 게이트 판정이 같은 함수를 쓴다", () =
   assert.equal(claimSupports(comp, negationWithLink), false);
   assert.equal(hasConfirmedEvidenceFor(comp, [negationWithLink]), false);
 });
+
+// 심사 지적: 부정 판정이 실제 한 일을 지우고 있었다.
+// /전무/ 가 직함 "전무님" 에, /없음/ 이 "누락 없음" 에, /못 해/ 가 "잘못 해석" 에,
+// /모르/ 가 "모르는 동료도" 에 걸렸다. 양방향 코퍼스로 고정한다.
+const KEEP_CASES = [
+  ["항공물류 전무님께 보고할 운영 자료를 직접 만들었습니다", "물류"],
+  ["데이터 누락 없음을 매일 확인했습니다", "데이터"],
+  ["데이터를 잘못 해석해 다시 분석했습니다", "데이터"],
+  ["데이터 구조를 모르는 동료도 쓸 수 있게 문서를 만들었습니다", "데이터"],
+  ["API 연동을 직접 구현했고 장애가 한 번도 없었습니다", "API"],
+  ["데이터 정리를 계속했고 포기하지 않았습니다", "데이터"],
+  ["API 문서를 매일 정리하는 일을 멈추지 않았습니다", "API"],
+];
+const DROP_CASES = [
+  ["API도 못 다루고 개발도 해본 적이 전혀 없다", "API"],
+  ["데이터를 다뤄 본 적이 전혀 없다", "데이터"],
+  ["개발 경험 없음", "개발"],
+  ["API 미경험", "API"],
+  ["개발 경험은 전무합니다", "개발"],
+  ["API를 사용해 본 일이 없습니다", "API"],
+  ["개발은 전혀 해보지 않았습니다", "개발"],
+  ["파이썬 코드를 짜 본 적이 없습니다", "코드"],
+  ["개발 경험: 없습니다", "개발"],
+  ["데이터는 제 분야가 아닙니다", "데이터"],
+];
+
+test("실제로 한 일을 부정으로 잘못 지우지 않는다", () => {
+  for (const [quote, keyword] of KEEP_CASES) {
+    assert.equal(keywordIsNegated(quote, keyword), false, `지워짐: ${quote}`);
+  }
+});
+
+test("경험이 없다는 문장은 증거로 세지 않는다", () => {
+  for (const [quote, keyword] of DROP_CASES) {
+    assert.equal(keywordIsNegated(quote, keyword), true, `통과됨: ${quote}`);
+  }
+});

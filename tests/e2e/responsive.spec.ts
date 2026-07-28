@@ -48,10 +48,11 @@ test.describe("진행 단계가 좁은 화면에서 잘리지 않는다", () => 
       await expect(page.locator(".progress")).toBeVisible({ timeout: 15_000 });
 
       const result = await page.evaluate(() => {
-        const wrap = document.querySelector(".progress-wrap");
         const list = document.querySelector(".progress");
-        if (!wrap || !list) return null;
-        const wrapBox = wrap.getBoundingClientRect();
+        if (!list) return null;
+        // 감싸는 요소의 border box 와 비교하면 좌우 패딩만큼(최대 36px) 잘려도 통과한다.
+        // 실제 배치 영역인 ol 자체와 비교한다.
+        const wrapBox = list.getBoundingClientRect();
         const items = [...list.querySelectorAll("li")];
         return {
           total: items.length,

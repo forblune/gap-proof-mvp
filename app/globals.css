@@ -104,6 +104,8 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .notice.info { border-color: var(--line); background: var(--paper); color: var(--color-text); }
 
 /* 기록 삭제 확인 바 (모달 라이브러리 없이 최소 구현, 취소가 기본 포커스) */
+/* 배경 클릭을 삼킨다. aria-modal="true" 를 선언한 이상 뒤쪽 버튼이 눌리면 안 된다. */
+.confirm-backdrop { position: fixed; inset: 0; z-index: 49; background: rgba(23, 32, 51, .32); }
 .confirm-bar { position: fixed; z-index: 50; top: 84px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(480px, calc(100vw - 32px)); padding: 14px 16px; border: 1px solid var(--color-danger-border); background: var(--paper); border-radius: 12px; box-shadow: var(--shadow); }
 .confirm-bar p { margin: 0 0 12px; font-size: 13px; font-weight: 750; line-height: 1.5; }
 .confirm-bar > div { display: flex; justify-content: flex-end; gap: 8px; }
@@ -729,47 +731,65 @@ body.drawer-open { overflow: hidden; }
  *    아니라 캐스케이드로 해석되므로 위치를 옮겨도 다른 모든 규칙의 동작은 동일하다.
  */
 :root {
-  --color-page: #f0e9db;
-  --color-surface: #fffefb;
-  --color-surface-raised: #ffffff;
-  --color-surface-muted: #e8e0cd;
-  --color-border: #d9d0b8;
-  --color-border-strong: #b3a684;
-  --color-text: #2b3a54;
-  --color-text-muted: #4f5a68;
-  --color-heading: #0d1626;
-  --color-primary: #17243d;
-  --color-primary-hover: #24314f;
-  --color-primary-contrast: #fffefb;
-  --color-accent: #1a6350;
-  --color-accent-soft: #e2f1ec;
-  --color-accent-soft-border: #8fc2b4;
-  --color-success: var(--color-accent);
-  --color-success-soft: var(--color-accent-soft);
-  --color-warning: #8a5a06;
-  --color-warning-soft: #fdf3d7;
-  --color-warning-border: #d9c56f;
-  --color-danger: #b23a26;
-  --color-danger-soft: #fbe6e0;
-  --color-danger-border: #e0a89a;
-  --color-info: #315d91;
-  --color-info-soft: #eaf1fb;
-  --color-focus-ring: #1a6350;
+  /* ── GapProof 브랜드 토큰 (라이트) ────────────────────────────────────────
+     방향: Deep Indigo + Teal + Cool Neutral.
+       Deep Indigo — 신뢰·분석·전문성·안정 (주요 CTA·링크)
+       Teal        — 연결·발견·근거 축적 (G의 경로, 제한적 강조)
+       Cool Neutral— 긴 설명과 분석 결과의 가독성 (화면 대부분)
 
-  /* 항상 고정(다크에서도 값이 바뀌지 않음) — 브랜드 마크·번호 배지·증거카드 헤더·히어로 버튼 전용 */
-  --color-brand-fill: #17243d;
-  --color-brand-fill-contrast: #fffefb;
-  --color-brand-accent: #1a6350;
-  --color-highlight: #f4c84a;
-  --color-highlight-contrast: #17243d;
-  /* 라이트=흰/크림, 다크=네이비 — accent·danger·warning "단색 채움" 위에 얹는 글자색(둘 다 채움색이
-     테마마다 밝기가 뒤집히므로 흰 글자 하드코딩이 다크에서 깨지는 걸 막는다) */
-  --color-fill-contrast: var(--color-primary-contrast);
-  /* .primary/.drawer-cta 안의 화살표·호버 강조색 — 라이트는 고정 옐로가 네이비 배경 위에서 잘 보이지만,
-     다크에서는 --color-primary가 크림색으로 뒤집혀 옐로가 거의 안 보이므로(1.18:1) 테마별로 갈아 끼운다 */
-  --color-primary-accent: var(--color-highlight);
-  --hero-gradient: linear-gradient(165deg, #17243d 0%, #14213a 55%, #101a2d 100%);
-  --topbar-tint: rgba(240, 233, 219, .94);
+     아래 값은 제안 팔레트를 그대로 쓰되, WCAG 실측에서 미달한 것만 색상 계열을
+     유지한 채 명도를 낮췄다. 측정 기준은 그 색이 놓일 수 있는 가장 밝은 배경이다.
+       accent      #0E8178 → #0D7C73  (accent-soft 위 4.26 → 4.55:1)
+       text-muted  #768196 → #656F81  (surface-muted 위 3.53 → 4.56:1)
+     border 는 정보를 전달하지 않는 장식용이라 1.4.11 대상이 아니다. 컨트롤 경계용으로
+     border-strong 을 따로 두어 두 배경 모두에서 3:1 이상(3.18 / 3.01)을 만족시킨다. */
+
+  --color-page: #f7f9fc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-muted: #f0f3f8;
+  --color-border: #d8dfe9;
+  --color-border-strong: #8c9197;
+  --color-text: #172033;
+  --color-text-secondary: #596477;
+  --color-text-muted: #656f81;
+  --color-heading: #101828;
+
+  /* 주요 CTA·링크 */
+  --color-primary: #4057c8;
+  --color-primary-hover: #3347a8;
+  --color-primary-contrast: #ffffff;
+  --color-primary-soft: #eef1ff;
+
+  /* 보조 강조 — 근거의 연결과 축적 */
+  --color-accent: #0d7c73;
+  --color-accent-soft: #e7f6f3;
+  --color-accent-soft-border: #8fc9c1;
+
+  /* 상태색은 브랜드색과 섞지 않는다 */
+  --color-success: #15803d;
+  --color-success-soft: #e8f6ed;
+  --color-warning: #a85a00;
+  --color-warning-soft: #fdf1e0;
+  --color-warning-border: #e0b478;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdeceb;
+  --color-danger-border: #eaa9a3;
+  --color-info: #3347a8;
+  --color-info-soft: #eef1ff;
+  --color-focus-ring: #5368d8;
+  --color-disabled: #a8b0bf;
+
+  /* 항상 고정(테마와 무관) — 브랜드 마크·증거카드 헤더·히어로 버튼 전용 */
+  --color-brand-fill: #172033;
+  --color-brand-fill-contrast: #ffffff;
+  --color-brand-accent: #0d7c73;
+  --color-highlight: #4057c8;
+  --color-highlight-contrast: #ffffff;
+  --color-fill-contrast: #ffffff;
+  --color-primary-accent: #9fb0f5;
+  --hero-gradient: linear-gradient(165deg, #172033 0%, #1b2740 55%, #141c2e 100%);
+  --topbar-tint: rgba(247, 249, 252, .94);
 
   /* 레거시 별칭 — 기존 호출부 유지용 */
   --ivory: var(--color-page);
@@ -783,8 +803,9 @@ body.drawer-open { overflow: hidden; }
   --coral: var(--color-danger);
   --coral-soft: var(--color-danger-soft);
   --blue-soft: var(--color-info-soft);
-  --shadow: 0 18px 50px rgba(43, 47, 43, 0.08);
+  --shadow: 0 18px 50px rgba(23, 32, 51, 0.08);
 }
+
 
 :root[data-theme="dark"] {
   /* 히어로 밑줄은 장식이다. 어두운 테마에서 불투명도 .65 로 두면 노란 띠가

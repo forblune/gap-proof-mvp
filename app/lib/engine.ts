@@ -3,7 +3,7 @@
 //  - 확인된(=사용자가 맞다고 한) 역량만 현재 역량으로 인정
 //  - 증거등급은 실제 증거를 넘지 못함 (텍스트만=Lv.0 자기기록, 링크 연결=Lv.1)
 //  - 격차점수 = 목표 중요도 × (필요수준 - 현재수준)
-//  - 격차가 큰 순서로 학습 1 · 미니프로젝트 1 · 상담 1을 제시
+//  - 격차가 큰 순서로 학습 1 · 강의 연계 1 · 미니프로젝트 1을 제시
 
 export type ActionTemplate = { title: string; time: string; rule: string };
 
@@ -89,21 +89,30 @@ export type PassedChecks = Record<string, boolean>;
 // 왜 필요한가: 키워드 매칭만 하면 "API도 못 다루고 개발도 해본 적이 전혀 없다" 가 키워드 API 에
 // 걸려 증거가 된다. 예측이 아니라 사실이 거짓이라 고지 문구로는 치유되지 않는다.
 //
-// 왜 이렇게 좁게 잡는가: 앞선 판에서는 "없었/않았" 같은 어미를 통째로 걸렀는데,
-// "API 연동을 직접 구현했고 장애가 한 번도 없었습니다" 나 "개발을 계속했고 포기하지 않았습니다"
-// 처럼 **실제로 한 일**까지 지워졌다. 증거를 놓치는 것보다 사용자가 한 일을 지우는 쪽이 나쁘다.
-// 그래서 "이 대상에 대한 경험이 없다" 는 뜻이 분명한 형태만 잡는다.
+// 왜 이렇게 좁게 잡는가: 넓게 잡을수록 **사용자가 실제로 한 일**이 지워진다.
+// 실제로 겪은 오작동 — /전무/ 가 직함 "전무님" 에, /없음/ 이 "누락 없음" 에,
+// /못 해/ 가 "잘못 해석" 에, /모르/ 가 "모르는 동료도 쓸 수 있게" 에 걸렸다.
+// 증거를 놓치는 것보다 한 일을 지우는 쪽이 나쁘므로, 뜻이 분명한 형태만 잡고
+// 키워드에서 24자 안쪽에 있을 때만 그 키워드에 붙은 부정으로 본다.
 const NEGATION_PATTERNS: RegExp[] = [
-  /(해\s?본|한|다뤄\s?본|써\s?본|만들어\s?본|배워\s?본)\s*적[이은]?\s*(전혀|한\s?번도|거의)?\s*없/,
-  /경험[이은도]?\s*(전혀|거의|아직)?\s*없/,
+  // "…해 본 적/일/경험이 없다" 계열. 동사를 열거하지 않고 "본/한 + 적|일|경험 + 없" 구조로 잡는다.
+  /(본|한|짠|쓴|만든)\s*(적|일|경험)[이은도]?\s*(전혀|한\s?번도|거의|아직)?\s*없/,
+  // "경험이 없다" — "누락 없음" 같은 다른 명사의 부재와 섞이지 않도록 반드시 "경험" 을 요구한다.
+  /경험[이은도]?\s*[:：]?\s*(전혀|거의|아직)?\s*없/,
   /미경험/,
-  /전무/,
-  /못\s?(다루|하|해|했|만들|배웠|배워)/,
-  /안\s?(해\s?봤|했|배웠)/,
-  /모르(겠|ㅂ니다|릅니다|고)?/,
-  /없음/,
+  // "경험은 전무합니다" — 직함 "전무님" 에 걸리지 않도록 반드시 "경험" 뒤에 올 때만 본다.
+  /경험[이은도]?\s*[:：]?\s*(전혀|거의|아직)?\s*전무/,
+  // "해보지 않았다 / 해 본 적 없다" 계열.
+  /(해|써|다뤄|만들어|배워)\s?보?지\s*(전혀|아직)?\s*않/,
+  /(해|써|다뤄|만들어|배워)\s?본\s*(적|일)[이은]?\s*없/,
+  // "못 다루다 / 못 만들다" — "잘못 해석" 에 걸리지 않도록 "잘" 뒤가 아닌 경우만 본다.
+  /(^|[^잘])못\s?(다루|만들|배웠|배워|씁|쓴)/,
   /(영역|분야|전공|쪽)[이가은]?\s*아닙?니다?/,
 ];
+
+// 부정 표현이 "이 대상에 대한 경험이 없다" 를 뜻하려면 키워드 가까이 있어야 한다.
+// 멀리 떨어진 부정은 대개 다른 명사에 붙은 것이다("전무님", "누락 없음").
+const NEGATION_WINDOW = 24;
 
 // 문장을 절 단위로 자른다. 한 문장 안에서 "A는 했고 B는 못 했다" 처럼 섞이는 경우가 흔하다.
 function clausesOf(text: string): string[] {
@@ -123,7 +132,8 @@ export function keywordIsNegated(text: string, keyword: string): boolean {
   const clauses = clausesOf(text).filter((clause) => clause.includes(keyword));
   if (clauses.length === 0) return false;
   return clauses.every((clause) => {
-    const predicate = clause.slice(clause.indexOf(keyword));
+    const after = clause.slice(clause.indexOf(keyword) + keyword.length);
+    const predicate = after.slice(0, NEGATION_WINDOW);
     return NEGATION_PATTERNS.some((pattern) => pattern.test(predicate));
   });
 }
@@ -199,7 +209,7 @@ export function coveredStrengths(confirmed: EvidenceInput[], role: Role): string
     .map((comp) => comp.label);
 }
 
-// 상위 격차에서 이번 주 행동 3개(학습·미니프로젝트·상담)를 고른다.
+// 상위 격차에서 이번 주 행동 3개(학습·강의 연계·미니프로젝트)를 고른다.
 export function recommendNextActions(gaps: GapItem[], role: Role): ActionRec[] {
   const byId = (id: string) => role.competencies.find((comp) => comp.id === id);
   const learnComp = (gaps[0] && byId(gaps[0].id)) || role.competencies[0];
