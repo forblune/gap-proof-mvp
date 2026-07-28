@@ -10,5 +10,7 @@
 | `0003_grants_for_authenticated.sql` | 20260728093122 | 적용됨 |
 | `0004_revoke_trigger_function_rpc.sql` | 20260728093227 | 적용됨 |
 | `0005_experiences_external_credentials_and_touch.sql` | (동일 세션 적용) | 적용됨 |
+| `0006_feedback_submissions_and_attachments.sql` | (동일 세션 적용) | 적용됨 |
+| `0007_feedback_storage_bucket_and_policies.sql` | (동일 세션 적용, Storage 스키마) | 적용됨 |
 
 모든 문은 `if not exists` / `drop ... if exists` 로 작성돼 재적용해도 중복 오류가 나지 않는다.
