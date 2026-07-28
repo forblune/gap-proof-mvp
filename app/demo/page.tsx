@@ -1075,14 +1075,32 @@ export default function Home() {
       )}
 
       {confirmingDelete && (
-        // alertdialog 은 focus trap 과 aria-modal 을 약속한다. 여기는 페이지 위에 얹힌 확인 바라
-        // 그 약속을 지키지 못한다 — 실제 동작에 맞는 group 을 쓰고 Escape·초기 포커스는 유지한다.
+        // 고정 확인 바가 뒤쪽 내용을 덮는데 그쪽이 계속 탭으로 들어가면 포커스가 가려진다
+        // (WCAG 2.2 SC 2.4.11). 버튼이 둘뿐이므로 Tab 을 두 버튼 사이로 가둬 실제 모달로 만든다.
+        // 포커스를 가두므로 role=dialog + aria-modal 이 지킬 수 있는 약속이 된다.
         <div
           className="confirm-bar"
-          role="group"
-          aria-label="새 분석 시작 확인"
-          onKeyDown={(event) => { if (event.key === "Escape") cancelDelete(); }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-reset-title"
+          aria-describedby="confirm-reset-desc"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              cancelDelete();
+              return;
+            }
+            if (event.key !== "Tab") return;
+            const buttons = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+            );
+            if (buttons.length === 0) return;
+            event.preventDefault();
+            const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+            const next = event.shiftKey ? index - 1 : index + 1;
+            buttons[(next + buttons.length) % buttons.length].focus();
+          }}
         >
+          <h2 id="confirm-reset-title" className="sr-only">새 분석 시작 확인</h2>
           <p id="confirm-reset-desc">새 분석을 시작하시겠습니까? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
           <div>
             {/* 되돌릴 수 없는 확인창에서 파괴 동작이 시각적으로 가장 강하면 안 된다.
