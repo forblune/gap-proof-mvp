@@ -53,25 +53,41 @@ export function tierFromLink(link: string | undefined | null): number {
   return typeof link === "string" && link.trim().length > 0 ? 1 : 0;
 }
 
-// 학습확인(퀴즈)을 통과한 역량 id 집합. 통과 = 수행 확인(Lv.2) 증거.
+// 학습확인(퀴즈)을 통과한 역량 id 집합. 퀴즈는 이해도 점검일 뿐, 그 자체로는
+// 증거가 아니다 — 이 역량에 실제 경험과 연결된 사용자 확인 증거가 이미 있을 때만
+// 수행 확인(강도 3)의 하한으로 반영한다(아래 competencyStrength 참고).
 export type PassedChecks = Record<string, boolean>;
+
+// 확인된 증거(원문) 중 이 역량(keywords)과 매칭되는 것이 있는지 — 학습확인(퀴즈) 통과가
+// 수행 확인(Lv.2)으로 이어지기 위한 전제 조건. competencyStrength와 화면 표시(page.tsx의
+// STEP4·STEP5 "수행 확인" 배지) 양쪽에서 같은 판정 기준을 쓰기 위해 별도로 내보낸다.
+export function hasConfirmedEvidenceFor(comp: Competency, confirmed: EvidenceInput[]): boolean {
+  return confirmed.some((claim) => {
+    const text = `${claim.skill} ${claim.quote}`;
+    return comp.keywords.some((keyword) => text.includes(keyword));
+  });
+}
 
 // 확인 역량들이 특정 역량(competency)을 얼마나 뒷받침하는지 = 증거 강도.
 // 매칭되는 확인 역량이 없으면 0, 있으면 (증거등급+1) 중 최댓값을 필요수준으로 상한.
-// 학습확인을 통과했으면 수행 확인(강도 3)을 하한으로 반영한다.
+// 학습확인(퀴즈) 통과는 이 역량에 매칭되는 확인 증거가 최소 1개 있을 때만
+// 수행 확인(강도 3)을 하한으로 반영한다 — 퀴즈 단독으로는 증거를 만들지 않는다.
 export function competencyStrength(
   comp: Competency,
   confirmed: EvidenceInput[],
   passed: PassedChecks = {},
 ): number {
   let best = 0;
+  let hasMatchingConfirmedEvidence = false;
   for (const claim of confirmed) {
     const text = `${claim.skill} ${claim.quote}`;
     if (comp.keywords.some((keyword) => text.includes(keyword))) {
       best = Math.max(best, claim.tier + 1);
+      hasMatchingConfirmedEvidence = true;
     }
   }
-  if (passed[comp.id]) best = Math.max(best, 3); // 수행 확인(Lv.2)
+  // 수행 확인(Lv.2): 퀴즈 통과 + 이 역량에 연결된 사용자 확인 증거가 최소 1개.
+  if (passed[comp.id] && hasMatchingConfirmedEvidence) best = Math.max(best, 3);
   return Math.min(comp.required, best);
 }
 

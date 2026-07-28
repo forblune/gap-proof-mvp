@@ -2,6 +2,8 @@
 
 **작성일**: 2026-07-28. 본 문서는 명세만 제공하며, 이 목표(9번째 `/goal`)에서는 구현하지 않는다. 실제 구현은 `GAPPROOF_ROADMAP_TO_2026-08-03.md`의 7/29 항목에서 별도 세션으로 진행한다.
 
+> **상태 갱신(2026-07-28, 최소 갱신)**: 이 명세대로 `fix/evidence-grade-integrity` 브랜치에서 구현 완료(Draft PR, main 미병합). Superpowers brainstorming→writing-plans→executing-plans 절차, 단위 9개·E2E 21개(3브라우저)·독립 리뷰 4관점(Product Logic·Engineering·Accessibility·Skeptical Competition) 전부 완료. 상세는 `docs/devlog/2026-07-28-evidence-grade-integrity.md` 참고. 아래 원본 명세는 계획 당시 문서로 그대로 유지한다.
+
 ## 선택 기준 적용
 
 첫 PR은 기능 수가 아니라 제품 신뢰성·증거 원칙·8월 3일 제출 위험을 기준으로 선택한다. 기준서 §16 5문항 필터를 후보들에 적용:

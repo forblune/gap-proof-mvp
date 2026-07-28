@@ -235,7 +235,7 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.match(page, /최소 20자 · 최대 10,000자/); // 길이 조건 안내(화면·서버 일치)
   assert.match(page, /자동으로 잘라내지 않습니다/); // 절삭 금지 계약
   assert.match(page, /role="alertdialog"/); // 기록 삭제 확인 절차
-  assert.match(page, /아직 확인된 역량이 없습니다/); // 확인 0개 가드 안내
+  assert.match(page, /다음 단계로 가려면 내 경험에서 확인할 수 있는 근거를 하나 이상 선택해 주십시오/); // 확인 0개 가드 안내(증거등급 무결성 P0)
   assert.match(page, /notice\.kind === "error" \? "alert" : "status"/); // 오류 알림 라이브 리전
   assert.match(page, /개인정보가 감지되면 가려서 표시됩니다/); // 마스킹 가능성 고지(#7)
   assert.match(layout, /SITE_TITLE = "GapProof \| 공백을 증거로"/);
