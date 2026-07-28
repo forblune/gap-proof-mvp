@@ -4,12 +4,26 @@ import AxeBuilder from "@axe-core/playwright";
 // 증거등급 무결성 P0: 확인된 증거(원문 인용) 0개면 학습확인(퀴즈) 통과 여부와 무관하게
 // STEP4→5 진행이 차단되고, 1개 이상 확인해야만 진행할 수 있다.
 
+// 각 단계가 화면에 실제로 나타난 것을 확인하고 다음으로 넘어간다.
+// networkidle 이후에도 첫 렌더가 늦을 수 있어, 요소를 기다리지 않고 바로 조작하면
+// 비어 있는 화면을 상대로 30초를 기다리다 타임아웃난다.
 async function reachStep4(page) {
   await page.goto("/demo?sample=1", { waitUntil: "networkidle" });
-  await page.locator(".check-row input").first().check();
-  await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
-  await page.getByRole("button", { name: /가능성 찾기/ }).click();
-  await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 10_000 });
+
+  const consent = page.locator(".check-row input").first();
+  await expect(consent).toBeVisible({ timeout: 20_000 });
+  await consent.check();
+  await expect(consent).toBeChecked();
+
+  const start = page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ });
+  await expect(start).toBeEnabled({ timeout: 15_000 });
+  await start.click();
+
+  const analyze = page.getByRole("button", { name: /가능성 찾기/ });
+  await expect(analyze).toBeEnabled({ timeout: 15_000 });
+  await analyze.click();
+
+  await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 15_000 });
 }
 
 test.describe("증거등급 무결성 — STEP4→5 게이트", () => {

@@ -6,7 +6,10 @@ import { test, expect } from "@playwright/test";
 // 기본 역할 기준 자료(검색어·미니프로젝트)를 보게 된다.
 async function reachLookIntoStep(page) {
   await page.goto("/demo?sample=1", { waitUntil: "networkidle" });
-  await page.locator(".check-row input").first().check();
+  // 첫 렌더가 늦을 수 있어 요소가 보인 뒤에 조작한다(빈 화면 상대로 타임아웃나던 문제).
+  const consentInput = page.locator(".check-row input").first();
+  await expect(consentInput).toBeVisible({ timeout: 20_000 });
+  await consentInput.check();
   await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
   await page.getByRole("button", { name: /가능성 찾기/ }).click();
   await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 10_000 });
