@@ -1,6 +1,13 @@
-# 리브랜딩 — GapProof → Tracefolio
+# [보류됨] 리브랜딩 검토 — GapProof → Tracefolio
 
-결정일: 2026-07-28 · 감사일: 2026-07-28
+> **이 문서의 결정은 실행하지 않습니다.** 2026-07-28 이후 방침에 따라 **제품명은 `GapProof`로 유지**하며,
+> Tracefolio를 포함한 이름 변경은 진행하지 않습니다. 저장소명·도메인·Worker·Supabase·OAuth 설정도
+> 변경하지 않습니다. 현재 유효한 디자인 사양은 `docs/planning/DESIGN_SPEC_BRAND_AND_READABILITY.md` 입니다.
+>
+> 이 문서는 **조사 기록으로만** 보존합니다. 아래 이름 변경 감사(A~F 분류)와 이름 충돌 조사는
+> 나중에 같은 논의가 다시 나올 때 재사용할 수 있는 사실 자료입니다.
+
+검토일: 2026-07-28 · 감사일: 2026-07-28 · 상태: **보류 (실행하지 않음)**
 
 ## 1. 브랜드 정의
 
@@ -176,3 +183,38 @@ Tracefolio의 시각 언어(가는 상승형 trace line 또는 `brand-soft` 배�
 | 테스트 DB·Storage 잔여물 | 0건 |
 | commit·PR 보존 | `5fd5687`, PR #82 (Draft) |
 | 리뷰어 지적 해결·재검토 | 지적 해결 완료, **재검토 대기** |
+
+## 8. 이름 충돌 사전조사 (2026-07-28)
+
+**법률 의견이 아닙니다.** 공개 웹에서 관측 가능한 사실만 기록했습니다.
+
+**충돌 위험: 중간**
+
+| 대상 | 결과 |
+|---|---|
+| `tracefolio.com` | **등록·선점됨** — 2019-09-04 등록, Squarespace 파킹, 만료 2026-09-04 |
+| GitHub org `Tracefolio` | **선점됨** — 2026-03-02 생성, 사실상 미개발 |
+| GitHub `RyanCoreAI/TraceFolio` | **컨셉 유사** — "개인 기술자산 증거 저장소", 2026-06-30, MIT |
+| Instagram `@tracefolio` | **사용 중** — 표시명 "Trace Folio", EU 제품여권 규제 대응 컨설팅 (업종 상이) |
+| Product Hunt · App Store · Google Play | 동일명 상용 제품 없음 |
+| 유사명 | `Trackfolio`, `Interfolio`(교육·커리어 SaaS), `Klipfolio`, `Morpholio Trace` |
+| 한국어 "트레이스폴리오" | 용례 검색 결과 없음 |
+
+### 확인하지 못한 것 — 가장 중요한 항목
+
+**한국·미국·EU 상표 검색을 한 건도 수행하지 못했습니다.**
+KIPRIS는 서버 접속 거부(ECONNREFUSED), USPTO·EUIPO는 JavaScript 전용 화면이라 결과를 읽지 못했습니다.
+상용 미러 사이트도 403/404였습니다.
+
+**결과 0건이 아니라 검색 자체를 못 한 것입니다. "선등록 상표 없음"으로 해석하면 안 됩니다.**
+
+그 밖에 확인하지 못한 것: `tracefolio.com` 실소유자(RDAP 비공개) ·
+`.io`/`.app`/`.co.kr`/`.net` 실제 등록 여부(DNS 미해결만 확인) · X·LinkedIn 핸들(비로그인 차단).
+
+### 이름을 다시 검토할 경우 사람이 직접 해야 할 일
+
+1. KIPRIS 브라우저 직접 검색 — 9류(SW)·41류(교육)·42류(SaaS), 유사 발음 포함
+2. USPTO·EUIPO 직접 검색
+3. **변리사 유사상표 감정** — 특히 `Interfolio`와의 호칭·관념 유사 판단
+4. `tracefolio.com` 만료일(2026-09-04) 전후 모니터링
+5. 핸들 선점 상태 재확인
