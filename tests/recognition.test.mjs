@@ -441,24 +441,32 @@ test("요구 증거가 중복돼 있어도 두 번 세지 않는다", () => {
 
 // 심사 지적: LESSON_ONLY_MAX_TIER 집행 분기를 지워도 테스트가 전부 통과했다.
 // 상한이 실제로 결과를 바꾸는 입력으로 고정해, 그 분기를 지우면 실패하게 한다.
-test("학습만 한 기록은 확인 증거가 있어도 상한을 넘지 않는다 — 집행 분기가 살아 있어야 한다", () => {
+// 심사 지적: 이전 테스트는 절대 실행되지 않는 분기를 고정하고 있어 원리상 실패할 수 없었다.
+// 상한이 지켜지는 진짜 이유는 "학습만 한 기록에 붙을 수 있는 인정의 maxTier 가 모두 0" 이라는
+// 구조다. 그 구조를 직접 고정한다 — 누군가 maxTier 를 올리면 이 테스트가 실패한다.
+test("학습만 한 기록에 붙는 인정은 전부 상한 이하여야 한다", () => {
   const lessonOnly = baseRecord({
     understandingChecked: true,
     performanceNote: ".", // 문턱 미달
     artifacts: [],
   });
+  const kinds = recognitionKindsFor(lessonOnly);
+  assert.deepEqual(kinds.slice().sort(), ["learning_completed", "understanding_checked"]);
+  for (const id of kinds) {
+    assert.ok(
+      findRecognitionKind(id).maxTier <= LESSON_ONLY_MAX_TIER,
+      `${id} 의 maxTier 가 학습 전용 상한을 넘습니다`,
+    );
+  }
   assert.equal(maxTierFromRecord(lessonOnly, true), LESSON_ONLY_MAX_TIER);
 
-  // 수행 기록이 문턱을 넘으면 상한이 풀린다 — 상한이 무조건 0을 반환하는 것이 아님을 확인한다.
-  const withPerformance = baseRecord({
+  // 상한이 무조건 0을 반환하는 것이 아님을 같은 자리에서 확인한다.
+  const withArtifact = baseRecord({
     understandingChecked: true,
     performanceNote: "실제 문제 1개를 5문장으로 정의해 봤습니다",
-    artifacts: [],
+    artifacts: [{ url: "https://github.com/me/repo" }],
   });
-  assert.ok(
-    maxTierFromRecord(withPerformance, true) > LESSON_ONLY_MAX_TIER,
-    "수행 기록이 있어도 상한이 걸려 있습니다",
-  );
+  assert.ok(maxTierFromRecord(withArtifact, true) > LESSON_ONLY_MAX_TIER);
 });
 
 test("한 글자 수행 기록은 '실제 수행' 인정으로도 세지 않는다 — 증서와 같은 문턱", () => {

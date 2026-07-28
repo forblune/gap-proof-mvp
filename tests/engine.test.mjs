@@ -2,7 +2,7 @@
 // 확인된 증거(원문 인용)와 매칭되지 않는 퀴즈 통과는 등급에 반영되지 않는다.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { competencyStrength, tierFromLink } from "../app/lib/engine.ts";
+import { hasConfirmedEvidenceFor, keywordIsNegated, competencyStrength, tierFromLink } from "../app/lib/engine.ts";
 
 const comp = {
   id: "data-cleaning",
@@ -79,4 +79,28 @@ test("기존 정상 계산 회귀 없음 — tierFromLink는 그대로 동작한
   assert.equal(tierFromLink(undefined), 0);
   assert.equal(tierFromLink(""), 0);
   assert.equal(tierFromLink("https://example.com"), 1);
+});
+
+// 심사 지적: 키워드 매칭만으로는 부정문도 증거가 된다.
+// "개발도 해본 적이 전혀 없다" 가 키워드 API 에 걸려, 개발 경험이 없다고 적은 사용자에게
+// 요구 증거가 충족됐다고 표시됐다. 링크(tier 1)를 붙이면 tier 필터로는 우회된다.
+test("부정문은 링크를 붙여도 역량 근거로 세지 않는다", () => {
+  const negation = { skill: "없음", quote: "데이터를 다뤄 본 적이 전혀 없다", tier: 0 };
+  const negationWithLink = { ...negation, tier: 1 };
+  assert.equal(hasConfirmedEvidenceFor(comp, [negation]), false);
+  assert.equal(hasConfirmedEvidenceFor(comp, [negationWithLink]), false);
+  assert.equal(competencyStrength(comp, [negationWithLink]), 0);
+});
+
+test("한 일과 못 한 일이 같은 문장에 있으면 한 일은 남긴다 — 과잉 차단 방지", () => {
+  const mixed = { skill: "혼합", quote: "정리는 직접 해 봤지만 데이터는 다뤄 본 적 없다", tier: 1 };
+  assert.equal(hasConfirmedEvidenceFor(comp, [mixed]), true);
+  const reversed = { skill: "혼합", quote: "데이터는 모르지만 정리 기준은 직접 만들었습니다", tier: 1 };
+  assert.equal(hasConfirmedEvidenceFor(comp, [reversed]), true);
+});
+
+test("부정 판정은 키워드가 든 절만 본다", () => {
+  assert.equal(keywordIsNegated("데이터를 다뤄 본 적이 없습니다", "데이터"), true);
+  assert.equal(keywordIsNegated("데이터로 표를 만들었습니다", "데이터"), false);
+  assert.equal(keywordIsNegated("돈이 없다. 데이터로 표를 만들었습니다", "데이터"), false);
 });

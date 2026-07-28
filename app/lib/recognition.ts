@@ -149,7 +149,7 @@ export const TIER_RULES: TierRule[] = [
     tier: 2,
     name: "수행 확인",
     raiseWhen:
-      "그 역량에 확인된 근거가 이미 있고, 실제 수행 기록과 유효한 산출물 링크가 함께 연결된 경우.",
+      "그 역량에 확인된 근거가 이미 있고, 유효한 산출물 링크(http/https)가 연결된 경우. 수행 확인서 발급은 여기에 더해 수행 기록까지 요구한다(등급보다 문서 조건이 더 엄격하다).",
     neverWhen:
       "학습을 끝냈다는 사실이나 이해 확인(퀴즈) 통과로는 어떤 경우에도 오르지 않습니다. 이해 확인은 증거 강도 계산에 아예 반영되지 않습니다.",
   },
@@ -343,10 +343,11 @@ export function recognitionKindsFor(record: LearningRecord): RecognitionKindId[]
 // 기획서 §6.2의 Lv.2 전제가 "그 역량에 확인된 근거가 이미 있고"이므로, 확인 증거가 없으면
 // 수행 기록이나 산출물을 붙여도 Lv.1을 넘지 못한다 — 학습 기록 하나만으로 등급이
 // 올라가는 것처럼 보이면 화면이 실제보다 큰 약속을 하게 된다.
-// 영상 학습만으로 도달 가능한 상한. 학습 자료를 보고 질문에 답한 것은 자기기록이며,
-// 산출물이나 수행 기록이 없으면 이 상한을 넘지 않는다.
-// 기획서 §6.4 가 youtube-lesson.ts 의 LESSON_MAX_TIER 를 집행 장치로 제시하므로,
-// 실제로 집행하는 자리를 여기 둔다(두 값이 어긋나면 테스트가 실패한다).
+// 영상 학습만으로 도달 가능한 상한.
+//
+// 이 값은 별도 분기로 집행하지 않는다 — 학습만 한 기록에 붙을 수 있는 인정
+// (learning_completed, understanding_checked)의 maxTier 가 모두 0 이라 구조적으로 보장된다.
+// 그 구조가 무너지면(누군가 maxTier 를 올리면) 테스트가 실패하도록 묶어 둔다.
 export const LESSON_ONLY_MAX_TIER = 0;
 
 export function maxTierFromRecord(record: LearningRecord, hasConfirmedEvidence = false): number {
@@ -355,10 +356,12 @@ export function maxTierFromRecord(record: LearningRecord, hasConfirmedEvidence =
     return kind ? Math.max(max, kind.maxTier) : max;
   }, 0);
 
-  // 영상 학습만 한 상태(수행 기록도 산출물도 없음)는 어떤 경우에도 상한을 넘지 않는다.
-  // 기획서 §6.4가 LESSON_ONLY_MAX_TIER 를 집행 장치로 제시하므로 여기서 실제로 집행한다.
-  const lessonOnly = validArtifacts(record).length === 0 && !isAnsweredEnough(record.performanceNote);
-  if (lessonOnly) return Math.min(raw, LESSON_ONLY_MAX_TIER);
+  // 영상 학습만 한 상태의 상한은 별도 분기로 집행하지 않는다.
+  //
+  // 그 상태에서 붙을 수 있는 인정은 learning_completed 와 understanding_checked 뿐이고
+  // 둘 다 maxTier 0 이므로 raw 가 이미 0 이다. 분기를 두면 절대 실행되지 않는 코드가 되고,
+  // 그것을 고정하려는 테스트는 원리상 실패할 수 없어 검증이 아니라 장식이 된다.
+  // 대신 그 구조적 사실 자체를 테스트로 고정한다(LESSON_ONLY_MAX_TIER 참고).
 
   return hasConfirmedEvidence ? raw : Math.min(raw, 1);
 }
@@ -396,7 +399,7 @@ export function evidenceCoverage(requiredItems: string[], metItems: string[]): E
     requiredCount,
     metCount,
     percent: requiredCount === 0 ? 0 : Math.round((metCount / requiredCount) * 100),
-    formula: `확인 가능한 링크가 붙은 요구 증거 ${metCount}개 ÷ 목표 직무의 요구 증거 ${requiredCount}개 × 100`,
+    formula: `링크가 연결된 확인 근거로 뒷받침된 요구 증거 ${metCount}개 ÷ 목표 직무의 요구 증거 ${requiredCount}개 × 100`,
     basis,
     unmet,
     disclaimer: COVERAGE_DISCLAIMER,

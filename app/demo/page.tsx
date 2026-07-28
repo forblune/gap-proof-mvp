@@ -124,7 +124,9 @@ function TierLegend() {
   return (
     <p className="tier-legend">
       <b>Lv. 표기는 무엇이 확인됐는지를 뜻하며 숙련도 점수가 아닙니다.</b>{" "}
-      Lv.0 {TIER_MEANS[0]} · Lv.1 {TIER_MEANS[1]} · Lv.2 {TIER_MEANS[2]}
+      Lv.0 {TIER_MEANS[0]} · Lv.1 {TIER_MEANS[1]} · Lv.2 {TIER_MEANS[2]} · Lv.3 {TIER_MEANS[3]}
+      {" "}이 데모에서 역량 배지는 Lv.0과 Lv.1까지만 붙습니다. Lv.2는 학습 기록에 산출물이 연결될 때,
+      Lv.3은 기관 확인 절차가 생길 때(Phase 2) 도달합니다.
     </p>
   );
 }
@@ -136,7 +138,7 @@ function TierBadge({ tier }: { tier: number }) {
     // 문장 설명은 목록 단위로 한 번만 둔다(아래 TierLegend).
     <span className={`tier tier-${tier}`}>
       <b>Lv.{tier}</b> {TIER_LABELS[tier]}
-      <span className="sr-only">. {TIER_MEANS[tier]} 숙련도 점수가 아닙니다.</span>
+      {/* 설명은 TierLegend 가 목록 단위로 한 번만 말한다 — 배지마다 붙이면 중복 낭독된다. */}
     </span>
   );
 }
@@ -817,6 +819,19 @@ export default function Home() {
     setProofDate(null);
     setConfirmingDelete(false);
     setModelId(DEFAULT_MODEL_ID);
+    // 확인 바가 "현재 작성한 내용과 분석 결과가 사라집니다" 라고 단언한다.
+    // 영상 학습·답변·수행 기록·산출물·발급 문서를 남기면 그 말이 거짓이 되고,
+    // 샘플에서 만든 기록이 실제 여정으로 넘어와 사용자 자신의 기록으로 읽힌다.
+    setLesson(null);
+    setLessonAnswers([]);
+    setLessonUrl("");
+    setLessonError(null);
+    setLessonEditing(false);
+    setSourceCompleted(false);
+    setPerformanceNote("");
+    setArtifactUrl("");
+    setIssuedCert(null);
+    setRestoredAt(null);
   };
 
   // 샘플 체험 진입·초기화·종료 — 사용자의 실제 draft는 건드리지 않는다
@@ -984,6 +999,11 @@ export default function Home() {
   const confirmDelete = () => {
     setConfirmingDelete(false);
     deleteRecords();
+    // 취소 경로만 포커스를 되돌리고 파괴 경로는 body 로 떨어뜨리면 안 된다.
+    // 초기화 후 첫 화면의 주요 입력으로 옮긴다.
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(".gate-page input, #experience, .consent-card input")?.focus();
+    });
   };
 
   return (
@@ -1028,7 +1048,7 @@ export default function Home() {
       </header>
 
       {sampleMode && journeyOpen && (
-        <div className="sample-strip" role="status">
+        <div className="sample-strip">
           <span><b>샘플 체험 중</b> — 실제 분석이 아닙니다. 미리 준비된 예시로 전체 흐름을 볼 수 있습니다.</span>
           <button className="text-button" onClick={exitSample}>실제 분석으로 전환</button>
         </div>
@@ -1063,12 +1083,12 @@ export default function Home() {
           aria-label="새 분석 시작 확인"
           onKeyDown={(event) => { if (event.key === "Escape") cancelDelete(); }}
         >
-          <p>새 분석을 시작하시겠습니까? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
+          <p id="confirm-reset-desc">새 분석을 시작하시겠습니까? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
           <div>
             {/* 되돌릴 수 없는 확인창에서 파괴 동작이 시각적으로 가장 강하면 안 된다.
                 안전한 선택지를 채움 버튼으로 두고, 파괴 동작은 외곽선으로 낮춘다. */}
-            <button className="safe" autoFocus onClick={cancelDelete}>계속 작성하기</button>
-            <button className="danger" onClick={confirmDelete}>새 분석 시작</button>
+            <button className="safe" autoFocus aria-describedby="confirm-reset-desc" onClick={cancelDelete}>계속 작성하기</button>
+            <button className="danger" aria-describedby="confirm-reset-desc" onClick={confirmDelete}>새 분석 시작</button>
           </div>
         </div>
       )}
@@ -1164,14 +1184,15 @@ export default function Home() {
       {/* 저장된 내용을 말없이 되살리지 않는다 — 무엇이 돌아왔고 무엇이 돌아오지 않았는지 알린다. */}
       {journeyOpen && restoredAt && (
         <div className="page-shell">
-          <div className="restore-note" role="status">
-            <p>
+          <div className="restore-note">
+            <p role="status">
               <b>이 기기에 저장해 둔 작성 내용을 불러왔습니다.</b>{" "}
               마지막 저장: {new Date(restoredAt).toLocaleString("ko-KR")}
             </p>
             <p className="restore-scope">
-              복원되는 것: 경험 원문, 후보 확인·거절 상태, 목표 직무, 진행 단계, 저장 동의,
-              이해 확인(퀴즈) 통과 여부, 선택한 이번 주 행동, 증거카드 발급일.
+              복원되는 것: 경험 원문, 후보 확인·거절 상태, 목표 직무, 진행 단계,
+              저장 동의와 통계 활용 동의, 이해 확인(퀴즈) 통과 여부, 선택한 이번 주 행동,
+              증거카드 발급일, 사용한 AI 모델과 분석 출처.
             </p>
             <p className="restore-scope">
               복원되지 않는 것: 영상 학습 결과와 질문 답변, 수행 기록, 산출물 링크, 발급한 문서.
@@ -1498,16 +1519,14 @@ export default function Home() {
                     </section>
                   );
                 })}
-                <p className="length-hint">
-                  {lesson ? (
-                    <>
-                      이 학습 기록만으로 도달 가능한 최대 증거등급: <b>Lv.{recordMaxTier}</b>
-                      {recordMaxTier === 0 && " — 등급을 올리려면 실제로 해 보고 결과물 링크를 남겨 주십시오."}
-                    </>
-                  ) : (
-                    <>학습 자료를 만들면 여기에 무엇까지 인정되는지 표시됩니다. 학습만으로는 <b>Lv.0 자기기록</b>을 넘지 않습니다.</>
-                  )}
-                </p>
+                {/* 학습 기록이 없을 때의 안내는 이 details 위쪽(항상 보이는 곳)에 이미 있다.
+                    접힌 안에 또 두면 정작 필요한 순간에 숨는다. */}
+                {lesson && (
+                  <p className="length-hint">
+                    이 학습 기록만으로 도달 가능한 최대 증거등급: <b>Lv.{recordMaxTier}</b>
+                    {recordMaxTier === 0 && " — 등급을 올리려면 실제로 해 보고 결과물 링크를 남겨 주십시오."}
+                  </p>
+                )}
               </div>
             </details>
 
@@ -1773,7 +1792,7 @@ export default function Home() {
                 <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 이해도 확인 완료</h3><div className="check-result pass">이해도 확인을 통과했습니다. <b>이해 확인은 증거등급을 올리지 않습니다.</b> 이 역량에 확인한 근거가 있으면 증거카드에 ‘이해 확인’으로 함께 적히고, 아직 없으면 근거를 먼저 확인해 주십시오.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               if (quiz.status === "locked") return (
-                <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">등급을 올리지 않았습니다. 추천 학습을 완료한 뒤 다시 확인해 주십시오.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+                <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">이해 확인은 통과 여부와 무관하게 증거등급을 올리지 않습니다. 추천 학습을 완료한 뒤 다시 확인해 주십시오.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               return (
                 <div className="check-panel"><div className="card-kicker">학습확인 · 이해도 점검</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. <b>통과해도 증거등급은 오르지 않습니다.</b> 확인한 근거가 있을 때만 증거카드에 ‘이해 확인’으로 함께 적힙니다.</p>

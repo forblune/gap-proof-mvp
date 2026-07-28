@@ -6,7 +6,7 @@ body { margin: 0; background: var(--ivory); color: var(--ink); font-family: Aria
 h1, h2, h3 { color: var(--color-heading); } /* 헤딩·본문 명도 대비 강화 — 더 구체적인 선택자(예: .identity h2, .home-hero h1)가 우선한다 */
 button, textarea, input { font: inherit; }
 button { color: inherit; }
-button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: 3px; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: 3px; }
 
 .topbar { height: 76px; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--topbar-tint); position: sticky; top: 0; z-index: 20; backdrop-filter: blur(12px); }
 .brand { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; color: var(--ink); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.04em; }
@@ -855,7 +855,15 @@ body.drawer-open { overflow: hidden; }
 
 /* 학습 기록이 생기기 전에는 접어 둔다 — 아무것도 안 한 사용자에게 15개 블록을 펼치지 않는다. */
 .recognition-details { margin: 0 0 14px; }
-.recognition-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14px; font-weight: 750; color: var(--color-heading); }
+.recognition-details > summary { min-height: 44px; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; font-weight: 750; color: var(--color-heading); }
+/* display:flex 는 ::marker 를 없앤다 — 펼침 단서를 직접 그린다(제목과 구별되게). */
+.recognition-details > summary::before {
+  content: ""; width: 0; height: 0; flex: none;
+  border-left: 6px solid currentColor; border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent;
+  transition: transform 160ms ease;
+}
+.recognition-details[open] > summary::before { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .recognition-details > summary::before { transition: none; } }
 .recognition-details[open] > summary { margin-bottom: 10px; }
 
 /* 인정 유형은 확인 주체별로 다른 상자에 담는다(라벨이 아니라 구조로 구분). */

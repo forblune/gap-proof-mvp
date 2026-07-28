@@ -75,16 +75,53 @@ export function isVerifiableLink(link: string | undefined | null): boolean {
 // 이 값은 증거카드에 "이해 확인" 항목을 적을지 결정하는 표시용으로만 쓴다.
 export type PassedChecks = Record<string, boolean>;
 
-// 확인된 증거(원문) 중 이 역량(keywords)과 매칭되는 것이 있는지.
+// 부정 표현 — "그 일을 하지 않았다"는 문장을 증거로 세지 않기 위해 쓴다.
+//
+// 키워드 매칭만 하면 "API도 못 다루고 개발도 해본 적이 전혀 없다" 가 키워드 API 에 걸려
+// 증거가 된다. 개발 경험이 없다고 적은 사용자에게 "작동 링크·저장소" 요구 증거가 충족됐다고
+// 표시되던 문제의 원인이다. 예측이 아니라 사실이 거짓이라 고지 문구로는 치유되지 않는다.
+//
+// 한국어 부정은 형태가 다양해 완벽히 잡을 수 없다. 여기서는 흔한 형태만 보수적으로 거른다 —
+// 놓치는 쪽(증거로 셈)보다 잘못 거르는 쪽이 안전하지만, 과하게 거르면 진짜 경험을 잃으므로
+// 키워드가 들어 있는 절(clause)에 한정해 판정한다.
+const NEGATION_MARKERS = [
+  "없다", "없습니다", "없어요", "없었", "없고", "없으", "없지",
+  "못 하", "못하", "못 다루", "못다루", "못 해", "못해", "못 했", "못했",
+  "안 해", "안해", "안 했", "안했", "않았", "않습니다", "않았습니다", "않아",
+  "해본 적이 없", "해 본 적이 없", "한 적이 없", "경험이 없", "전혀 없",
+  "모르", "모릅니다", "해보지 못", "다뤄 본 적 없", "다룬 적 없",
+];
+
+// 문장을 절 단위로 자른다. 한 문장 안에서 "A는 했고 B는 못 했다" 처럼 섞이는 경우가 흔하다.
+function clausesOf(text: string): string[] {
+  return text
+    // 종결·나열 기호와, 앞뒤 내용을 뒤집는 연결어미(…지만/…으나/…는데)에서 자른다.
+    // 자르지 않으면 "웹 앱은 만들어 봤지만 API는 다뤄 본 적 없다" 가 통째로 부정으로 읽혀
+    // 실제로 한 일까지 지워진다.
+    .split(/[.!?\n·]|,\s*|지만|(?<=[가-힣])으나|(?<=[가-힣])나\s|는데|(?:그리고|하지만|그러나|다만)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+// 이 키워드가 부정 문맥에서만 등장하는가.
+export function keywordIsNegated(text: string, keyword: string): boolean {
+  const clauses = clausesOf(text).filter((clause) => clause.includes(keyword));
+  if (clauses.length === 0) return false;
+  return clauses.every((clause) => NEGATION_MARKERS.some((marker) => clause.includes(marker)));
+}
+
+// 이 확인 근거가 해당 역량을 실제로 뒷받침하는가.
+// 키워드가 들어 있되 그 절이 전부 부정문이면 뒷받침으로 세지 않는다.
+export function claimSupports(comp: Competency, claim: EvidenceInput): boolean {
+  const text = `${claim.skill} ${claim.quote}`;
+  return comp.keywords.some((keyword) => text.includes(keyword) && !keywordIsNegated(text, keyword));
+}
+
+// 확인된 증거(원문) 중 이 역량(keywords)을 실제로 뒷받침하는 것이 있는지.
 // 증거카드에 "이해 확인" 항목을 적을 수 있는지, 증거 충족도에서 요구 증거를 충족으로
-// 셀 수 있는지를 같은 기준으로 판정하기 위해 별도로 내보낸다.
-// 주의: 키워드 매칭만으로는 부정문도 걸린다. 충족도 계산은 호출부에서 tier >= 1(확인 가능한
-// 링크)로 한 번 더 거른다.
+// 셀 수 있는지, 격차를 얼마나 메웠는지를 모두 같은 기준으로 판정한다.
 export function hasConfirmedEvidenceFor(comp: Competency, confirmed: EvidenceInput[]): boolean {
-  return confirmed.some((claim) => {
-    const text = `${claim.skill} ${claim.quote}`;
-    return comp.keywords.some((keyword) => text.includes(keyword));
-  });
+  return confirmed.some((claim) => claimSupports(comp, claim));
 }
 
 // 확인 역량들이 특정 역량(competency)을 얼마나 뒷받침하는지 = 증거 강도.
@@ -96,8 +133,8 @@ export function hasConfirmedEvidenceFor(comp: Competency, confirmed: EvidenceInp
 export function competencyStrength(comp: Competency, confirmed: EvidenceInput[]): number {
   let best = 0;
   for (const claim of confirmed) {
-    const text = `${claim.skill} ${claim.quote}`;
-    if (comp.keywords.some((keyword) => text.includes(keyword))) {
+    // 부정문은 뒷받침으로 세지 않는다 — 격차가 조용히 줄어드는 것을 막는다.
+    if (claimSupports(comp, claim)) {
       best = Math.max(best, claim.tier + 1);
     }
   }

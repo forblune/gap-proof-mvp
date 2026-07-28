@@ -158,7 +158,7 @@ export default function ProfilePage() {
       <section className="profile-section">
         <h2>저장한 증거카드 {loadFailed ? "" : `(${cards.length})`}</h2>
         {loadFailed ? (
-          <p className="auth-hint" role="status">
+          <p className="auth-hint">
             목록을 불러오지 못했습니다. 기록이 없다는 뜻이 아닙니다. 새로고침해 주십시오.
           </p>
         ) : cards.length === 0 ? (
@@ -204,7 +204,7 @@ export default function ProfilePage() {
       <section className="profile-section">
         <h2>발급한 문서 {loadFailed ? "" : `(${certs.length})`}</h2>
         {loadFailed ? (
-          <p className="auth-hint" role="status">
+          <p className="auth-hint">
             목록을 불러오지 못했습니다. 기록이 없다는 뜻이 아닙니다. 새로고침해 주십시오.
           </p>
         ) : certs.length === 0 ? (
