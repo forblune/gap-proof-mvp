@@ -1,5 +1,6 @@
 // YouTube URL 파싱 + Gemini 응답 검증 — 잘못된 URL·빈 응답·깨진 JSON을 화면에 통과시키지 않는다.
 import test from "node:test";
+import { LESSON_ONLY_MAX_TIER } from "../app/lib/recognition.ts";
 import assert from "node:assert/strict";
 import {
   parseYoutubeUrl,
@@ -140,4 +141,10 @@ test("과도하게 긴 필드는 잘라내되 거부하지는 않는다", () => 
   assert.ok(lesson);
   assert.ok(lesson.summary.length <= 800);
   assert.ok(lesson.title.length <= 120);
+});
+
+// 심사 지적: LESSON_MAX_TIER 는 어디서도 읽히지 않아 리터럴이 자기 자신과 같은지만 확인하고 있었다.
+// 실제 집행 지점(recognition.ts)의 값과 묶어, 한쪽만 바뀌면 실패하게 한다.
+test("영상 학습 상한 상수가 실제 집행 값과 일치한다", () => {
+  assert.equal(LESSON_MAX_TIER, LESSON_ONLY_MAX_TIER);
 });

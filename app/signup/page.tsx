@@ -115,15 +115,24 @@ export default function SignupPage() {
           </p>
         </fieldset>
 
-        {missing.length > 0 && (
-          <div role="status">
+        {/* 영역을 항상 두고 내용만 비운다 — 언마운트하면 마지막 사유가 사라지는 순간이 낭독되지 않는다. */}
+        <div role="status" id="signup-missing">
+          {missing.length > 0 ? (
             <ul className="cert-missing">
               {missing.map((item) => <li key={item}>{item}</li>)}
             </ul>
-          </div>
-        )}
+          ) : (
+            <p className="sr-only">입력이 모두 채워졌습니다. 이제 가입할 수 있습니다.</p>
+          )}
+        </div>
 
-        <button className="primary full" type="submit" disabled={!canSubmit} aria-busy={busy}>
+        <button
+          className="primary full"
+          type="submit"
+          disabled={!canSubmit}
+          aria-busy={busy}
+          aria-describedby="signup-missing"
+        >
           {busy ? "가입 중…" : "가입하고 확인 메일 받기"}
         </button>
       </form>

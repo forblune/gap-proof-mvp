@@ -149,9 +149,9 @@ export const TIER_RULES: TierRule[] = [
     tier: 2,
     name: "수행 확인",
     raiseWhen:
-      "그 역량에 확인된 근거가 이미 있고, 실제 수행·산출물이 연결되었거나 이해 확인까지 마친 경우.",
+      "그 역량에 확인된 근거가 이미 있고, 실제 수행 기록과 유효한 산출물 링크가 함께 연결된 경우.",
     neverWhen:
-      "학습을 끝냈다는 사실만으로, 또는 이해 확인(퀴즈) 통과만으로는 절대 오르지 않습니다. 확인된 근거가 0개면 이해 확인을 통과해도 오르지 않습니다.",
+      "학습을 끝냈다는 사실이나 이해 확인(퀴즈) 통과로는 어떤 경우에도 오르지 않습니다. 이해 확인은 증거 강도 계산에 아예 반영되지 않습니다.",
   },
   {
     tier: 3,
@@ -308,8 +308,9 @@ export function canIssuePerformanceCertificate(record: LearningRecord): IssueDec
   if (artifacts.length === 0) {
     missing.push("실제로 만든 결과물 링크가 아직 없습니다(http/https 주소).");
   }
-  if (!(record.performanceNote ?? "").trim()) {
-    missing.push("무엇을 직접 해 봤는지 한 줄 기록이 아직 없습니다.");
+  // 더 강한 주장을 하는 문서인데 학습 답변보다 문턱이 낮으면 안 된다("." 한 글자로 통과하던 문제).
+  if (!isAnsweredEnough(record.performanceNote)) {
+    missing.push(`무엇을 직접 해 봤는지 ${MIN_ANSWER_CHARS}자 이상 적어 주십시오.`);
   }
 
   return {
@@ -340,11 +341,23 @@ export function recognitionKindsFor(record: LearningRecord): RecognitionKindId[]
 // 기획서 §6.2의 Lv.2 전제가 "그 역량에 확인된 근거가 이미 있고"이므로, 확인 증거가 없으면
 // 수행 기록이나 산출물을 붙여도 Lv.1을 넘지 못한다 — 학습 기록 하나만으로 등급이
 // 올라가는 것처럼 보이면 화면이 실제보다 큰 약속을 하게 된다.
+// 영상 학습만으로 도달 가능한 상한. 학습 자료를 보고 질문에 답한 것은 자기기록이며,
+// 산출물이나 수행 기록이 없으면 이 상한을 넘지 않는다.
+// 기획서 §6.4 가 youtube-lesson.ts 의 LESSON_MAX_TIER 를 집행 장치로 제시하므로,
+// 실제로 집행하는 자리를 여기 둔다(두 값이 어긋나면 테스트가 실패한다).
+export const LESSON_ONLY_MAX_TIER = 0;
+
 export function maxTierFromRecord(record: LearningRecord, hasConfirmedEvidence = false): number {
   const raw = recognitionKindsFor(record).reduce((max, id) => {
     const kind = findRecognitionKind(id);
     return kind ? Math.max(max, kind.maxTier) : max;
   }, 0);
+
+  // 영상 학습만 한 상태(수행 기록도 산출물도 없음)는 어떤 경우에도 상한을 넘지 않는다.
+  // 기획서 §6.4가 LESSON_ONLY_MAX_TIER 를 집행 장치로 제시하므로 여기서 실제로 집행한다.
+  const lessonOnly = validArtifacts(record).length === 0 && !isAnsweredEnough(record.performanceNote);
+  if (lessonOnly) return Math.min(raw, LESSON_ONLY_MAX_TIER);
+
   return hasConfirmedEvidence ? raw : Math.min(raw, 1);
 }
 
@@ -368,8 +381,10 @@ export const COVERAGE_DISCLAIMER =
 
 // requiredItems: 목표 직무가 요구하는 증거 항목 이름
 // metItems: 그중 사용자가 확인한 증거로 충족된 항목 이름
+// 요구 항목이 중복돼 있으면 하나만 채워도 두 번 세여 충족도가 조용히 부풀려진다.
 export function evidenceCoverage(requiredItems: string[], metItems: string[]): EvidenceCoverage {
-  const required = requiredItems ?? [];
+  // 같은 항목이 두 번 적혀 있으면 하나만 채워도 두 번 세여 비율이 부풀려진다.
+  const required = [...new Set(requiredItems ?? [])];
   const metSet = new Set(metItems ?? []);
   const basis = required.filter((item) => metSet.has(item));
   const unmet = required.filter((item) => !metSet.has(item));

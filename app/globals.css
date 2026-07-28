@@ -839,6 +839,15 @@ body.drawer-open { overflow: hidden; }
 /* 응답 길이 안내 — 조건을 충족했는지 입력 중에 바로 알 수 있게 한다. */
 .lesson-count { color: var(--color-text-muted); font-size: 13px; line-height: 1.75; }
 /* 증서에 함께 인쇄되는 사용 위치 안내 — 화면과 인쇄본 모두에서 읽혀야 한다. */
+/* 증거등급 옆에 "무엇이 확인됐는가"를 눈에 보이게 적는다(§6.3.2 — 숙련도 점수가 아니다). */
+.tier-means { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.5; font-weight: 500; opacity: .95; }
+
+/* 저장된 작성 내용 복원 고지 */
+.restore-note { margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--color-accent-soft-border); border-radius: 12px; background: var(--color-accent-soft); }
+.restore-note p { margin: 0 0 6px; font-size: 14px; line-height: 1.7; color: var(--color-text); }
+.restore-scope { color: var(--color-text-muted); font-size: 13px; }
+.restore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
 /* 인정 유형은 확인 주체별로 다른 상자에 담는다(라벨이 아니라 구조로 구분). */
 .recognition-group { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--color-surface); }
 .recognition-group-external { border-color: var(--color-border-strong); }
@@ -988,7 +997,7 @@ body.drawer-open { overflow: hidden; }
 }
 
 /* JS가 실행되지 않는 환경에서는 애니메이션 없이 최종 배치를 바로 보여 준다.
-   (기본값이 opacity:0 이라, 이 규칙이 없으면 빈 영역만 남는다.) */
+   (기본 상태는 바깥쪽 출발 위치라, 이 규칙이 없으면 노드가 컨테이너 밖으로 잘려 나간다.) */
 @media (scripting: none) {
   .stack-converge-node { transition: none; transform: translate(var(--to-x), var(--to-y)); }
 }

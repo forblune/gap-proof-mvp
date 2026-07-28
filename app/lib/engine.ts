@@ -87,36 +87,37 @@ export function hasConfirmedEvidenceFor(comp: Competency, confirmed: EvidenceInp
 
 // 확인 역량들이 특정 역량(competency)을 얼마나 뒷받침하는지 = 증거 강도.
 // 매칭되는 확인 역량이 없으면 0, 있으면 (증거등급+1) 중 최댓값을 필요수준으로 상한.
-// 학습확인(퀴즈) 통과는 이 역량에 매칭되는 확인 증거가 최소 1개 있을 때만
-// 수행 확인(강도 3)을 하한으로 반영한다 — 퀴즈 단독으로는 증거를 만들지 않는다.
-export function competencyStrength(
-  comp: Competency,
-  confirmed: EvidenceInput[],
-  passed: PassedChecks = {},
-): number {
+// 이해 확인(퀴즈)은 강도에 전혀 반영하지 않는다 — 아래 주석 참고.
+// 세 번째 인자(퀴즈 통과 여부)는 더 이상 받지 않는다.
+// 이해 확인은 증거 강도에 아무 영향도 주지 않으며, 인자로 남겨 두면 다시 이어 붙이기 쉬워진다.
+// 기존 호출부가 넘기더라도 무시되도록 시그니처에서 아예 뺀다.
+export function competencyStrength(comp: Competency, confirmed: EvidenceInput[]): number {
   let best = 0;
-  let hasMatchingConfirmedEvidence = false;
   for (const claim of confirmed) {
     const text = `${claim.skill} ${claim.quote}`;
     if (comp.keywords.some((keyword) => text.includes(keyword))) {
       best = Math.max(best, claim.tier + 1);
-      hasMatchingConfirmedEvidence = true;
     }
   }
-  // 수행 확인(Lv.2): 퀴즈 통과 + 이 역량에 연결된 사용자 확인 증거가 최소 1개.
-  if (passed[comp.id] && hasMatchingConfirmedEvidence) best = Math.max(best, 3);
+  // 이해 확인(퀴즈)은 강도를 올리지 않는다.
+  //
+  // 예전에는 "퀴즈 통과 + 확인 증거 1개 이상"이면 수행 확인까지 올렸다. 그런데 STEP2→3 게이트가
+  // 이미 확인 증거 1개 이상을 강제하므로, 퀴즈 화면에 도달한 모든 사용자가 그 전제를 자동으로
+  // 충족한다 — 결국 "퀴즈만 통과하면 수행 확인"이 되어 이 제품이 가장 강하게 금지한 경로가 열렸다.
+  // (재현: 부정문 "API도 못 다루고 개발도 해본 적이 전혀 없다" 가 키워드 API 에 걸려 Lv.0 이 되고,
+  //  2문항 퀴즈를 통과하면 강도가 1 에서 3 으로 뛰며 해당 역량이 격차 목록에서 사라졌다.)
+  //
+  // 이해 확인은 별도의 인정 유형(understanding_checked, maxTier 0)으로만 표시한다.
+  // 수행 확인은 실제 수행 기록과 산출물이 있어야 하며, 그 판정은 recognition.ts 가 맡는다.
   return Math.min(comp.required, best);
 }
 
 // 목표직무 역량표와 확인 역량을 비교해 격차 지도를 만든다 (격차 큰 순).
-export function computeGapMap(
-  confirmed: EvidenceInput[],
-  role: Role,
-  passed: PassedChecks = {},
-): GapItem[] {
+// 퀴즈 통과 여부는 받지 않는다 — 격차 계산에 반영되지 않기 때문이다(competencyStrength 주석 참고).
+export function computeGapMap(confirmed: EvidenceInput[], role: Role): GapItem[] {
   return role.competencies
     .map((comp) => {
-      const current = competencyStrength(comp, confirmed, passed);
+      const current = competencyStrength(comp, confirmed);
       const score = Math.max(0, comp.importance * (comp.required - current));
       const percent = Math.round(((comp.required - current) / comp.required) * 100);
       return {

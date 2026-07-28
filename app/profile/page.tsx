@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthError, AuthNotice, AuthShell, AuthUnconfigured } from "../components/auth-shell";
 import { createClient, isSupabaseConfigured } from "../lib/supabase";
 import { ROLES } from "../lib/engine";
@@ -33,11 +33,22 @@ export default function ProfilePage() {
   const focusConfirm = useCallback((node: HTMLButtonElement | null) => {
     node?.focus();
   }, []);
+
+  // 취소하면 원래 눌렀던 삭제 버튼으로 포커스를 되돌린다.
+  // 되돌리지 않으면 확인이 사라지면서 포커스가 body 로 떨어져 키보드 사용자가 위치를 잃는다.
+  const deleteTriggers = useRef(new Map<string, HTMLButtonElement>());
+  const registerDeleteTrigger = useCallback((id: string, node: HTMLButtonElement | null) => {
+    if (node) deleteTriggers.current.set(id, node);
+    else deleteTriggers.current.delete(id);
+  }, []);
+  const cancelDelete = useCallback((id: string) => {
+    setConfirmingDelete(null);
+    // 취소 버튼이 언마운트된 뒤에 원래 버튼이 다시 마운트되므로 다음 프레임에 옮긴다.
+    requestAnimationFrame(() => deleteTriggers.current.get(id)?.focus());
+  }, []);
   const [deleting, setDeleting] = useState(false);
 
-  const load = useCallback(async () => {
-    const supabase = createClient();
-    if (!supabase) return;
+  const loadInner = useCallback(async (supabase: NonNullable<ReturnType<typeof createClient>>) => {
     const { data: sessionData } = await supabase.auth.getSession();
     const session = sessionData.session;
     if (!session) {
@@ -60,6 +71,19 @@ export default function ProfilePage() {
     setCerts((certResult.data as SavedCert[]) ?? []);
     setState("ready");
   }, []);
+
+  const load = useCallback(async () => {
+    const supabase = createClient();
+    if (!supabase) return;
+    try {
+      await loadInner(supabase);
+    } catch {
+      // 세션 조회 자체가 실패해도 화면이 로딩에 갇히면 안 된다.
+      setLoadFailed(true);
+      setError("기록을 불러오지 못했습니다. 네트워크를 확인하고 새로고침해 주십시오.");
+      setState("ready");
+    }
+  }, [loadInner]);
 
   useEffect(() => {
     /* eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 시 세션·기록을 1회 조회한다(연쇄 렌더 없음) */
@@ -132,7 +156,7 @@ export default function ProfilePage() {
       )}
 
       <section className="profile-section">
-        <h2>저장한 증거카드 ({cards.length})</h2>
+        <h2>저장한 증거카드 {loadFailed ? "" : `(${cards.length})`}</h2>
         {loadFailed ? (
           <p className="auth-hint" role="status">
             목록을 불러오지 못했습니다. 기록이 없다는 뜻이 아닙니다. 새로고침해 주십시오.
@@ -151,14 +175,23 @@ export default function ProfilePage() {
                   </small>
                 </div>
                 {confirmingDelete === card.id ? (
-                  <span className="profile-confirm" role="alertdialog" aria-label="삭제 확인">
+                  // alertdialog 은 focus trap·Escape·aria-modal 을 약속한다. 여기는 인라인 확인이므로
+                  // 지키지 못할 약속 대신 실제 동작에 맞는 group 을 쓴다.
+                  <span className="profile-confirm" role="group" aria-label={`${roleLabel(card.role_id)} 증거카드 삭제 확인`}>
                     <small>되돌릴 수 없습니다.</small>
                     {/* 삭제 버튼이 사라지면서 포커스가 body로 떨어진다 — 확인 안으로 옮긴다. */}
-                    <button type="button" className="secondary" ref={focusConfirm} onClick={() => setConfirmingDelete(null)}>취소</button>
+                    <button type="button" className="secondary" ref={focusConfirm} onClick={() => cancelDelete(card.id)}>취소</button>
                     <button type="button" className="danger" onClick={() => deleteCard(card.id)} disabled={deleting} aria-busy={deleting}>삭제</button>
                   </span>
                 ) : (
-                  <button type="button" className="secondary" onClick={() => setConfirmingDelete(card.id)}>삭제</button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    ref={(node) => registerDeleteTrigger(card.id, node)}
+                    onClick={() => setConfirmingDelete(card.id)}
+                  >
+                    삭제<span className="sr-only"> — {roleLabel(card.role_id)} 증거카드</span>
+                  </button>
                 )}
               </li>
             ))}
@@ -167,7 +200,7 @@ export default function ProfilePage() {
       </section>
 
       <section className="profile-section">
-        <h2>발급한 문서 ({certs.length})</h2>
+        <h2>발급한 문서 {loadFailed ? "" : `(${certs.length})`}</h2>
         {loadFailed ? (
           <p className="auth-hint" role="status">
             목록을 불러오지 못했습니다. 기록이 없다는 뜻이 아닙니다. 새로고침해 주십시오.

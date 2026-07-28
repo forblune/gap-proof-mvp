@@ -38,7 +38,9 @@ export const LESSON_QUESTION_LABELS: Record<LessonQuestionKind, string> = {
   reflect: "성찰",
 };
 
-// 영상 학습으로 도달 가능한 인정의 상한 — 화면과 테스트가 같은 값을 참조한다.
+// 영상 학습으로 도달 가능한 인정의 상한.
+// 실제 집행은 recognition.ts 의 LESSON_ONLY_MAX_TIER 가 하며, 두 값이 어긋나면 테스트가 실패한다.
+// (여기 값만 두고 아무도 읽지 않으면 "집행 장치"라고 적어 놓고 집행하지 않는 상태가 된다.)
 export const LESSON_MAX_RECOGNITION = "understanding_checked" as const;
 export const LESSON_MAX_TIER = 0;
 

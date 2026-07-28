@@ -123,7 +123,7 @@ test("수행 확인서: 산출물 링크만 있고 수행 기록이 없으면 �
     baseRecord({ artifacts: [{ url: "https://github.com/me/repo" }], performanceNote: "" }),
   );
   assert.equal(decision.eligible, false);
-  assert.ok(decision.missing.some((m) => /한 줄 기록/.test(m)));
+  assert.ok(decision.missing.some((m) => new RegExp(`${MIN_ANSWER_CHARS}자 이상`).test(m)), decision.missing.join(" / "));
 });
 
 test("수행 확인서: 수행 기록만 있고 유효한 링크가 없으면 발급되지 않는다", () => {
@@ -165,6 +165,8 @@ test("영상 학습 + 퀴즈만으로 도달하는 최대 증거등급은 0이�
   assert.ok(!kinds.includes("performance_done"));
   assert.ok(!kinds.includes("artifact_linked"));
   assert.equal(maxTierFromRecord(record), 0);
+  // 확인 증거가 있어도 학습만으로는 오르지 않는다(LESSON_ONLY_MAX_TIER 집행).
+  assert.equal(maxTierFromRecord(record, true), 0);
 });
 
 test("산출물이 연결되고 그 역량에 확인 증거가 있을 때만 최대 증거등급이 2까지 올라간다", () => {
@@ -276,9 +278,13 @@ test("engine 교차검증: 인정 유형의 maxTier 0이 엔진 동작과 일치
 test("engine 교차검증: hasConfirmedEvidenceFor 가 두 모듈에서 같은 전제로 쓰인다", () => {
   assert.equal(hasConfirmedEvidenceFor(engineComp, []), false);
   assert.equal(hasConfirmedEvidenceFor(engineComp, [matching()]), true);
-  // 매칭 증거가 있을 때만 퀴즈가 등급에 반영된다.
-  assert.equal(competencyStrength(engineComp, [matching()], { [engineComp.id]: true }), 3);
+  // 퀴즈는 어느 경우에도 강도를 바꾸지 않는다 — 인정 유형 understanding_checked 의 maxTier 0 과 일치한다.
+  assert.equal(
+    competencyStrength(engineComp, [matching()], { [engineComp.id]: true }),
+    competencyStrength(engineComp, [matching()], {}),
+  );
   assert.equal(competencyStrength(engineComp, [matching()], {}), 1);
+  assert.equal(findRecognitionKind("understanding_checked").maxTier, 0);
 });
 
 // ── 심사 지적 반영: 링크 판정과 최대 등급 전제 ──────────────────────────────
@@ -406,4 +412,28 @@ test("자기기록과 외부 발급이 같은 그룹에 들어가지 않는다",
   }
   // 외부 그룹은 GapProof가 진위를 확인하지 않았음을 명시한다.
   assert.match(external.who, /발급기관|GapProof가 아닙니다/);
+});
+
+// 심사 지적: 더 강한 주장을 하는 문서인데 문턱이 학습 답변보다 낮았다("." 한 글자로 통과).
+test("수행 기록도 학습 답변과 같은 최소 길이를 요구한다", () => {
+  const record = baseRecord({
+    performanceNote: ".",
+    artifacts: [{ url: "https://github.com/me/repo" }],
+  });
+  const decision = canIssuePerformanceCertificate(record);
+  assert.equal(decision.eligible, false, "한 글자 수행 기록으로 발급됨");
+  const ok = canIssuePerformanceCertificate(
+    baseRecord({
+      performanceNote: "실제 문제 1개를 5문장으로 정의해 봤습니다",
+      artifacts: [{ url: "https://github.com/me/repo" }],
+    }),
+  );
+  assert.equal(ok.eligible, true, ok.missing.join(" / "));
+});
+
+test("요구 증거가 중복돼 있어도 두 번 세지 않는다", () => {
+  const coverage = evidenceCoverage(["A", "A", "B"], ["A"]);
+  assert.equal(coverage.requiredCount, 2);
+  assert.equal(coverage.metCount, 1);
+  assert.equal(coverage.percent, 50);
 });

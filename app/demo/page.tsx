@@ -120,9 +120,10 @@ const TIER_MEANS = [
 
 function TierBadge({ tier }: { tier: number }) {
   return (
-    <span className={`tier tier-${tier}`} title={TIER_MEANS[tier]}>
+    <span className={`tier tier-${tier}`}>
       <b>Lv.{tier}</b> {TIER_LABELS[tier]}
-      <small className="sr-only"> — {TIER_MEANS[tier]} 숙련도 점수가 아닙니다.</small>
+      <small className="tier-means">{TIER_MEANS[tier]}</small>
+      <small className="sr-only"> 숙련도 점수가 아닙니다.</small>
     </span>
   );
 }
@@ -186,6 +187,9 @@ export default function Home() {
   const [lessonAnswers, setLessonAnswers] = useState<string[]>([]);
   // 자료를 끝까지 봤는지는 시스템이 측정할 수 없다 — 본인이 표시한 값으로만 다룬다.
   const [sourceCompleted, setSourceCompleted] = useState(false);
+  // 저장된 작성 내용을 불러왔다는 사실과 저장 시각. 복원했다는 것을 사용자가 알아야
+  // 자기가 쓰지 않은 내용이 보인다고 오해하지 않고, 지우고 새로 시작할지 고를 수 있다.
+  const [restoredAt, setRestoredAt] = useState<string | null>(null);
   const [lessonEditing, setLessonEditing] = useState(false);
   const [performanceNote, setPerformanceNote] = useState("");
   const [artifactUrl, setArtifactUrl] = useState("");
@@ -277,6 +281,8 @@ export default function Home() {
     setAnalysisNotice(draft.analysisNotice);
     setSelectedAction(draft.selectedAction);
     setProofDate(draft.proofDate);
+    // 말없이 되살리지 않는다. 무엇이 복원됐고 무엇이 복원되지 않았는지 알려 준다.
+    setRestoredAt(draft.savedAt ?? null);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -384,9 +390,8 @@ export default function Home() {
           tier: claim.tier,
         })),
         role,
-        passedChecks,
       ),
-    [confirmedClaims, role, passedChecks],
+    [confirmedClaims, role],
   );
 
   // 학습확인(퀴즈)을 통과한 모든 역량 — "퀴즈를 시도해 봤다"는 사실 자체를 나타낼 뿐,
@@ -1120,6 +1125,30 @@ export default function Home() {
         </section>
       )}
 
+      {/* 저장된 내용을 말없이 되살리지 않는다 — 무엇이 돌아왔고 무엇이 돌아오지 않았는지 알린다. */}
+      {journeyOpen && restoredAt && (
+        <div className="page-shell">
+          <div className="restore-note" role="status">
+            <p>
+              <b>이 기기에 저장해 둔 작성 내용을 불러왔습니다.</b>{" "}
+              마지막 저장: {new Date(restoredAt).toLocaleString("ko-KR")}
+            </p>
+            <p className="restore-scope">
+              경험 원문·후보 확인 상태·목표 직무는 복원됩니다. 영상 학습 결과와 질문 답변, 수행 기록,
+              산출물 링크, 발급한 문서는 저장하지 않으므로 복원되지 않습니다.
+            </p>
+            <div className="restore-actions">
+              <button type="button" className="secondary" onClick={() => setRestoredAt(null)}>
+                이어서 하기
+              </button>
+              <button type="button" className="text-button" onClick={requestDelete}>
+                지우고 새로 시작하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {journeyOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
@@ -1251,13 +1280,19 @@ export default function Home() {
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
                   <div className="claim-v2">
                     <div className="v2-badges">
-                      {claim.factStatus && <span className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}>{claim.factStatus}</span>}
+                      {claim.factStatus && (
+                        <span
+                          className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}
+                        >
+                          AI 판단: 원문에 {claim.factStatus}
+                        </span>
+                      )}
                       {claim.evidenceStrength && <span className="v2-badge">근거 {claim.evidenceStrength}</span>}
                       {claim.signals?.map((signal) => <span className="v2-badge signal" key={signal}>{signal}</span>)}
                     </div>
                     {claim.context && <p className="v2-line"><b>상황</b>{claim.context}</p>}
                     {claim.behaviors && claim.behaviors.length > 0 && (
-                      <p className="v2-line"><b><IconCheck />확인된 행동</b>{claim.behaviors.join(" · ")}</p>
+                      <p className="v2-line"><b><IconCheck />AI가 원문에서 뽑은 행동</b>{claim.behaviors.join(" · ")}</p>
                     )}
                     {claim.overclaimRisk && <p className="v2-line risk"><b><IconWarning />과장 주의</b>{claim.overclaimRisk}</p>}
                     {claim.jobHypotheses && claim.jobHypotheses.length > 0 && (
@@ -1277,9 +1312,9 @@ export default function Home() {
                   </div>
                 )}
                 <div className="claim-actions">
-                  <button className={claim.status === "rejected" ? "selected reject" : ""} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
+                  <button className={claim.status === "rejected" ? "selected reject" : ""} aria-pressed={claim.status === "rejected"} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
                   <button onClick={() => startEditingClaim(claim)}>표현 수정</button>
-                  <button className={claim.status === "confirmed" ? "selected confirm" : "confirm"} onClick={() => updateClaim(claim.id, "confirmed")}>✓ 맞습니다</button>
+                  <button className={claim.status === "confirmed" ? "selected confirm" : "confirm"} aria-pressed={claim.status === "confirmed"} onClick={() => updateClaim(claim.id, "confirmed")}>✓ 맞습니다</button>
                 </div>
               </article>
             ))}
@@ -1390,6 +1425,48 @@ export default function Home() {
             </div>
             {lessonError && <p className="lesson-error" role="alert">{lessonError}</p>}
 
+            {/* 인정 범위는 영상 학습을 만들지 않아도 항상 보인다.
+                무엇이 어떤 근거로 인정되는지는 이 제품의 핵심 설명인데,
+                학습 자료를 만든 사용자만 볼 수 있으면 대부분이 한 번도 보지 못한다. */}
+              <div className="recognition-panel">
+                <div className="card-kicker">지금 인정되는 범위</div>
+                {/* 확인 주체가 다른 것을 같은 목록에 섞지 않는다.
+                    내가 적은 것과 기관이 발급한 것이 나란히 놓이면 같은 무게로 읽힌다. */}
+                {RECOGNITION_GROUPS.map((group) => {
+                  const kinds = RECOGNITION_KINDS.filter(
+                    (kind) => group.kinds.includes(kind.id) && kind.id !== "third_party_reviewed",
+                  );
+                  if (kinds.length === 0) return null;
+                  return (
+                    <section className={`recognition-group recognition-group-${group.id}`} key={group.id}>
+                      <h4>{group.label}</h4>
+                      <p className="recognition-who">{group.who}</p>
+                      <ul className="recognition-list">
+                        {kinds.map((kind) => {
+                          const active = activeRecognitions.includes(kind.id);
+                          return (
+                            <li key={kind.id} className={active ? "recognition-on" : "recognition-off"}>
+                              <b>{active ? "인정됨" : "아직 아님"} · {kind.label}</b>
+                              <small>{active ? kind.limits : kind.means}</small>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  );
+                })}
+                <p className="length-hint">
+                  {lesson ? (
+                    <>
+                      이 학습 기록만으로 도달 가능한 최대 증거등급: <b>Lv.{recordMaxTier}</b>
+                      {recordMaxTier === 0 && " — 등급을 올리려면 실제로 해 보고 결과물 링크를 남겨 주십시오."}
+                    </>
+                  ) : (
+                    <>학습 자료를 만들면 여기에 무엇까지 인정되는지 표시됩니다. 학습만으로는 <b>Lv.0 자기기록</b>을 넘지 않습니다.</>
+                  )}
+                </p>
+              </div>
+
             {lesson && (
               <div className="lesson-body">
                 <div className="lesson-head">
@@ -1466,15 +1543,16 @@ export default function Home() {
                         />
                         <small className="lesson-guide" id={`${fieldId}-guide`}>도움말: {question.answerGuide}</small>
                         {/* 조건을 넘긴 순간을 스크린리더에도 알린다. */}
-                        <small
-                          className={enough ? "lesson-count ok" : "lesson-count"}
-                          id={`${fieldId}-count`}
-                          role="status"
-                        >
+                        {/* 진행 중 숫자는 눈으로만 본다. 라이브 리전이면 한 글자마다 낭독된다. */}
+                        <small className={enough ? "lesson-count ok" : "lesson-count"} id={`${fieldId}-count`}>
                           {enough
                             ? `응답으로 인정됩니다 (${answer.trim().length}자)`
                             : `${MIN_ANSWER_CHARS}자 이상 필요합니다 (현재 ${answer.trim().length}자)`}
                         </small>
+                        {/* 임계를 넘은 순간만 알린다 — 텍스트가 바뀔 때만 낭독된다. */}
+                        <span className="sr-only" role="status">
+                          {enough ? `${index + 1}번 질문 응답으로 인정됩니다.` : ""}
+                        </span>
                       </div>
                     );
                   })}
@@ -1504,39 +1582,6 @@ export default function Home() {
                   </label>
                 </div>
 
-                <div className="recognition-panel">
-                  <div className="card-kicker">지금 인정되는 범위</div>
-                  {/* 확인 주체가 다른 것을 같은 목록에 섞지 않는다.
-                      내가 적은 것과 기관이 발급한 것이 나란히 놓이면 같은 무게로 읽힌다. */}
-                  {RECOGNITION_GROUPS.map((group) => {
-                    const kinds = RECOGNITION_KINDS.filter(
-                      (kind) => group.kinds.includes(kind.id) && kind.id !== "third_party_reviewed",
-                    );
-                    if (kinds.length === 0) return null;
-                    return (
-                      <section className={`recognition-group recognition-group-${group.id}`} key={group.id}>
-                        <h4>{group.label}</h4>
-                        <p className="recognition-who">{group.who}</p>
-                        <ul className="recognition-list">
-                          {kinds.map((kind) => {
-                            const active = activeRecognitions.includes(kind.id);
-                            return (
-                              <li key={kind.id} className={active ? "recognition-on" : "recognition-off"}>
-                                <b>{active ? "인정됨" : "아직 아님"} · {kind.label}</b>
-                                <small>{active ? kind.limits : kind.means}</small>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </section>
-                    );
-                  })}
-                  <p className="length-hint" role="status">
-                    이 학습 기록만으로 도달 가능한 최대 증거등급: <b>Lv.{recordMaxTier}</b>
-                    {recordMaxTier === 0 && " — 등급을 올리려면 실제로 해 보고 결과물 링크를 남겨 주십시오."}
-                  </p>
-                </div>
-
                 <div className="cert-actions">
                   {CERTIFICATE_KINDS.filter((kind) => kind.id !== "external_record").map((kind) => {
                     const decision = kind.id === "performance" ? performanceDecision : learningDecision;
@@ -1555,6 +1600,9 @@ export default function Home() {
                             <ul className="cert-missing">
                               {decision.missing.map((item) => <li key={item}>{item}</li>)}
                             </ul>
+                            {decision.nextStep && (
+                              <p className="cert-next"><b>다음 한 가지</b> {decision.nextStep}</p>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1638,8 +1686,9 @@ export default function Home() {
               {gaps.length ? gaps.slice(0, 3).map((gap) => (
                 <div className="gap-row" key={gap.id}>
                   <div><b>{gap.label}</b><small>필요 증거: {gap.proof} · Lv.{gap.current}/{gap.required}</small></div>
-                  <div className="bar"><i style={{ width: `${gap.percent}%` }} /></div>
-                  <strong>{gap.score}</strong>
+                    <div className="bar" role="img" aria-label={`요구 Lv.${gap.required} 중 ${gap.current} 확인됨`}>
+                    <i style={{ width: `${gap.percent}%` }} />
+                  </div>
                 </div>
               )) : <p>선택한 직무의 필수 역량을 이미 확인했습니다. 다른 직무로 바꿔 격차를 확인해 보십시오.</p>}
               <div className="coverage-block">
