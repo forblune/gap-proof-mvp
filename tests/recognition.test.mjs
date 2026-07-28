@@ -312,7 +312,7 @@ test("설명 문장을 근거 링크 칸에 적어도 증거등급이 오르지 
   };
   const claim = { skill: "문제 정의", quote: "문제를 정의했다", tier: tierFromLink("메모장에 정리함") };
   assert.equal(claim.tier, 0);
-  assert.equal(competencyStrength(comp, [claim], {}), 1); // tier 0 + 1
+  assert.equal(competencyStrength(comp, [claim]), 1); // tier 0 + 1
 });
 
 test("확인 증거가 없으면 학습 기록만으로 Lv.2에 도달하지 않는다", () => {

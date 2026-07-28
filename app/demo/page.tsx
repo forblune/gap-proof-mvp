@@ -1089,7 +1089,7 @@ export default function Home() {
         <ThemeToggle />
       </header>
 
-      <main id="main">
+      <main id="main" tabIndex={-1}>
 
       {sampleMode && journeyOpen && (
         <div className="sample-strip">
@@ -1280,7 +1280,7 @@ export default function Home() {
       {journeyOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어 주십시오.</h1></div>
+            <div><span className="eyebrow">2단계 · 경험함</span><h1>학적 밖에 있던 경험을 적어 주십시오.</h1></div>
             <span className="time-pill">약 2분</span>
           </div>
           {analysisSource === "loading" ? (
@@ -1299,12 +1299,15 @@ export default function Home() {
             <div className="paper-card input-card">
               <label htmlFor="experience"><b>경력이라고 생각하지 않았던 일까지 들려주십시오.</b></label>
               <p className="input-guide">학교, 일, 돌봄, 게임, 취미, SNS, 쉬었던 시기처럼 작아 보였던 경험도 괜찮습니다. 잘 정리하지 않아도 됩니다.</p>
-              <textarea id="experience" placeholder="여기에 자유롭게 적어 주십시오. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮습니다." value={experience} onChange={(event) => setExperience(event.target.value)} />
-              <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 됩니다.</span><b className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
+              <textarea id="experience" placeholder="여기에 자유롭게 적어 주십시오. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮습니다."
+                value={experience} onChange={(event) => setExperience(event.target.value)}
+                aria-invalid={OVER_LIMIT || undefined}
+                aria-describedby={OVER_LIMIT ? "experience-count experience-over" : "experience-count"} />
+              <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 됩니다.</span><b id="experience-count" className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
               {/* 넘은 글자 수를 role="alert" 안에 넣으면 타자 한 글자마다 내용이 바뀌어 스크린리더가 계속 다시 읽는다.
                   문구를 고정하면 초과 상태가 될 때 한 번만 읽힌다. 남은 글자 수는 바로 위 카운터(.input-meta)에 보인다. */}
               {OVER_LIMIT && (
-                <p className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있습니다. 위 글자 수를 보고 10,000자 아래로 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
+                <p id="experience-over" className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있습니다. 위 글자 수를 보고 10,000자 아래로 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
               )}
               {experience.trim().length < 20 && (
                 <p className="length-hint">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜집니다.</p>
@@ -1377,7 +1380,7 @@ export default function Home() {
       {journeyOpen && step === 2 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 2 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저입니다.</h1></div>
+            <div><span className="eyebrow">3단계 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저입니다.</h1></div>
             <div className="legend"><i /> 입력 문장을 근거로 인용합니다 · 개인정보가 감지되면 가려서 표시됩니다</div>
           </div>
           <div className="explain-strip">
@@ -1483,7 +1486,7 @@ export default function Home() {
       {journeyOpen && step === 3 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 3 · 먼저 알아보기</span><h1 ref={lookIntoHeadingRef} tabIndex={-1}>AI가 아니라 당신이 직접 확인하는 단계입니다.</h1></div>
+            <div><span className="eyebrow">4단계 · 먼저 알아보기</span><h1 ref={lookIntoHeadingRef} tabIndex={-1}>AI가 아니라 당신이 직접 확인하는 단계입니다.</h1></div>
             <span className="time-pill">건너뛰어도 됩니다</span>
           </div>
           <p className="lookinto-intro">여기 링크는 정답이 아니라 검색 출발점입니다. 실제로 있는지, 지금 나에게 맞는지는 직접 살펴보고 판단해 주십시오.</p>
@@ -1810,7 +1813,7 @@ export default function Home() {
       {journeyOpen && step === 4 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 4 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
+            <div><span className="eyebrow">5단계 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
             <div className="role-chip"><small>대표 목표직무</small><b>{role.label}</b></div>
           </div>
           <RoleSelect roleId={roleId} onSelect={(id) => { setRoleId(id); setQuiz(null); }} />
@@ -1918,7 +1921,7 @@ export default function Home() {
       {journeyOpen && step === 5 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 5 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼습니다.</h1></div>
+            <div><span className="eyebrow">6단계 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼습니다.</h1></div>
             <span className="complete-badge">{analysisSource === "solar" ? "✓ 분석 여정 완료" : "✓ 샘플 여정 완료"}</span>
           </div>
           <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있습니다. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료입니다.</p>

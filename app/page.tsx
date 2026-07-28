@@ -87,7 +87,7 @@ export default function HomePage() {
         <MobileDrawerNav />
       </header>
 
-      <main id="main" className="home">
+      <main id="main" tabIndex={-1} className="home">
 
       {/* 1. Hero — 하이브리드 방향: 핵심 진입 구간은 다크 네이비로 무게감을 준다 */}
       <section className="home-hero" aria-labelledby="home-hero-title">

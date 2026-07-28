@@ -39,7 +39,7 @@ export function InfoShell({
         <MobileDrawerNav active={active} />
       </header>
 
-      <main id="main">
+      <main id="main" tabIndex={-1}>
 
       <section className="page-shell info-shell">
         <span className="eyebrow">{eyebrow}</span>

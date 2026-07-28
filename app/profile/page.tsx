@@ -208,7 +208,7 @@ export default function ProfilePage() {
             목록을 불러오지 못했습니다. 기록이 없다는 뜻이 아닙니다. 새로고침해 주십시오.
           </p>
         ) : certs.length === 0 ? (
-          <p className="auth-hint">아직 발급한 문서가 없습니다.</p>
+          <p className="auth-hint">아직 발급한 문서가 없습니다. 현재 버전은 발급 문서를 서버에 저장하지 않습니다.</p>
         ) : (
           <ul className="profile-list">
             {certs.map((cert) => (
@@ -226,7 +226,8 @@ export default function ProfilePage() {
       <section className="profile-section">
         <h2>계정</h2>
         <p className="auth-hint">
-          탈퇴하면 저장한 경험·분석 기록·증거카드·학습 기록·발급 문서·외부 증빙이 <b>모두 함께 삭제</b>됩니다.
+          탈퇴하면 계정 정보와 보낸 피드백을 포함해 이 계정에 연결된 모든 행을 <b>함께 삭제</b>합니다
+          (합성 계정으로 실제 삭제를 실행해 남는 행이 0건인 것을 확인했습니다).
           탈퇴는 <Link href="/privacy">개인정보 처리방침</Link>에 적힌 절차로 요청해 주십시오(자동 탈퇴 기능은 준비 중입니다).
         </p>
       </section>

@@ -34,7 +34,7 @@ export function AuthShell({
         </Link>
       </header>
 
-      <main id="main">
+      <main id="main" tabIndex={-1}>
       <section className="auth-card">
         <span className="eyebrow">{eyebrow}</span>
         <h1>{title}</h1>

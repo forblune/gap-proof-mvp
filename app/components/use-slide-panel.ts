@@ -64,7 +64,11 @@ export function useSlidePanel() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { close(); return; }
       if (e.key !== "Tab") return;
-      const focusables = panelRef.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
+      // 지금 패널에는 버튼·링크만 있지만, 폼 요소가 하나라도 들어오면 트랩이 그 위를 건너뛴다.
+      // 나중에 알아채기 어려운 종류의 결함이라 선택자를 미리 넓혀 둔다.
+      const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
       if (!focusables || focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
