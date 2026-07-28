@@ -20,6 +20,7 @@ type AnalysisClaim = {
   smallStep?: string;
 };
 
+import { keywordIsNegated } from "../../lib/engine";
 import { verifyGateSession } from "../../lib/gate-session";
 import { DEFAULT_MODEL_ID, isAllowedModel } from "../../lib/models";
 import { maskPII, maskedNoticeSuffix } from "../../lib/pii";
@@ -107,10 +108,15 @@ function fallbackClaims(experience: string): AnalysisClaim[] {
   const claims: AnalysisClaim[] = [];
 
   for (const candidate of candidates) {
+    // 부정문에서 역량 라벨을 만들지 않는다.
+    // 원시 키워드 매칭만 쓰면 "저는 개발을 해 본 적이 전혀 없습니다" 에서
+    // "디지털 프로젝트를 시도한 경험" 카드를 만들어, 사용자가 없다고 적은 경험을 제품이 지어낸다.
     const quote = sentences.find(
       (sentence) =>
         !used.has(sentence) &&
-        candidate.keywords.some((keyword) => sentence.includes(keyword)),
+        candidate.keywords.some(
+          (keyword) => sentence.includes(keyword) && !keywordIsNegated(sentence, keyword),
+        ),
     );
     if (!quote) continue;
     used.add(quote);

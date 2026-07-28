@@ -12,3 +12,9 @@ GATE_SESSION_SECRET=
 
 # 카카오톡 공유 (#10) — JavaScript 키. 없으면 카카오 공유 버튼 미표시
 KAKAO_JS_KEY=
+
+# Gemini(AI Studio) — 공개 YouTube 영상 학습 자료 생성. 없으면 학습 자료 생성 비활성
+GEMINI_API_KEY=
+
+# K-MOOC 강좌정보 API(공공데이터포털) 인증키. Endpoint는 비밀이 아니므로 app/lib/kmooc.ts 상수
+KMOOC_SERVICE_KEY=

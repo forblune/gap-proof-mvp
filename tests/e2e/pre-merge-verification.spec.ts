@@ -1,12 +1,12 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type Route } from "@playwright/test";
 
 // PR #76 병합 전 최종 검증 — draft 복원의 역할 일관성, 키보드 조작, 포커스, 다중 뷰포트를 다룬다.
 // 일반(비-샘플) 모드를 검증하되 실제 게이트 백엔드(GATE_ACCESS_CODE 등 시크릿)는 필요하지 않다:
 // 이 테스트 환경에는 유효한 게이트 코드가 없으므로, 로컬 데모 게이트 확인 엔드포인트(/api/gate GET)만
 // 라우트 가로채기로 모킹해 인증을 통과시킨다 — Solar(/api/analyze)나 Supabase는 draft 복원 과정에서
 // 애초에 호출되지 않으며, 이 테스트에서도 가로채거나 호출하지 않는다.
-async function mockGateAuthorized(page) {
-  await page.route("**/api/gate", async (route) => {
+async function mockGateAuthorized(page: Page) {
+  await page.route("**/api/gate", async (route: Route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ authorized: true }) });
     } else {
@@ -45,14 +45,27 @@ const DRAFT_FIXTURE = {
   proofDate: null,
 };
 
-async function reachLookIntoStep(page) {
+async function reachLookIntoStep(page: Page) {
   await page.goto("/demo?sample=1", { waitUntil: "networkidle" });
-  await page.locator(".check-row input").first().check();
+  // 첫 렌더가 늦을 수 있어 요소가 보인 뒤에 조작한다(빈 화면 상대로 타임아웃나던 문제).
+  const consentInput = page.locator(".check-row input").first();
+  await expect(consentInput).toBeVisible({ timeout: 20_000 });
+  await consentInput.check();
   await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
   await page.getByRole("button", { name: /가능성 찾기/ }).click();
   await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 10_000 });
-  await page.getByRole("button", { name: /맞아요/ }).first().click();
-  await page.getByRole("button", { name: /먼저 알아보기/ }).click();
+  // 확인 클릭이 렌더보다 앞서면 유실될 수 있다. 카드가 confirmed 상태(.selected.confirm)가
+  // 될 때까지 다시 누른다 — 이 반영이 없으면 다음 버튼은 영원히 비활성으로 남는다.
+  const confirmButton = page.getByRole("button", { name: /맞습니다/ }).first();
+  await expect(async () => {
+    const cls = (await confirmButton.getAttribute("class")) ?? "";
+    if (!cls.includes("selected")) await confirmButton.click();
+    expect((await confirmButton.getAttribute("class")) ?? "").toContain("selected");
+  }).toPass({ timeout: 15_000 });
+
+  const nextStep = page.getByRole("button", { name: /먼저 알아보기/ });
+  await expect(nextStep).toBeEnabled({ timeout: 15_000 });
+  await nextStep.click();
 }
 
 test.describe("필수 검증 1 — 일반 모드 draft 새로고침 복원", () => {

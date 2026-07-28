@@ -3,7 +3,7 @@
 //  - 확인된(=사용자가 맞다고 한) 역량만 현재 역량으로 인정
 //  - 증거등급은 실제 증거를 넘지 못함 (텍스트만=Lv.0 자기기록, 링크 연결=Lv.1)
 //  - 격차점수 = 목표 중요도 × (필요수준 - 현재수준)
-//  - 격차가 큰 순서로 학습 1 · 미니프로젝트 1 · 상담 1을 제시
+//  - 격차가 큰 순서로 학습 1 · 강의 연계 1 · 미니프로젝트 1을 제시
 
 export type ActionTemplate = { title: string; time: string; rule: string };
 
@@ -47,43 +47,144 @@ export type ActionRec = {
   rule: string;
 };
 
-// 텍스트만 입력된 근거는 Lv.0(자기기록), 링크가 붙으면 Lv.1(근거 연결).
+// 텍스트만 입력된 근거는 Lv.0(자기기록), 확인 가능한 링크가 붙으면 Lv.1(근거 연결).
 // 수행 확인(Lv.2)·기관 확인(Lv.3)은 MVP 범위 밖이므로 임의로 올리지 않는다.
+//
+// "확인 가능한 링크"는 http/https 주소만 뜻한다. 설명 문장("메모장에 정리함")을 링크 칸에
+// 적는 것으로는 오르지 않는다 — 기획서 §6.2의 Lv.1 금지 조건이 그렇게 적혀 있고,
+// 산출물 검증(recognition.ts의 isValidArtifactUrl)과 같은 기준을 쓴다.
 export function tierFromLink(link: string | undefined | null): number {
-  return typeof link === "string" && link.trim().length > 0 ? 1 : 0;
+  return isVerifiableLink(link) ? 1 : 0;
 }
 
-// 학습확인(퀴즈)을 통과한 역량 id 집합. 통과 = 수행 확인(Lv.2) 증거.
+// engine.ts는 React·다른 모듈에 의존하지 않는 순수 로직이라 판정을 여기 둔다.
+// recognition.ts의 isValidArtifactUrl과 규칙이 같아야 하며, 그 일치는 테스트가 강제한다.
+export function isVerifiableLink(link: string | undefined | null): boolean {
+  const trimmed = (link ?? "").trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+// 학습확인(퀴즈)을 통과한 역량 id 집합. 퀴즈는 이해도 점검일 뿐이며
+// 증거 강도에는 어떤 경우에도 반영되지 않는다(아래 competencyStrength 참고).
+// 이 값은 증거카드에 "이해 확인" 항목을 적을지 결정하는 표시용으로만 쓴다.
 export type PassedChecks = Record<string, boolean>;
+
+// 부정 표현 — "그 일을 하지 않았다"는 문장을 증거로 세지 않기 위해 쓴다.
+//
+// 키워드 매칭만 하면 "API도 못 다루고 개발도 해본 적이 전혀 없다" 가 키워드 API 에 걸려
+// 증거가 된다. 개발 경험이 없다고 적은 사용자에게 "작동 링크·저장소" 요구 증거가 충족됐다고
+// 표시되던 문제의 원인이다. 예측이 아니라 사실이 거짓이라 고지 문구로는 치유되지 않는다.
+//
+// 한국어 부정은 형태가 다양해 완벽히 잡을 수 없다. 여기서는 흔한 형태만 보수적으로 거른다 —
+// 놓치는 쪽(증거로 셈)보다 잘못 거르는 쪽이 안전하지만, 과하게 거르면 진짜 경험을 잃으므로
+// 키워드가 들어 있는 절(clause)에 한정해 판정한다.
+// "그 일을 하지 않았다" 는 문장을 증거로 세지 않는다.
+//
+// 왜 필요한가: 키워드 매칭만 하면 "API도 못 다루고 개발도 해본 적이 전혀 없다" 가 키워드 API 에
+// 걸려 증거가 된다. 예측이 아니라 사실이 거짓이라 고지 문구로는 치유되지 않는다.
+//
+// 왜 이렇게 좁게 잡는가: 넓게 잡을수록 **사용자가 실제로 한 일**이 지워진다.
+// 실제로 겪은 오작동 — /전무/ 가 직함 "전무님" 에, /없음/ 이 "누락 없음" 에,
+// /못 해/ 가 "잘못 해석" 에, /모르/ 가 "모르는 동료도 쓸 수 있게" 에 걸렸다.
+// 증거를 놓치는 것보다 한 일을 지우는 쪽이 나쁘므로, 뜻이 분명한 형태만 잡고
+// 키워드에서 24자 안쪽에 있을 때만 그 키워드에 붙은 부정으로 본다.
+const NEGATION_PATTERNS: RegExp[] = [
+  // "…해 본 적/일/경험이 없다" 계열. 동사를 열거하지 않고 "본/한 + 적|일|경험 + 없" 구조로 잡는다.
+  /(본|한|짠|쓴|만든)\s*(적|일|경험)[이은도]?\s*(전혀|한\s?번도|거의|아직)?\s*없/,
+  // "경험이 없다" — "누락 없음" 같은 다른 명사의 부재와 섞이지 않도록 반드시 "경험" 을 요구한다.
+  /경험[이은도]?\s*[:：]?\s*(전혀|거의|아직)?\s*없/,
+  /미경험/,
+  // "경험은 전무합니다" — 직함 "전무님" 에 걸리지 않도록 반드시 "경험" 뒤에 올 때만 본다.
+  /경험[이은도]?\s*[:：]?\s*(전혀|거의|아직)?\s*전무/,
+  // "해보지 않았다 / 해 본 적 없다" 계열.
+  /(해|써|다뤄|만들어|배워)\s?보?지\s*(전혀|아직)?\s*않/,
+  /(해|써|다뤄|만들어|배워)\s?본\s*(적|일)[이은]?\s*없/,
+  // "못 다루다 / 못 만들다" — "잘못 해석" 에 걸리지 않도록 "잘" 뒤가 아닌 경우만 본다.
+  /(^|[^잘])못\s?(다루|만들|배웠|배워|씁|쓴)/,
+  /(영역|분야|전공|쪽)[이가은]?\s*아닙?니다?/,
+];
+
+// 부정 표현이 "이 대상에 대한 경험이 없다" 를 뜻하려면 키워드 가까이 있어야 한다.
+// 멀리 떨어진 부정은 대개 다른 명사에 붙은 것이다("전무님", "누락 없음").
+const NEGATION_WINDOW = 24;
+
+// 문장을 절 단위로 자른다. 한 문장 안에서 "A는 했고 B는 못 했다" 처럼 섞이는 경우가 흔하다.
+function clausesOf(text: string): string[] {
+  return text
+    // 종결·나열 기호와, 앞뒤 내용을 뒤집는 연결어미(…지만/…으나/…는데)에서 자른다.
+    // 자르지 않으면 "웹 앱은 만들어 봤지만 API는 다뤄 본 적 없다" 가 통째로 부정으로 읽혀
+    // 실제로 한 일까지 지워진다.
+    .split(/[.!?\n·]|,\s*|지만|(?<=[가-힣])으나|(?<=[가-힣])나\s|는데|(?:그리고|하지만|그러나|다만)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+// 이 키워드가 부정 문맥에서만 등장하는가.
+// 부정은 키워드 뒤에 오는 서술부에서만 찾는다(한국어는 서술어가 뒤에 온다).
+// 그래야 "장애가 한 번도 없었습니다" 처럼 다른 명사에 붙은 부정을 잘못 가져오지 않는다.
+export function keywordIsNegated(text: string, keyword: string): boolean {
+  const clauses = clausesOf(text).filter((clause) => clause.includes(keyword));
+  if (clauses.length === 0) return false;
+  return clauses.every((clause) => {
+    const after = clause.slice(clause.indexOf(keyword) + keyword.length);
+    const predicate = after.slice(0, NEGATION_WINDOW);
+    return NEGATION_PATTERNS.some((pattern) => pattern.test(predicate));
+  });
+}
+
+// 이 확인 근거가 해당 역량을 실제로 뒷받침하는가.
+//
+// 판정 대상은 **사용자 원문(quote)** 뿐이다. skill 은 AI 가 붙인 라벨이라 그것만으로
+// 뒷받침을 인정하면 "사용자의 원문에서 확인되는 근거만 쓴다" 는 원칙이 깨진다.
+// (실제로 skill 라벨이 별도 절이 되어 부정 판정을 우회하던 경로가 있었다.)
+export function claimSupports(comp: Competency, claim: EvidenceInput): boolean {
+  const source = claim.quote ?? "";
+  return comp.keywords.some((keyword) => source.includes(keyword) && !keywordIsNegated(source, keyword));
+}
+
+export function hasConfirmedEvidenceFor(comp: Competency, confirmed: EvidenceInput[]): boolean {
+  return confirmed.some((claim) => claimSupports(comp, claim));
+}
 
 // 확인 역량들이 특정 역량(competency)을 얼마나 뒷받침하는지 = 증거 강도.
 // 매칭되는 확인 역량이 없으면 0, 있으면 (증거등급+1) 중 최댓값을 필요수준으로 상한.
-// 학습확인을 통과했으면 수행 확인(강도 3)을 하한으로 반영한다.
-export function competencyStrength(
-  comp: Competency,
-  confirmed: EvidenceInput[],
-  passed: PassedChecks = {},
-): number {
+// 이해 확인(퀴즈)은 강도에 전혀 반영하지 않는다 — 아래 주석 참고.
+// 세 번째 인자(퀴즈 통과 여부)는 더 이상 받지 않는다.
+// 이해 확인은 증거 강도에 아무 영향도 주지 않으며, 인자로 남겨 두면 다시 이어 붙이기 쉬워진다.
+// 기존 호출부가 넘기더라도 무시되도록 시그니처에서 아예 뺀다.
+export function competencyStrength(comp: Competency, confirmed: EvidenceInput[]): number {
   let best = 0;
   for (const claim of confirmed) {
-    const text = `${claim.skill} ${claim.quote}`;
-    if (comp.keywords.some((keyword) => text.includes(keyword))) {
+    // 부정문은 뒷받침으로 세지 않는다 — 격차가 조용히 줄어드는 것을 막는다.
+    if (claimSupports(comp, claim)) {
       best = Math.max(best, claim.tier + 1);
     }
   }
-  if (passed[comp.id]) best = Math.max(best, 3); // 수행 확인(Lv.2)
+  // 이해 확인(퀴즈)은 강도를 올리지 않는다.
+  //
+  // 예전에는 "퀴즈 통과 + 확인 증거 1개 이상"이면 수행 확인까지 올렸다. 그런데 STEP2→3 게이트가
+  // 이미 확인 증거 1개 이상을 강제하므로, 퀴즈 화면에 도달한 모든 사용자가 그 전제를 자동으로
+  // 충족한다 — 결국 "퀴즈만 통과하면 수행 확인"이 되어 이 제품이 가장 강하게 금지한 경로가 열렸다.
+  // (재현: 부정문 "API도 못 다루고 개발도 해본 적이 전혀 없다" 가 키워드 API 에 걸려 Lv.0 이 되고,
+  //  2문항 퀴즈를 통과하면 강도가 1 에서 3 으로 뛰며 해당 역량이 격차 목록에서 사라졌다.)
+  //
+  // 이해 확인은 별도의 인정 유형(understanding_checked, maxTier 0)으로만 표시한다.
+  // 수행 확인은 실제 수행 기록과 산출물이 있어야 하며, 그 판정은 recognition.ts 가 맡는다.
   return Math.min(comp.required, best);
 }
 
 // 목표직무 역량표와 확인 역량을 비교해 격차 지도를 만든다 (격차 큰 순).
-export function computeGapMap(
-  confirmed: EvidenceInput[],
-  role: Role,
-  passed: PassedChecks = {},
-): GapItem[] {
+// 퀴즈 통과 여부는 받지 않는다 — 격차 계산에 반영되지 않기 때문이다(competencyStrength 주석 참고).
+export function computeGapMap(confirmed: EvidenceInput[], role: Role): GapItem[] {
   return role.competencies
     .map((comp) => {
-      const current = competencyStrength(comp, confirmed, passed);
+      const current = competencyStrength(comp, confirmed);
       const score = Math.max(0, comp.importance * (comp.required - current));
       const percent = Math.round(((comp.required - current) / comp.required) * 100);
       return {
@@ -108,7 +209,7 @@ export function coveredStrengths(confirmed: EvidenceInput[], role: Role): string
     .map((comp) => comp.label);
 }
 
-// 상위 격차에서 이번 주 행동 3개(학습·미니프로젝트·상담)를 고른다.
+// 상위 격차에서 이번 주 행동 3개(학습·강의 연계·미니프로젝트)를 고른다.
 export function recommendNextActions(gaps: GapItem[], role: Role): ActionRec[] {
   const byId = (id: string) => role.competencies.find((comp) => comp.id === id);
   const learnComp = (gaps[0] && byId(gaps[0].id)) || role.competencies[0];

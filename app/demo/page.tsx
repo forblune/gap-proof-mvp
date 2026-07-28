@@ -8,9 +8,33 @@ import {
   recommendNextActions,
   tierFromLink,
   makeCheck,
+  claimSupports,
+  hasConfirmedEvidenceFor,
 } from "../lib/engine";
 import { DEFAULT_MODEL_ID, SOLAR_MODELS, findModel } from "../lib/models";
 import { buildLookIntoItResources } from "../lib/resources";
+import type { YoutubeLesson } from "../lib/youtube-lesson";
+import { LESSON_QUESTION_LABELS, parseYoutubeUrl } from "../lib/youtube-lesson";
+import {
+  CERTIFICATE_DISCLAIMER,
+  CERTIFICATE_ISSUER,
+  CERTIFICATE_USAGE_NOTE,
+  CERTIFICATE_KINDS,
+  RECOGNITION_GROUPS,
+  RECOGNITION_KINDS,
+  MIN_ANSWER_CHARS,
+  canIssueLearningCertificate,
+  canIssuePerformanceCertificate,
+  certificateScope,
+  certificateSerial,
+  countAnswered,
+  evidenceCoverage,
+  isAnsweredEnough,
+  maxTierFromRecord,
+  recognitionKindsFor,
+  type CertificateKindId,
+  type LearningRecord,
+} from "../lib/recognition";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
 import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
 import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
@@ -52,6 +76,17 @@ type Quiz = {
 
 type AnalysisSource = "idle" | "loading" | "solar" | "sample";
 
+// 발급된 문서 — 화면·인쇄본에 그대로 쓰인다. 발급 조건은 recognition.ts가 판정한다.
+type IssuedCertificate = {
+  kind: CertificateKindId;
+  serial: string;
+  issuedAt: string;
+  competencyLabel: string;
+  sourceTitle: string;
+  scope: string;
+  artifactUrl?: string;
+};
+
 type NoticeKind = "success" | "error" | "info";
 type Notice = { text: string; kind: NoticeKind };
 
@@ -73,11 +108,38 @@ const steps = ["시작", "경험", "역량 확인", "먼저 알아보기", "격�
 // 사용하며, 사용자의 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
 const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동으로 — GapProof 데모";
 
-function TierBadge({ tier }: { tier: number }) {
-  const labels = ["자기기록", "근거 연결", "수행 확인", "기관 확인"];
+// 증거등급은 "무엇이 확인됐는가"이지 숙련도가 아니다.
+// 숫자만 홀로 두면 실력 점수로 읽힌다 — 확인된 사실을 늘 함께 붙인다.
+// (벤치마킹: Open Badges 3.0 은 achievedLevel 을 발급기관 루브릭이 있을 때만 쓴다)
+const TIER_LABELS = ["자기기록", "근거 연결", "수행 확인", "기관 확인"];
+const TIER_MEANS = [
+  "사용자가 원문에서 확인한 내용입니다.",
+  "확인 가능한 링크가 연결됐습니다.",
+  "실제 수행이나 산출물이 확인됐습니다.",
+  "지정 기관이 확인했습니다.",
+];
+
+// 배지 목록 아래에 한 번만 붙이는 범례.
+// 배지마다 문장을 반복하면 폭을 밀어내고(768px 에서 98px 넘침) 밀도만 나빠진다.
+function TierLegend() {
   return (
+    <p className="tier-legend">
+      <b>Lv. 표기는 무엇이 확인됐는지를 뜻하며 숙련도 점수가 아닙니다.</b>{" "}
+      Lv.0 {TIER_MEANS[0]} · Lv.1 {TIER_MEANS[1]} · Lv.2 {TIER_MEANS[2]} · Lv.3 {TIER_MEANS[3]}
+      {" "}이 데모에서 역량 배지는 Lv.0과 Lv.1까지만 붙습니다. Lv.2는 그 역량에 확인된 근거가
+      이미 있고 산출물이 연결될 때, Lv.3은 기관 확인 절차가 생길 때(Phase 2) 도달합니다.
+    </p>
+  );
+}
+
+function TierBadge({ tier }: { tier: number }) {
+  return (
+    // 라벨 자체가 "무엇이 확인됐는가"다(자기기록·근거 연결·수행 확인·기관 확인).
+    // 배지마다 설명 문장을 반복하면 폭을 밀어내고 밀도만 나빠지므로,
+    // 문장 설명은 목록 단위로 한 번만 둔다(아래 TierLegend).
     <span className={`tier tier-${tier}`}>
-      <b>Lv.{tier}</b> {labels[tier]}
+      <b>Lv.{tier}</b> {TIER_LABELS[tier]}
+      {/* 설명은 TierLegend 가 목록 단위로 한 번만 말한다 — 배지마다 붙이면 중복 낭독된다. */}
     </span>
   );
 }
@@ -133,6 +195,21 @@ export default function Home() {
   // Gate 5(#41): 모델 선택 다이얼로그(네이티브 <dialog> — focus trap·Esc 기본 제공)
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const [pendingModelId, setPendingModelId] = useState(modelId);
+  // 영상 학습(Gemini) — 학습 자료·질문 응답·수행 기록·산출물. 인정 상한은 recognition.ts가 정한다.
+  const [lessonUrl, setLessonUrl] = useState("");
+  const [lesson, setLesson] = useState<YoutubeLesson | null>(null);
+  const [lessonBusy, setLessonBusy] = useState(false);
+  const [lessonError, setLessonError] = useState<string | null>(null);
+  const [lessonAnswers, setLessonAnswers] = useState<string[]>([]);
+  // 자료를 끝까지 봤는지는 시스템이 측정할 수 없다 — 본인이 표시한 값으로만 다룬다.
+  const [sourceCompleted, setSourceCompleted] = useState(false);
+  // 저장된 작성 내용을 불러왔다는 사실과 저장 시각. 복원했다는 것을 사용자가 알아야
+  // 자기가 쓰지 않은 내용이 보인다고 오해하지 않고, 지우고 새로 시작할지 고를 수 있다.
+  const [restoredAt, setRestoredAt] = useState<string | null>(null);
+  const [lessonEditing, setLessonEditing] = useState(false);
+  const [performanceNote, setPerformanceNote] = useState("");
+  const [artifactUrl, setArtifactUrl] = useState("");
+  const [issuedCert, setIssuedCert] = useState<IssuedCertificate | null>(null);
   const modelDialogRef = useRef<HTMLDialogElement | null>(null);
   const modelButtonRef = useRef<HTMLButtonElement | null>(null);
   // Gate 6(#42): 파일 가져오기 — 브라우저 안에서 텍스트로만 읽는다(업로드·저장 없음)
@@ -144,6 +221,8 @@ export default function Home() {
   // Gate 1(#35): draft 저장은 사용자 상호작용(첫 상태 변화) 이후부터 시작한다.
   // 마운트 직후 기본값을 저장해 기존 draft를 덮어쓰지 않기 위한 가드.
   const draftSaveArmed = useRef(false);
+  // localStorage를 쓸 수 없을 때만 사용하는 이 탭 한정 발급 대상 식별자.
+  const sessionOwnerKey = useRef<string | null>(null);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
 
@@ -199,7 +278,13 @@ export default function Home() {
     }
     const draft = loadDraft(window.localStorage);
     if (!draft) return;
-    setStep(draft.step);
+    // 증거등급 무결성 P0: 예전 버전에서 저장됐거나 손상된 draft가 STEP5(step:5)를 확인된
+    // 증거 0개 상태로 가리키면, 복원 즉시(첫 페인트 전) STEP4로 낮춰 잘못된 화면이 잠깐이라도
+    // 그려지지 않게 한다(아래 가드 effect는 이후의 상태 변화만 담당).
+    const restoredConfirmedCount = ((draft.claims as Claim[]) ?? []).filter(
+      (claim) => claim.status === "confirmed",
+    ).length;
+    setStep(draft.step === 5 && restoredConfirmedCount === 0 ? 4 : draft.step);
     setStoreConsent(draft.storeConsent);
     setAggregateConsent(draft.aggregateConsent);
     setExperience(draft.experience);
@@ -212,6 +297,8 @@ export default function Home() {
     setAnalysisNotice(draft.analysisNotice);
     setSelectedAction(draft.selectedAction);
     setProofDate(draft.proofDate);
+    // 말없이 되살리지 않는다. 무엇이 복원됐고 무엇이 복원되지 않았는지 알려 준다.
+    setRestoredAt(draft.savedAt ?? null);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -319,15 +406,40 @@ export default function Home() {
           tier: claim.tier,
         })),
         role,
-        passedChecks,
       ),
-    [confirmedClaims, role, passedChecks],
+    [confirmedClaims, role],
   );
 
+  // 학습확인(퀴즈)을 통과한 모든 역량 — "퀴즈를 시도해 봤다"는 사실 자체를 나타낼 뿐,
+  // 증거카드에 "이해 확인"으로 적어도 되는지는 verifiedPassedComps로 별도 판정한다.
   const passedComps = useMemo(
     () => role.competencies.filter((c) => passedChecks[c.id]),
     [role, passedChecks],
   );
+
+  // 퀴즈를 통과했고 이 역량에 매칭되는 확인 증거(원문 인용)가 최소 1개 있는 역량만
+  // 증거카드에 "이해 확인" 항목으로 적는다. 근거 없는 이해 확인은 카드에 오르지 않는다.
+  // 배지 등급은 실제 근거의 등급을 그대로 쓰며, 이해 확인이 등급을 올리지는 않는다.
+  const verifiedPassedComps = useMemo(() => {
+    const confirmedInputs = confirmedClaims.map((claim) => ({
+      skill: claim.skill,
+      quote: claim.quote,
+      tier: claim.tier,
+    }));
+    return passedComps
+      .filter((c) => hasConfirmedEvidenceFor(c, confirmedInputs))
+      .map((c) => ({
+        comp: c,
+        // 배지 등급을 2로 못박지 않는다. 이 역량에 실제로 연결된 확인 증거의 등급을 그대로 쓴다
+        // (링크 없는 자기기록이면 Lv.0). 퀴즈 통과는 "이해 확인"일 뿐 수행이 아니므로
+        // 등급을 올리는 근거가 되지 못한다 — recognition.ts의 인정 유형과 같은 규칙이다.
+        // 뒷받침 판정은 게이트와 같은 함수를 쓴다. 원시 키워드 매칭을 쓰면
+        // 부정문 근거에서 등급을 가져와, 증거가 뒷받침하지 않는 Lv.을 배지에 찍는다.
+        tier: confirmedInputs
+          .filter((claim) => claimSupports(c, claim))
+          .reduce((max, claim) => Math.max(max, claim.tier), 0),
+      }));
+  }, [passedComps, confirmedClaims]);
 
   const recommended = useMemo(() => recommendNextActions(gaps, role), [gaps, role]);
   const chosenAction =
@@ -350,6 +462,56 @@ export default function Home() {
     () => buildLookIntoItResources(lookIntoComp.label, lookIntoHypothesis, lookIntoComp.project),
     [lookIntoComp, lookIntoHypothesis],
   );
+
+  // 학습 기록 — 발급 조건 판정과 인정 표시가 모두 이 하나의 값을 본다(화면과 규칙이 어긋나지 않게).
+  const learningRecord = useMemo<LearningRecord>(
+    () => ({
+      competencyId: lookIntoComp.id,
+      competencyLabel: lookIntoComp.label,
+      sourceTitle: lesson?.title ?? "",
+      sourceUrl: lesson?.videoUrl,
+      requiredQuestionCount: lesson?.questions.length ?? 0,
+      answeredQuestionCount: lesson ? countAnswered(lessonAnswers) : 0,
+      sourceCompleted: Boolean(lesson) && sourceCompleted,
+      understandingChecked: Boolean(passedChecks[lookIntoComp.id]),
+      performanceNote,
+      artifacts: artifactUrl.trim() ? [{ url: artifactUrl.trim() }] : [],
+    }),
+    [lookIntoComp, lesson, lessonAnswers, sourceCompleted, passedChecks, performanceNote, artifactUrl],
+  );
+
+  const learningDecision = useMemo(() => canIssueLearningCertificate(learningRecord), [learningRecord]);
+  const performanceDecision = useMemo(
+    () => canIssuePerformanceCertificate(learningRecord),
+    [learningRecord],
+  );
+  const activeRecognitions = useMemo(() => recognitionKindsFor(learningRecord), [learningRecord]);
+  const recordMaxTier = useMemo(() => {
+    const confirmedInputs = confirmedClaims.map((claim) => ({ skill: claim.skill, quote: claim.quote, tier: claim.tier }));
+    return maxTierFromRecord(learningRecord, hasConfirmedEvidenceFor(lookIntoComp, confirmedInputs));
+  }, [learningRecord, confirmedClaims, lookIntoComp]);
+
+  // 증거 충족도 — 이 서비스가 쓰는 유일한 비율 수치. 취업 가능성·적성 예측이 아니라
+  // "목표 직무가 요구하는 증거 중 확인된 항목의 비율"이며, 산정식과 근거를 함께 보여 준다.
+  const roleCoverage = useMemo(() => {
+    const requiredItems = role.competencies.map((comp) => comp.proof);
+    const confirmedInputs = confirmedClaims.map((claim) => ({
+      skill: claim.skill,
+      quote: claim.quote,
+      tier: claim.tier,
+    }));
+    // 요구 증거는 "확인 가능한 링크가 붙은 근거"가 있을 때만 충족으로 센다.
+    //
+    // 키워드 매칭만으로 세면 부정문도 충족이 된다 — "API도 못 다루고 개발도 해본 적이
+    // 전혀 없다" 가 키워드 API 에 걸려, 개발 경험이 없다고 적은 사용자에게
+    // "작동 링크·저장소" 요구 증거가 충족됐다고 표시됐다. 예측이 아니라 사실이 거짓이라
+    // 고지 문구로는 치유되지 않는다.
+    const linkedInputs = confirmedInputs.filter((claim) => claim.tier >= 1);
+    const metItems = role.competencies
+      .filter((comp) => hasConfirmedEvidenceFor(comp, linkedInputs))
+      .map((comp) => comp.proof);
+    return evidenceCoverage(requiredItems, metItems);
+  }, [role, confirmedClaims]);
 
   const updateClaim = (id: number, status: ClaimStatus) => {
     setClaims((current) =>
@@ -396,6 +558,14 @@ export default function Home() {
     setStep(next);
     scrollToTop();
   };
+
+  // Gate: 확인된 증거(원문 인용) 없이는 STEP5로 진행할 수 없다 — 학습확인(퀴즈) 통과나
+  // localStorage draft 복원만으로 이 화면에 도달한 상태(예: 이전 버전에서 저장된 draft,
+  // 또는 직접 조작된 상태)가 있으면 즉시 STEP4로 되돌린다.
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- 잘못 복원된 step 값을 정정하는 가드(연쇄 렌더 없음) */
+    if (step === 5 && confirmedClaims.length === 0) setStep(4);
+  }, [step, confirmedClaims.length]);
 
   // Gate 6(#42): 정리 프롬프트 복사
   const copyAiPrompt = async () => {
@@ -490,6 +660,107 @@ export default function Home() {
     }
   };
 
+  // 영상 학습 자료 생성 — 키는 서버에서만 쓰이며, 실패는 전부 사용자 언어로 안내한다.
+  const generateLesson = async () => {
+    const url = lessonUrl.trim();
+    if (!url) {
+      setLessonError("공개 YouTube 영상 주소를 입력해 주십시오.");
+      return;
+    }
+    // 주소 형식은 보내기 전에 확인한다 — 잘못된 주소로 유료 호출을 낭비하지 않고,
+    // 사용자에게 즉시 구체적인 안내를 준다(서버도 같은 규칙으로 한 번 더 검사한다).
+    if (!parseYoutubeUrl(url)) {
+      setLessonError(
+        "공개 YouTube 영상 주소를 확인해 주십시오. 예: https://www.youtube.com/watch?v=... 또는 https://youtu.be/...",
+      );
+      return;
+    }
+    // 샘플 체험은 실제 AI 호출을 하지 않는다(경험 분석과 동일한 규칙).
+    // 없는 학습 자료를 지어내지 않고, 무엇을 하면 되는지만 안내한다.
+    if (sampleMode) {
+      setLessonError(
+        "샘플 체험에서는 실제 AI 호출을 하지 않습니다. 영상 학습을 만들려면 시작 화면에서 데모 코드로 입장해 주십시오. 영상은 지금 직접 보셔도 됩니다.",
+      );
+      return;
+    }
+    setLessonBusy(true);
+    setLessonError(null);
+    try {
+      const response = await fetch("/api/lesson", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = (await response.json()) as {
+        lesson?: YoutubeLesson;
+        notice?: string;
+        message?: string;
+      };
+      if (!response.ok || !data.lesson) {
+        setLessonError(data.message ?? "학습 자료를 만들지 못했습니다. 다시 시도해 주십시오.");
+        return;
+      }
+      setLesson(data.lesson);
+      setLessonAnswers(new Array(data.lesson.questions.length).fill(""));
+      setSourceCompleted(false);
+      setIssuedCert(null);
+      if (data.notice) showNotice(data.notice, "info");
+    } catch {
+      setLessonError("학습 자료를 만들지 못했습니다. 네트워크를 확인하고 다시 시도해 주십시오.");
+    } finally {
+      setLessonBusy(false);
+    }
+  };
+
+  const updateLessonAnswer = (index: number, value: string) =>
+    setLessonAnswers((prev) => prev.map((answer, i) => (i === index ? value : answer)));
+
+  const clearLesson = () => {
+    setLesson(null);
+    setLessonAnswers([]);
+    setSourceCompleted(false);
+    setLessonError(null);
+    setIssuedCert(null);
+    setLessonEditing(false);
+  };
+
+  // 발급 대상 식별자. 로그인 사용자가 생기기 전까지는 이 기기에만 존재하는 무작위 값이며,
+  // 개인정보를 담지 않는다. 같은 날 같은 학습을 마친 다른 사람과 번호가 겹치지 않게 하는 용도다.
+  const ownerKey = () => {
+    const KEY = "gp_owner_key";
+    try {
+      const existing = window.localStorage.getItem(KEY);
+      if (existing) return existing;
+      const created = crypto.randomUUID();
+      window.localStorage.setItem(KEY, created);
+      return created;
+    } catch {
+      // 저장이 막힌 환경(프라이빗 모드 등)에서도 발급은 가능해야 하지만, 고정 문자열을 쓰면
+      // 서로 다른 사용자가 같은 번호를 받는다. 이 탭에서만 유지되는 난수로 대체한다.
+      if (!sessionOwnerKey.current) sessionOwnerKey.current = crypto.randomUUID();
+      return sessionOwnerKey.current;
+    }
+  };
+
+  // 발급 — 조건 미충족이면 아무것도 만들지 않는다(버튼도 비활성이지만 방어적으로 한 번 더 막는다).
+  const issueCertificate = (kind: CertificateKindId) => {
+    const decision = kind === "performance" ? performanceDecision : learningDecision;
+    if (!decision.eligible) {
+      showNotice("아직 발급 조건을 충족하지 않았습니다.", "error");
+      return;
+    }
+    const issuedAt = formatProofDate(new Date());
+    setIssuedCert({
+      kind,
+      serial: certificateSerial(kind, learningRecord, issuedAt, ownerKey()),
+      issuedAt,
+      competencyLabel: learningRecord.competencyLabel,
+      sourceTitle: learningRecord.sourceTitle,
+      scope: certificateScope(kind === "performance" ? "performance" : "learning"),
+      artifactUrl: kind === "performance" ? artifactUrl.trim() : undefined,
+    });
+  };
+
   const startCheck = () => {
     if (!gaps.length) return;
     const comp = role.competencies.find((c) => c.id === gaps[0].id);
@@ -508,7 +779,17 @@ export default function Home() {
     if (ok) {
       setPassedChecks((prev) => ({ ...prev, [quiz.compId]: true }));
       setQuiz({ ...quiz, status: "passed" });
-      showNotice("학습확인 통과 · 수행 확인(Lv.2)으로 기록했습니다.", "success");
+      // 이해 확인은 증거등급을 올리지 않는다. 다만 이 역량에 확인한 근거가 이미 있으면
+      // 증거카드에 "이해 확인" 항목으로 함께 적힌다 — 그 차이만 안내한다.
+      const quizComp = role.competencies.find((c) => c.id === quiz.compId);
+      const confirmedInputs = confirmedClaims.map((claim) => ({ skill: claim.skill, quote: claim.quote, tier: claim.tier }));
+      const listedOnCard = quizComp ? hasConfirmedEvidenceFor(quizComp, confirmedInputs) : false;
+      showNotice(
+        listedOnCard
+          ? "학습확인 통과 · 증거카드에 ‘이해 확인’으로 함께 적힙니다. 증거등급은 오르지 않습니다."
+          : "학습확인 통과 · 이 역량에 확인한 근거가 아직 없어 증거카드에는 적히지 않습니다.",
+        "success",
+      );
     } else if (quiz.attempt >= 3) {
       setQuiz({ ...quiz, status: "locked" });
     } else {
@@ -541,6 +822,21 @@ export default function Home() {
     setProofDate(null);
     setConfirmingDelete(false);
     setModelId(DEFAULT_MODEL_ID);
+    // 확인 바가 "현재 작성한 내용과 분석 결과가 사라집니다" 라고 단언한다.
+    // 영상 학습·답변·수행 기록·산출물·발급 문서를 남기면 그 말이 거짓이 되고,
+    // 샘플에서 만든 기록이 실제 여정으로 넘어와 사용자 자신의 기록으로 읽힌다.
+    setLesson(null);
+    setLessonAnswers([]);
+    setLessonUrl("");
+    setLessonError(null);
+    setLessonEditing(false);
+    setSourceCompleted(false);
+    setPerformanceNote("");
+    setArtifactUrl("");
+    setIssuedCert(null);
+    setRestoredAt(null);
+    // 가져온 파일 미리보기도 지운다 — 남겨 두면 "지웠다" 고 말한 뒤 클릭 한 번으로 되살아난다.
+    setImportPreview(null);
   };
 
   // 샘플 체험 진입·초기화·종료 — 사용자의 실제 draft는 건드리지 않는다
@@ -573,6 +869,8 @@ export default function Home() {
       setAnalysisNotice(draft.analysisNotice);
       setSelectedAction(draft.selectedAction);
       setProofDate(draft.proofDate);
+      // 이 경로도 저장된 내용을 되살린다 — 마운트 시 복원과 똑같이 알린다.
+      setRestoredAt(draft.savedAt ?? null);
     }
     setNotice(null);
     scrollToTop();
@@ -630,7 +928,9 @@ export default function Home() {
   // 공유 문구를 "내 결과"로 개인화 — 목표직무명·확인된 역량 개수·선택한 행동명(전부 프리셋/집계값)만 사용하고,
   // 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
   const buildResultShareText = () => {
-    const totalSkills = confirmedClaims.length + passedComps.length;
+    // verifiedPassedComps는 "확인 증거가 있는" 역량만 담으므로 confirmedClaims와 겹친다.
+    // 두 값을 더하면 같은 증거를 두 번 세게 되므로 확인된 증거 수만 쓴다.
+    const totalSkills = confirmedClaims.length;
     if (totalSkills === 0) return SHARE_TEXT;
     const actionPart = chosenAction ? ` · 이번 주 행동 "${chosenAction.title}"` : "";
     return `${role.label} 목표로 역량 ${totalSkills}개 확인${actionPart} — GapProof`;
@@ -679,20 +979,61 @@ export default function Home() {
     });
   };
 
-  const requestDelete = () => setConfirmingDelete(true);
+  // 확인창을 연 버튼을 기억해 두었다가 그 자리로 되돌린다.
+  // 항상 헤더 버튼으로 보내면 복원 배너나 화면 하단에서 연 사용자는 포커스를 잃는다(WCAG 2.4.3).
+  const deleteOpener = useRef<HTMLElement | null>(null);
+  // 초기화 직후 포커스를 받을 자리(첫 화면의 저장 동의 체크박스).
+  const resetFocusRef = useRef<HTMLInputElement | null>(null);
+  const requestDelete = (event?: { currentTarget?: HTMLElement }) => {
+    closingConfirm.current = false;
+    deleteOpener.current = event?.currentTarget ?? null;
+    // 확인 바가 공지 위 4px 에 뜬다 — 공지를 남겨 두면 가려진다.
+    setNotice(null);
+    setConfirmingDelete(true);
+  };
   const cancelDelete = () => {
+    // 닫는 중임을 먼저 표시한다. React 는 discrete 이벤트의 setState 를 핸들러가 끝난 뒤 커밋하므로,
+    // 여기서 바로 focus() 를 부르면 아직 살아 있는 focusin 가드가 포커스를 도로 빼앗고
+    // 그 직후 언마운트되어 결국 body 로 떨어진다.
+    closingConfirm.current = true;
     setConfirmingDelete(false);
-    // 데스크톱은 헤더의 "새 분석 시작하기" 버튼, 모바일은 그 버튼이 display:none이라
-    // (hidden 요소는 focus 불가) 액션 메뉴 토글로 대신 복귀한다.
+    const opener = deleteOpener.current;
+    // 연 버튼이 아직 화면에 있으면 그리로, 없으면 데스크톱 헤더 버튼, 그것도 숨어 있으면
+    // 액션 메뉴 토글로 내려간다(hidden 요소는 focus 가 걸리지 않는다).
+    if (opener && opener.isConnected && opener.offsetParent !== null) {
+      opener.focus();
+      return;
+    }
     if (deleteButtonRef.current && deleteButtonRef.current.offsetParent !== null) {
       deleteButtonRef.current.focus();
     } else {
       document.querySelector<HTMLButtonElement>(".actions-toggle")?.focus();
     }
   };
+  // aria-modal="true" 를 선언한 이상 Tab 만 가두는 것으로는 부족하다.
+  // 마우스 클릭이나 주소창 → Shift+Tab 복귀로 배경에 포커스가 가면 확인 바가 그 위를 덮어
+  // 포커스가 보이지 않게 된다(WCAG 2.2 SC 2.4.11). 벗어나면 바 안으로 되돌린다.
+  const confirmBarRef = useRef<HTMLDivElement | null>(null);
+  const closingConfirm = useRef(false);
+  useEffect(() => {
+    if (!confirmingDelete) return;
+    const keepFocusInside = (event: FocusEvent) => {
+      if (closingConfirm.current) return; // 닫는 중에는 복귀 포커스를 빼앗지 않는다
+      const bar = confirmBarRef.current;
+      if (!bar || bar.contains(event.target as Node)) return;
+      bar.querySelector<HTMLButtonElement>("button")?.focus();
+    };
+    document.addEventListener("focusin", keepFocusInside);
+    return () => document.removeEventListener("focusin", keepFocusInside);
+  }, [confirmingDelete]);
+
   const confirmDelete = () => {
     setConfirmingDelete(false);
     deleteRecords();
+    // 취소 경로만 포커스를 되돌리고 파괴 경로는 body 로 떨어뜨리면 안 된다.
+    // 초기화 후 첫 화면의 주요 입력으로 옮긴다.
+    // 셀렉터 나열은 문서 순서에 기대므로 쓰지 않는다 — 명시 ref 로 옮긴다.
+    requestAnimationFrame(() => resetFocusRef.current?.focus());
   };
 
   return (
@@ -737,7 +1078,7 @@ export default function Home() {
       </header>
 
       {sampleMode && journeyOpen && (
-        <div className="sample-strip" role="status">
+        <div className="sample-strip">
           <span><b>샘플 체험 중</b> — 실제 분석이 아닙니다. 미리 준비된 예시로 전체 흐름을 볼 수 있습니다.</span>
           <button className="text-button" onClick={exitSample}>실제 분석으로 전환</button>
         </div>
@@ -745,6 +1086,8 @@ export default function Home() {
 
       {journeyOpen && (
         <section className="progress-wrap" aria-label="진행 단계">
+          {/* 좁은 화면에서는 라벨이 숨는다 — 점만 남으면 어디인지 알 수 없어 한 줄로 적는다. */}
+          <p className="progress-current">{step + 1}/{steps.length} · {steps[step]}</p>
           <ol className="progress">
             {steps.map((label, index) => (
               <li key={label} className={index === step ? "active" : index < step ? "done" : ""}>
@@ -763,17 +1106,41 @@ export default function Home() {
         </div>
       )}
 
+      {confirmingDelete && <div className="confirm-backdrop" onClick={cancelDelete} aria-hidden="true" />}
       {confirmingDelete && (
+        // 고정 확인 바가 뒤쪽 내용을 덮는데 그쪽이 계속 탭으로 들어가면 포커스가 가려진다
+        // (WCAG 2.2 SC 2.4.11). 버튼이 둘뿐이므로 Tab 을 두 버튼 사이로 가둬 실제 모달로 만든다.
+        // 포커스를 가두므로 role=dialog + aria-modal 이 지킬 수 있는 약속이 된다.
         <div
+          ref={confirmBarRef}
           className="confirm-bar"
-          role="alertdialog"
-          aria-label="새 분석 시작 확인"
-          onKeyDown={(event) => { if (event.key === "Escape") cancelDelete(); }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-reset-title"
+          aria-describedby="confirm-reset-desc"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              cancelDelete();
+              return;
+            }
+            if (event.key !== "Tab") return;
+            const buttons = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+            );
+            if (buttons.length === 0) return;
+            event.preventDefault();
+            const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+            const next = event.shiftKey ? index - 1 : index + 1;
+            buttons[(next + buttons.length) % buttons.length].focus();
+          }}
         >
-          <p>새 분석을 시작하시겠습니까? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
+          <h2 id="confirm-reset-title" className="sr-only">새 분석 시작 확인</h2>
+          <p id="confirm-reset-desc">새 분석을 시작하시겠습니까? 현재 작성한 내용과 분석 결과가 사라집니다. 이 작업은 되돌릴 수 없습니다.</p>
           <div>
-            <button autoFocus onClick={cancelDelete}>계속 작성하기</button>
-            <button className="danger" onClick={confirmDelete}>새 분석 시작</button>
+            {/* 되돌릴 수 없는 확인창에서 파괴 동작이 시각적으로 가장 강하면 안 된다.
+                안전한 선택지를 채움 버튼으로 두고, 파괴 동작은 외곽선으로 낮춘다. */}
+            <button className="safe" autoFocus aria-describedby="confirm-reset-desc" onClick={cancelDelete}>계속 작성하기</button>
+            <button className="danger" aria-describedby="confirm-reset-desc" onClick={confirmDelete}>새 분석 시작</button>
           </div>
         </div>
       )}
@@ -783,11 +1150,12 @@ export default function Home() {
           <div className="gate-card">
             <div className="gate-brand"><span className="brand-mark"><BrandGlyph /></span><b>GapProof</b></div>
             <div className="card-kicker">심사·멘토링 데모</div>
-            <h1>안내받은 데모 코드를 입력해 주세요.</h1>
+            <h1>안내받은 데모 코드를 입력해 주십시오.</h1>
             <p className="gate-guide">
               공백·전환 경험을 역량 증거와 이번 주 행동으로 바꾸는 <b>Solar 기반 진로 탐색 데모</b>입니다.
-              현재 버전은 제한된 테스트를 위해 운영되며, 심사·멘토링 공유용 <b>데모 코드</b>가 필요하고, 계정 로그인이나 개인 비밀번호가 아닙니다.
-              코드는 안내받은 채널에서 확인할 수 있습니다.
+              현재는 제한된 테스트로 운영합니다.
+              들어오려면 심사·멘토링 공유용 <b>데모 코드</b>가 필요합니다.
+              계정 로그인이나 개인 비밀번호가 아닙니다. 코드는 안내받은 채널에서 확인할 수 있습니다.
             </p>
             <label htmlFor="gate-code">데모 코드</label>
             <input
@@ -843,6 +1211,7 @@ export default function Home() {
             <p>키가 연결되면 실제 Solar를 호출하고, 없으면 원문 기반 샘플로 안전하게 전환합니다.</p>
             <label className="check-row">
               <input
+                ref={resetFocusRef}
                 type="checkbox"
                 checked={storeConsent}
                 onChange={(event) => setStoreConsent(event.target.checked)}
@@ -855,7 +1224,7 @@ export default function Home() {
                 checked={aggregateConsent}
                 onChange={(event) => setAggregateConsent(event.target.checked)}
               />
-              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 핵심 기능을 모두 쓸 수 있습니다 · 현재 버전은 통계를 실제로 수집하지 않으며, 이 선택은 Gap Brief의 기관 공유 범위 표시에만 반영됩니다.</small></span>
+              <span><b>[선택] 익명 서비스 개선 통계 참여</b><small>선택하지 않아도 핵심 기능을 모두 쓸 수 있습니다. 현재 버전은 통계를 실제로 수집하지 않습니다. 이 선택은 Gap Brief의 기관 공유 범위 표시에만 반영됩니다.</small></span>
             </label>
             <button className="primary full" disabled={!storeConsent} onClick={() => moveTo(1)}>
               {sampleMode ? "샘플로 둘러보기" : "내 경험에서 시작하기"} <span>→</span>
@@ -865,10 +1234,39 @@ export default function Home() {
         </section>
       )}
 
+      {/* 저장된 내용을 말없이 되살리지 않는다 — 무엇이 돌아왔고 무엇이 돌아오지 않았는지 알린다. */}
+      {journeyOpen && restoredAt && (
+        <div className="page-shell">
+          <div className="restore-note">
+            <p role="status">
+              <b>이 기기에 저장해 둔 작성 내용을 불러왔습니다.</b>{" "}
+              마지막 저장: {new Date(restoredAt).toLocaleString("ko-KR")}
+            </p>
+            <p className="restore-scope">
+              복원되는 것: 경험 원문, 후보 확인·거절 상태, 목표 직무, 진행 단계,
+              저장 동의와 통계 활용 동의, 이해 확인(퀴즈) 통과 여부, 선택한 이번 주 행동,
+              증거카드 발급일, 사용한 AI 모델과 분석 출처.
+            </p>
+            <p className="restore-scope">
+              복원되지 않는 것: 영상 학습 결과와 질문 답변, 수행 기록, 산출물 링크, 발급한 문서.
+              이 항목들은 저장하지 않습니다.
+            </p>
+            <div className="restore-actions">
+              <button type="button" className="secondary" onClick={() => setRestoredAt(null)}>
+                이어서 하기
+              </button>
+              <button type="button" className="text-button" onClick={requestDelete}>
+                지우고 새로 시작하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {journeyOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어주세요.</h1></div>
+            <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어 주십시오.</h1></div>
             <span className="time-pill">약 2분</span>
           </div>
           {analysisSource === "loading" ? (
@@ -893,14 +1291,19 @@ export default function Home() {
                 <p className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있으니 {(experienceLength - 10000).toLocaleString()}자만 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
               )}
               {experience.trim().length < 20 && (
-                <p className="length-hint" role="status">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜집니다.</p>
+                <p className="length-hint">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜집니다.</p>
               )}
               <p className="source-note">이런 경험도 좋습니다 — 프로젝트, 수업·강의, 자격증, Notion·메모, 손글씨 기록, 일·아르바이트, 돌봄, 게임·커뮤니티, 쉬었던 시기.</p>
 
               <div className="import-box">
                 <details>
                   <summary>이미 사용하는 AI가 있습니까? (ChatGPT·Claude·Gemini)</summary>
-                  <p className="import-guide">쓰던 AI에 아래 프롬프트를 붙여넣으면 대화 속 경험을 정리해 줍니다. 받은 답을 이 입력창에 붙여넣으십시오. <b>외부 AI의 답은 확정된 사실이 아니라 초안입니다 — 붙여넣은 뒤 직접 확인·수정하십시오.</b> 붙여넣기 전에 이름·연락처 같은 개인정보가 섞이지 않았는지 확인해 주십시오.</p>
+                  <p className="import-guide">
+                    쓰던 AI에 아래 프롬프트를 붙여넣으면 대화 속 경험을 정리해 줍니다.
+                    받은 답을 이 입력창에 붙여넣으십시오.
+                    <b> 외부 AI의 답은 확정된 사실이 아니라 초안입니다. 붙여넣은 뒤 직접 확인·수정하십시오.</b>
+                    {" "}붙여넣기 전에 이름·연락처 같은 개인정보가 섞이지 않았는지 확인해 주십시오.
+                  </p>
                   <pre className="import-prompt">{AI_ORGANIZE_PROMPT}</pre>
                   <button type="button" className="secondary" onClick={copyAiPrompt}>정리 프롬프트 복사</button>
                 </details>
@@ -984,20 +1387,35 @@ export default function Home() {
                 <div className="claim-source"><span>출처</span><b>{claim.source}</b></div>
                 <div className="evidence-link">
                   <label htmlFor={`claim-link-${claim.id}`}>근거 링크 (선택)</label>
-                  <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="GitHub·수료증·노트 URL" onChange={(event) => attachLink(claim.id, event.target.value)} />
+                  <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="https://... (GitHub·수료증·노트 주소)" onChange={(event) => attachLink(claim.id, event.target.value)} />
                   <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작합니다"}</small>
                 </div>
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
                   <div className="claim-v2">
+                    {/* 이 화면에서 사용자가 할 일은 인용문을 읽고 맞는지 판단하는 것이다.
+                        AI 판단·근거 강도·신호를 각각 칩으로 띄우면 카드당 4~5개가 되어
+                        정작 읽어야 할 원문과 확인 버튼을 가린다. 판단은 한 칩으로 합치고
+                        신호는 아래 설명 줄로 내린다. */}
                     <div className="v2-badges">
-                      {claim.factStatus && <span className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}>{claim.factStatus}</span>}
-                      {claim.evidenceStrength && <span className="v2-badge">근거 {claim.evidenceStrength}</span>}
-                      {claim.signals?.map((signal) => <span className="v2-badge signal" key={signal}>{signal}</span>)}
+                      {claim.factStatus && (
+                        <span
+                          className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}
+                        >
+                          AI 판단: 원문에 {claim.factStatus}
+                          {claim.evidenceStrength ? ` · 근거 ${claim.evidenceStrength}` : ""}
+                        </span>
+                      )}
+                      {!claim.factStatus && claim.evidenceStrength && (
+                        <span className="v2-badge">근거 {claim.evidenceStrength}</span>
+                      )}
                     </div>
+                    {claim.signals && claim.signals.length > 0 && (
+                      <p className="v2-line"><b>AI가 본 신호</b>{claim.signals.join(" · ")}</p>
+                    )}
                     {claim.context && <p className="v2-line"><b>상황</b>{claim.context}</p>}
                     {claim.behaviors && claim.behaviors.length > 0 && (
-                      <p className="v2-line"><b><IconCheck />확인된 행동</b>{claim.behaviors.join(" · ")}</p>
+                      <p className="v2-line"><b><IconCheck />AI가 원문에서 뽑은 행동</b>{claim.behaviors.join(" · ")}</p>
                     )}
                     {claim.overclaimRisk && <p className="v2-line risk"><b><IconWarning />과장 주의</b>{claim.overclaimRisk}</p>}
                     {claim.jobHypotheses && claim.jobHypotheses.length > 0 && (
@@ -1017,15 +1435,15 @@ export default function Home() {
                   </div>
                 )}
                 <div className="claim-actions">
-                  <button className={claim.status === "rejected" ? "selected reject" : ""} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
+                  <button className={claim.status === "rejected" ? "selected reject" : ""} aria-pressed={claim.status === "rejected"} onClick={() => updateClaim(claim.id, "rejected")}>거절</button>
                   <button onClick={() => startEditingClaim(claim)}>표현 수정</button>
-                  <button className={claim.status === "confirmed" ? "selected confirm" : "confirm"} onClick={() => updateClaim(claim.id, "confirmed")}>✓ 맞아요</button>
+                  <button className={claim.status === "confirmed" ? "selected confirm" : "confirm"} aria-pressed={claim.status === "confirmed"} onClick={() => updateClaim(claim.id, "confirmed")}>✓ 맞습니다</button>
                 </div>
               </article>
             ))}
           </div>
           <div className="footer-actions sticky-actions">
-            <div><b>{confirmedClaims.length}개 확인됨</b><span>최소 1개를 확인해 주십시오.</span></div>
+            <div><b>{confirmedClaims.length}개 내가 확인함</b><span>최소 1개를 확인해 주십시오.</span></div>
             <button className="secondary" onClick={() => moveTo(1)}>이전</button>
             <button className="primary" disabled={confirmedClaims.length === 0} onClick={() => moveTo(3)}>다음: 먼저 알아보기 <span>→</span></button>
           </div>
@@ -1057,12 +1475,9 @@ export default function Home() {
                   <span className="lookinto-platform">{card.platform}</span>
                   <h3>{card.title}</h3>
                   <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
-                  <div className="v2-badges">
-                    {card.hypothesis && <span className="v2-badge">{card.hypothesis}</span>}
-                    <span className="v2-badge">{card.time}</span>
-                    <span className="v2-badge">{card.difficulty}</span>
-                    <span className="v2-badge">{card.free}</span>
-                  </div>
+                  {/* 예상 정보는 긴 문장이라 칩에 넣으면 읽히지 않고 카드만 어지럽힌다.
+                      한 줄 설명으로 내린다. AI 가설은 카드마다 같은 문구라 목록 위에 한 번만 둔다. */}
+                  <p className="lookinto-estimate">{card.time} · {card.difficulty} · {card.free}</p>
                   <p className="follow-up"><b><IconQuestion />확인할 포인트</b>{card.verify}</p>
                   <a className="lookinto-link" href={card.href} target="_blank" rel="noopener noreferrer" aria-label={card.ariaLabel}>
                     {card.linkLabel} <span aria-hidden="true">↗</span>
@@ -1081,12 +1496,9 @@ export default function Home() {
                   <h3>{card.title}</h3>
                   <p className="follow-up"><b>추천 이유</b>{card.reason}</p>
                   {card.searchHint && <p className="lookinto-hint">{card.searchHint}</p>}
-                  <div className="v2-badges">
-                    {card.hypothesis && <span className="v2-badge">{card.hypothesis}</span>}
-                    <span className="v2-badge">{card.time}</span>
-                    <span className="v2-badge">{card.difficulty}</span>
-                    <span className="v2-badge">{card.free}</span>
-                  </div>
+                  {/* 예상 정보는 긴 문장이라 칩에 넣으면 읽히지 않고 카드만 어지럽힌다.
+                      한 줄 설명으로 내린다. AI 가설은 카드마다 같은 문구라 목록 위에 한 번만 둔다. */}
+                  <p className="lookinto-estimate">{card.time} · {card.difficulty} · {card.free}</p>
                   <p className="follow-up"><b><IconQuestion />확인할 포인트</b>{card.verify}</p>
                   <a className="lookinto-link" href={card.href} target="_blank" rel="noopener noreferrer" aria-label={card.ariaLabel}>
                     {card.linkLabel} <span aria-hidden="true">↗</span>
@@ -1106,7 +1518,258 @@ export default function Home() {
             </article>
           </div>
 
-          <p className="length-hint" role="status">둘러보지 않아도 다음으로 넘어갈 수 있습니다.</p>
+          <div className="lookinto-group lesson-group">
+            <div className="card-kicker">영상으로 학습하기 (선택)</div>
+            <h3 className="lesson-title">본 영상을 학습 기록으로 남깁니다.</h3>
+            <p className="length-hint">
+              공개 YouTube 주소를 넣으면 요약·핵심 개념·질문을 정리해 드립니다. 정리된 내용은 직접 고칠 수 있습니다.
+              영상 학습과 질문은 <b>학습 완료·이해 확인</b>까지만 인정되며 <b>Lv.0 자기기록</b>을 넘지 않습니다 — 증거등급은 실제로 해 보고 결과물을 남겨야 오릅니다.
+            </p>
+            <div className="lesson-input-row">
+              <label className="sr-only" htmlFor="lesson-url">공개 YouTube 영상 주소</label>
+              <input
+                id="lesson-url"
+                type="url"
+                inputMode="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={lessonUrl}
+                onChange={(event) => setLessonUrl(event.target.value)}
+                disabled={lessonBusy}
+              />
+              <button className="check-cta" onClick={generateLesson} disabled={lessonBusy || !lessonUrl.trim()}>
+                {lessonBusy ? "정리하는 중…" : lesson ? "다시 만들기" : "학습 자료 만들기"}
+              </button>
+            </div>
+            {lessonError && <p className="lesson-error" role="alert">{lessonError}</p>}
+
+            {/* 인정 범위는 영상 학습을 만들지 않아도 볼 수 있어야 한다 —
+                무엇이 어떤 근거로 인정되는지는 이 제품의 핵심 설명인데, 학습 자료를 만든
+                사용자만 볼 수 있으면 대부분이 한 번도 보지 못한다.
+                다만 아직 아무것도 하지 않은 사용자에게 15개 블록을 펼쳐 두면 밀도만 나빠지므로,
+                학습 기록이 생기기 전에는 접어 둔다. */}
+            <details className="recognition-details" open={Boolean(lesson)}>
+              <summary>지금 인정되는 범위 보기</summary>
+              <div className="recognition-panel">
+                {/* 확인 주체가 다른 것을 같은 목록에 섞지 않는다.
+                    내가 적은 것과 기관이 발급한 것이 나란히 놓이면 같은 무게로 읽힌다. */}
+                {RECOGNITION_GROUPS.map((group) => {
+                  const kinds = RECOGNITION_KINDS.filter(
+                    (kind) => group.kinds.includes(kind.id) && kind.id !== "third_party_reviewed",
+                  );
+                  if (kinds.length === 0) return null;
+                  return (
+                    <section className={`recognition-group recognition-group-${group.id}`} key={group.id}>
+                      <h4>{group.label}</h4>
+                      <p className="recognition-who">{group.who}</p>
+                      <ul className="recognition-list">
+                        {kinds.map((kind) => {
+                          const active = activeRecognitions.includes(kind.id);
+                          return (
+                            <li key={kind.id} className={active ? "recognition-on" : "recognition-off"}>
+                              <b>{active ? "인정됨" : "아직 아님"} · {kind.label}</b>
+                              <small>{active ? kind.limits : kind.means}</small>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  );
+                })}
+                {/* 학습 기록이 없을 때의 안내는 이 details 위쪽(항상 보이는 곳)에 이미 있다.
+                    접힌 안에 또 두면 정작 필요한 순간에 숨는다. */}
+                {lesson && (
+                  <p className="length-hint">
+                    이 학습 기록만으로 도달 가능한 최대 증거등급: <b>Lv.{recordMaxTier}</b>
+                    {recordMaxTier === 0 && " — 등급을 올리려면 실제로 해 보고 결과물 링크를 남겨 주십시오."}
+                  </p>
+                )}
+              </div>
+            </details>
+
+            {lesson && (
+              <div className="lesson-body">
+                <div className="lesson-head">
+                  <h4>{lesson.title}</h4>
+                  <div className="lesson-head-actions">
+                    <button className="secondary" onClick={() => setLessonEditing((prev) => !prev)}>
+                      {lessonEditing ? "편집 끝내기" : "내용 고치기"}
+                    </button>
+                    <button className="secondary" onClick={clearLesson}>지우기</button>
+                  </div>
+                </div>
+                {lessonEditing ? (
+                  <label className="lesson-edit">
+                    <span>요약을 직접 고칠 수 있습니다</span>
+                    <textarea
+                      value={lesson.summary}
+                      rows={4}
+                      onChange={(event) => setLesson({ ...lesson, summary: event.target.value })}
+                    />
+                  </label>
+                ) : (
+                  <p className="lesson-summary">{lesson.summary}</p>
+                )}
+
+                {lesson.keyConcepts.length > 0 && (
+                  <div className="v2-badges">
+                    {lesson.keyConcepts.map((concept) => (
+                      <span className="v2-badge" key={concept}>{concept}</span>
+                    ))}
+                  </div>
+                )}
+
+                {lesson.timestamps.length > 0 && (
+                  <ul className="lesson-timestamps">
+                    {lesson.timestamps.map((stamp) => (
+                      <li key={`${stamp.at}-${stamp.label}`}><b>{stamp.at}</b> {stamp.label}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="lesson-questions">
+                  <div className="card-kicker">스스로 확인하기 (필수 {lesson.questions.length}문항)</div>
+                  {/* 시청 시간을 측정하지 않으므로 완료는 본인 표시로만 받는다(자기기록 Lv.0). */}
+                  <label className="check-row lesson-done">
+                    <input
+                      type="checkbox"
+                      checked={sourceCompleted}
+                      onChange={(event) => setSourceCompleted(event.target.checked)}
+                    />
+                    <span>
+                      이 학습 자료를 끝까지 봤습니다.
+                      <small>본인이 표시한 값입니다. GapProof는 시청 시간을 측정하지 않습니다.</small>
+                    </span>
+                  </label>
+                  {lesson.questions.map((question, index) => {
+                    const answer = lessonAnswers[index] ?? "";
+                    const enough = isAnsweredEnough(answer);
+                    const fieldId = `lesson-q-${index}`;
+                    return (
+                      // label 로 전체를 감싸면 도움말과 글자수까지 입력칸의 "이름"이 되어
+                      // 한 글자 칠 때마다 이름이 바뀐다. 이름은 질문만, 나머지는 설명으로 붙인다.
+                      <div className="lesson-question" key={`${question.kind}-${index}`}>
+                        <label className="lesson-q-head" htmlFor={fieldId}>
+                          <span className="v2-badge">{LESSON_QUESTION_LABELS[question.kind]}</span>
+                          {question.question}
+                        </label>
+                        <textarea
+                          id={fieldId}
+                          rows={2}
+                          value={answer}
+                          aria-describedby={`${fieldId}-guide ${fieldId}-count`}
+                          placeholder={`내 말로 ${MIN_ANSWER_CHARS}자 이상 적어 주십시오`}
+                          onChange={(event) => updateLessonAnswer(index, event.target.value)}
+                        />
+                        <small className="lesson-guide" id={`${fieldId}-guide`}>도움말: {question.answerGuide}</small>
+                        {/* 조건을 넘긴 순간을 스크린리더에도 알린다. */}
+                        {/* 진행 중 숫자는 눈으로만 본다. 라이브 리전이면 한 글자마다 낭독된다. */}
+                        <small className={enough ? "lesson-count ok" : "lesson-count"} id={`${fieldId}-count`}>
+                          {enough
+                            ? `응답으로 인정됩니다 (${answer.trim().length}자)`
+                            : `${MIN_ANSWER_CHARS}자 이상 필요합니다 (현재 ${answer.trim().length}자)`}
+                        </small>
+                        {/* 임계를 넘은 순간만 알린다 — 텍스트가 바뀔 때만 낭독된다. */}
+                        <span className="sr-only" role="status">
+                          {enough ? `${index + 1}번 질문 응답으로 인정됩니다.` : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="lesson-practice">
+                  <p className="follow-up"><b>추천 수행 과제</b>{lesson.practiceTask}</p>
+                  <p className="follow-up"><b>예상 산출물</b>{lesson.expectedArtifact}</p>
+                  <label className="lesson-edit">
+                    <span>무엇을 직접 해 봤는지 한 줄로 적어 주십시오</span>
+                    <textarea
+                      rows={2}
+                      value={performanceNote}
+                      placeholder="예: 실제 문제 1개를 5문장으로 정의해 봤습니다"
+                      onChange={(event) => setPerformanceNote(event.target.value)}
+                    />
+                  </label>
+                  <label className="lesson-edit">
+                    <span>결과물 링크 (http/https)</span>
+                    <input
+                      type="url"
+                      inputMode="url"
+                      placeholder="https://github.com/... 또는 문서 공유 링크"
+                      value={artifactUrl}
+                      onChange={(event) => setArtifactUrl(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="cert-actions">
+                  {CERTIFICATE_KINDS.filter((kind) => kind.id !== "external_record").map((kind) => {
+                    const decision = kind.id === "performance" ? performanceDecision : learningDecision;
+                    return (
+                      <div className="cert-action" key={kind.id}>
+                        <button
+                          className="check-cta"
+                          disabled={!decision.eligible}
+                          onClick={() => issueCertificate(kind.id)}
+                        >
+                          {kind.label} 발급
+                        </button>
+                        <small>{kind.doesNotMean}</small>
+                        {!decision.eligible && (
+                          <div role="status">
+                            <ul className="cert-missing">
+                              {decision.missing.map((item) => <li key={item}>{item}</li>)}
+                            </ul>
+                            {decision.nextStep && (
+                              <p className="cert-next"><b>다음 한 가지</b> {decision.nextStep}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {issuedCert && (
+                  <article className="certificate-doc" aria-label={`${issuedCert.kind === "performance" ? "수행 확인서" : "학습 수료증"}`}>
+                    <header>
+                      <span className="brand-mark small"><BrandGlyph /></span>
+                      <div>
+                        <b>{issuedCert.kind === "performance" ? "수행 확인서" : "학습 수료증"}</b>
+                        <small>{CERTIFICATE_ISSUER}</small>
+                      </div>
+                    </header>
+                    <dl>
+                      <div><dt>역량</dt><dd>{issuedCert.competencyLabel || "—"}</dd></div>
+                      <div><dt>학습 자료</dt><dd>{issuedCert.sourceTitle || "—"}</dd></div>
+                      <div><dt>확인 범위</dt><dd>{issuedCert.scope}</dd></div>
+                      {issuedCert.artifactUrl && (
+                        <div><dt>결과물</dt><dd className="cert-url">{issuedCert.artifactUrl}</dd></div>
+                      )}
+                      <div><dt>발급일</dt><dd>{issuedCert.issuedAt}</dd></div>
+                      <div><dt>고유번호</dt><dd>{issuedCert.serial}</dd></div>
+                    </dl>
+                    <p className="cert-disclaimer">{CERTIFICATE_DISCLAIMER}</p>
+                    {/* 잘못 쓰이는 자리를 문서가 직접 막는다. 인쇄본에도 함께 나간다. */}
+                    <div className="cert-usage">
+                      <b>이 문서를 적는 자리</b>
+                      <p>{CERTIFICATE_USAGE_NOTE.allowed}</p>
+                      <p>{CERTIFICATE_USAGE_NOTE.forbidden}</p>
+                      <p className="cert-usage-example">
+                        {CERTIFICATE_USAGE_NOTE.wording
+                          .replace("{역량}", issuedCert.competencyLabel || "역량")
+                          .replace("{발급일}", issuedCert.issuedAt)}
+                      </p>
+                    </div>
+                    <div className="cert-doc-actions">
+                      <button className="secondary" onClick={() => window.print()}>인쇄 · PDF로 저장</button>
+                    </div>
+                  </article>
+                )}
+              </div>
+            )}
+          </div>
+
+          <p className="length-hint">둘러보지 않아도 다음으로 넘어갈 수 있습니다.</p>
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(2)}>이전</button>
             <button className="primary" onClick={() => moveTo(4)}>다음: 격차·행동 보기 <span>→</span></button>
@@ -1125,14 +1788,15 @@ export default function Home() {
             <section className="paper-card strengths">
               <div className="card-kicker">확인된 현재 역량</div>
               <h2>이미 출발점이 있습니다.</h2>
-              {confirmedClaims.length || passedComps.length ? (
+              {confirmedClaims.length || verifiedPassedComps.length ? (
                 <>
                   {confirmedClaims.map((claim) => (
                     <div className="strength-row" key={claim.id}><span>✓</span><p><b>{claim.skill}</b><small>{claim.quote}</small></p><TierBadge tier={claim.tier} /></div>
                   ))}
-                  {passedComps.map((c) => (
-                    <div className="strength-row" key={c.id}><span>✓</span><p><b>{c.label}</b><small>학습확인 통과 · 수행 확인</small></p><TierBadge tier={2} /></div>
+                  {verifiedPassedComps.map(({ comp, tier }) => (
+                    <div className="strength-row" key={comp.id}><span>✓</span><p><b>{comp.label}</b><small>확인한 근거 있음 · 이해 확인 통과(등급을 올리지 않음)</small></p><TierBadge tier={tier} /></div>
                   ))}
+                  <TierLegend />
                 </>
               ) : <p>확인된 역량이 없습니다.</p>}
             </section>
@@ -1142,14 +1806,29 @@ export default function Home() {
               {gaps.length ? gaps.slice(0, 3).map((gap) => (
                 <div className="gap-row" key={gap.id}>
                   <div><b>{gap.label}</b><small>필요 증거: {gap.proof} · Lv.{gap.current}/{gap.required}</small></div>
-                  <div className="bar"><i style={{ width: `${gap.percent}%` }} /></div>
-                  <strong>{gap.score}</strong>
+                    <div className="bar" role="img" aria-label={`요구 Lv.${gap.required} 중 ${gap.current} 확인됨`}>
+                    <i style={{ width: `${gap.percent}%` }} />
+                  </div>
                 </div>
               )) : <p>선택한 직무의 필수 역량을 이미 확인했습니다. 다른 직무로 바꿔 격차를 확인해 보십시오.</p>}
+              <div className="coverage-block">
+                <div className="coverage-head">
+                  <b>증거 충족도 {roleCoverage.percent}%</b>
+                  <small>{roleCoverage.metCount} / {roleCoverage.requiredCount} 항목</small>
+                </div>
+                <p className="coverage-formula">산정식: {roleCoverage.formula}</p>
+                {roleCoverage.basis.length > 0 && (
+                  <p className="coverage-list"><b>확인된 요구 증거</b> {roleCoverage.basis.join(" · ")}</p>
+                )}
+                {roleCoverage.unmet.length > 0 && (
+                  <p className="coverage-list"><b>아직 확인되지 않은 항목</b> {roleCoverage.unmet.join(" · ")}</p>
+                )}
+                <p className="coverage-disclaimer">{roleCoverage.disclaimer}</p>
+              </div>
             </section>
           </div>
           <div className="action-section">
-            <div className="action-title"><div><span className="eyebrow">격차를 낮추는 행동</span><h2>이번 주에는 하나만 선택합니다.</h2></div><p>중요도 × 격차 × 실행가능성 순으로 골랐습니다.</p></div>
+            <div className="action-title"><div><span className="eyebrow">격차를 낮추는 행동</span><h2>이번 주에는 하나만 선택합니다.</h2></div><p>목표 직무의 중요도와 남은 격차를 곱해 큰 순으로 골랐습니다.</p></div>
             <div className="action-grid">
               {recommended.map((action) => (
                 <button key={action.id} className={`action-card ${selectedAction === action.id ? "selected" : ""}`} onClick={() => setSelectedAction(action.id)}>
@@ -1166,13 +1845,13 @@ export default function Home() {
               const comp = role.competencies.find((c) => c.id === quiz.compId);
               const label = comp?.label ?? "";
               if (quiz.status === "passed") return (
-                <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 수행 확인 완료</h3><div className="check-result pass">Lv.2 수행 확인으로 기록했습니다. 위 격차 지도에서 이 역량이 닫힌 것을 확인하십시오.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+                <div className="check-panel"><div className="card-kicker">학습확인 통과</div><h3>‘{label}’ 이해도 확인 완료</h3><div className="check-result pass">이해도 확인을 통과했습니다. <b>이해 확인은 증거등급을 올리지 않습니다.</b> 이 역량에 확인한 근거가 있으면 증거카드에 ‘이해 확인’으로 함께 적히고, 아직 없으면 근거를 먼저 확인해 주십시오.</div><div className="check-actions">{gaps.length ? <button className="check-cta" onClick={startCheck}>다음 격차 확인 →</button> : <span className="check-done">✓ 남은 우선 격차 없음</span>}<button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               if (quiz.status === "locked") return (
-                <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">등급을 올리지 않았습니다. 추천 학습을 완료한 뒤 다시 확인해 주십시오.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
+                <div className="check-panel"><div className="card-kicker coral">추가 학습 필요</div><h3>‘{label}’ 3회 미통과</h3><div className="check-result fail">이해 확인은 통과 여부와 무관하게 증거등급을 올리지 않습니다. 추천 학습을 완료한 뒤 다시 확인해 주십시오.</div><div className="check-actions"><button className="check-cta" onClick={retryCheck}>다시 시도</button><button className="secondary" onClick={closeCheck}>닫기</button></div></div>
               );
               return (
-                <div className="check-panel"><div className="card-kicker">학습확인 · 통과 시 Lv.2 수행 확인</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. 통과하면 이 역량의 격차가 닫힙니다.</p>
+                <div className="check-panel"><div className="card-kicker">학습확인 · 이해도 점검</div><h3>‘{label}’ 이해도 확인</h3><p>2문항 · 최대 3회. <b>통과해도 증거등급은 오르지 않습니다.</b> 확인한 근거가 있을 때만 증거카드에 ‘이해 확인’으로 함께 적힙니다.</p>
                   {quiz.questions.map((qq, qi) => (
                     <div className="check-q" key={qi}><p>Q{qi + 1}. {qq.q}</p><div className="check-opts">{qq.options.map((op, oi) => (<button key={oi} className={`check-opt ${quiz.picks[qi] === oi ? "picked" : ""}`} onClick={() => pickAnswer(qi, oi)}>{op}</button>))}</div></div>
                   ))}
@@ -1182,17 +1861,22 @@ export default function Home() {
             }
             if (!gaps.length) return null;
             return (
-              <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인하고, 통과하면 수행 확인(Lv.2)으로 기록합니다.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
+              <div className="check-panel"><div className="card-kicker">학습확인 (선택)</div><h3>‘{gaps[0].label}’ 30초 이해도 확인</h3><p>추천 학습을 이해했는지 2문항으로 확인합니다. <b>통과해도 증거등급은 오르지 않습니다.</b> 이 역량에 확인한 근거가 있을 때만 증거카드에 ‘이해 확인’으로 함께 적힙니다.</p><div className="check-actions"><button className="check-cta" onClick={startCheck}>학습확인 시작 →</button></div></div>
             );
           })()}
-          {confirmedClaims.length === 0 && passedComps.length === 0 && (
-            <div className="zero-note" role="status">아직 확인된 역량이 없습니다. ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주십시오.</div>
+          {confirmedClaims.length === 0 && (
+            <div className="zero-note" role="status">
+              다음 단계로 가려면 내 경험에서 확인할 수 있는 근거를 하나 이상 선택해 주십시오.
+              {passedComps.length > 0
+                ? " 학습확인은 이해도를 점검할 뿐, 그 자체로는 증거를 대신하지 않습니다."
+                : " ‘이전’으로 돌아가 후보를 최소 1개 확인하거나, 경험 단계에서 내용을 보강한 뒤 다시 분석해 주십시오."}
+            </div>
           )}
           <div className="footer-actions">
             <button className="secondary" onClick={() => moveTo(3)}>이전</button>
             <button
               className="primary"
-              disabled={confirmedClaims.length === 0 && passedComps.length === 0}
+              disabled={confirmedClaims.length === 0}
               onClick={() => { setProofDate(formatProofDate(new Date())); moveTo(5); }}
             >
               GapProof 만들기 <span>→</span>
@@ -1212,9 +1896,23 @@ export default function Home() {
             <article className="proof-card personal-proof">
               <div className="proof-header"><div><span className="brand-mark small"><BrandGlyph /></span><b>GapProof</b></div><span>개인용 증거카드</span></div>
               <div className="identity"><small>목표직무</small><h2>{role.label}</h2><p>{role.blurb}</p></div>
-              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{passedComps.map((c) => <div className="proof-skill" key={c.id}><b>{c.label} · 수행 확인</b><TierBadge tier={2} /></div>)}</div>
+              <div className="proof-block"><span>확인된 역량</span>{confirmedClaims.map((claim) => <div className="proof-skill" key={claim.id}><b>{claim.skill}</b><TierBadge tier={claim.tier} /></div>)}{verifiedPassedComps.map(({ comp, tier }) => <div className="proof-skill" key={comp.id}><b>{comp.label} · 이해 확인</b><TierBadge tier={tier} /></div>)}<TierLegend /></div>
               <div className="proof-block quote-block"><span>대표 근거</span><blockquote>“{confirmedClaims[0]?.quote ?? "확인된 근거를 추가해 주십시오."}”</blockquote></div>
-              <div className="chosen-action"><span>이번 주 다음 행동</span><b>{chosenAction?.title}</b><small>{chosenAction?.rule}</small></div>
+              {/* 추천이 비어 있으면 빈 제목만 남은 칸이 인쇄된다 — 그럴 때는 무엇을 하라는 안내로 대체한다. */}
+              <div className="chosen-action">
+                <span>이번 주 다음 행동</span>
+                {chosenAction ? (
+                  <>
+                    <b>{chosenAction.title}</b>
+                    <small>{chosenAction.rule}</small>
+                  </>
+                ) : (
+                  <>
+                    <b>아직 정하지 않았습니다.</b>
+                    <small>부족한 근거를 하나 고르면 다음 행동을 제안해 드립니다.</small>
+                  </>
+                )}
+              </div>
               <footer><span>{analysisSource === "solar" ? `Solar ${analysisModel}` : "샘플 규칙"} 제안 → 사용자 확인 완료</span><b>{proofDate}</b></footer>
             </article>
 

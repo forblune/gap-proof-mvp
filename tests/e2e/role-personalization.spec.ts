@@ -1,17 +1,12 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { reachLookIntoStep as sharedReachLookIntoStep } from "./journey";
 
 // 재현 테스트 — PR #76 리뷰에서 발견된 버그:
 // roleId가 ROLES[0]("AI 서비스 기획자")로 기본 초기화되고, 역할 선택 UI는 기존 STEP4에만 있어
 // 사용자가 STEP3 "먼저 알아보기"에 도달했을 때 목표직무를 한 번도 확인하지 않은 채
 // 기본 역할 기준 자료(검색어·미니프로젝트)를 보게 된다.
-async function reachLookIntoStep(page) {
-  await page.goto("/demo?sample=1", { waitUntil: "networkidle" });
-  await page.locator(".check-row input").first().check();
-  await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
-  await page.getByRole("button", { name: /가능성 찾기/ }).click();
-  await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 10_000 });
-  await page.getByRole("button", { name: /맞아요/ }).first().click();
-  await page.getByRole("button", { name: /먼저 알아보기/ }).click();
+async function reachLookIntoStep(page: Page) {
+  await sharedReachLookIntoStep(page);
 }
 
 test.describe("역할 개인화 — STEP3 자료 표시 전 목표직무 확인/선택", () => {

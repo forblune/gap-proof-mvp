@@ -122,7 +122,7 @@ test("server-renders the access gate for unauthenticated visitors", async () => 
   assert.match(html, /<title>GapProof \| 공백을 증거로<\/title>/i);
   // 게이트 화면: 서비스 이름 + 짧은 설명 + 데모 코드임을 명시
   assert.match(html, /심사·멘토링 데모/);
-  assert.match(html, /안내받은 데모 코드를 입력해 주세요/);
+  assert.match(html, /안내받은 데모 코드를 입력해 주십시오/);
   assert.match(html, /계정 로그인이나 개인 비밀번호가 아닙니다/);
   assert.match(html, /취업 가능성이나 적성을 판정하지 않습니다/);
   // 비인증 HTML에는 메인 데모 흐름이 노출되지 않는다 (전체 데모 진입 게이트 정책)
@@ -234,8 +234,13 @@ test("keeps AI claims bounded and user-confirmed", async () => {
   assert.doesNotMatch(page, /id="experience" maxLength/);
   assert.match(page, /최소 20자 · 최대 10,000자/); // 길이 조건 안내(화면·서버 일치)
   assert.match(page, /자동으로 잘라내지 않습니다/); // 절삭 금지 계약
-  assert.match(page, /role="alertdialog"/); // 기록 삭제 확인 절차
-  assert.match(page, /아직 확인된 역량이 없습니다/); // 확인 0개 가드 안내
+  // 기록 삭제 확인 절차. 포커스를 두 버튼 사이에 가두므로 aria-modal 을 지킬 수 있다.
+  assert.match(page, /role="dialog"/);
+  assert.match(page, /aria-modal="true"/);
+  assert.match(page, /aria-describedby="confirm-reset-desc"/); // 되돌릴 수 없다는 경고가 귀에 닿는다
+  assert.match(page, /Escape/); // Escape 로 닫힌다
+  assert.match(page, /event\.key !== "Tab"/); // Tab 이 뒤쪽 내용으로 새지 않는다
+  assert.match(page, /다음 단계로 가려면 내 경험에서 확인할 수 있는 근거를 하나 이상 선택해 주십시오/); // 확인 0개 가드 안내(증거등급 무결성 P0)
   assert.match(page, /notice\.kind === "error" \? "alert" : "status"/); // 오류 알림 라이브 리전
   assert.match(page, /개인정보가 감지되면 가려서 표시됩니다/); // 마스킹 가능성 고지(#7)
   assert.match(layout, /SITE_TITLE = "GapProof \| 공백을 증거로"/);

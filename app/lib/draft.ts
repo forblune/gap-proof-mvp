@@ -55,7 +55,8 @@ function isClaim(x: unknown): x is DraftClaim {
     typeof x.skill === "string" &&
     typeof x.quote === "string" &&
     typeof x.source === "string" &&
-    Number.isInteger(x.tier) &&
+    // 등급 범위까지 본다 — Lv.9 같은 값이 복원되면 배지가 라벨 없이 "Lv.9" 만 그린다.
+    typeof x.tier === "number" && Number.isInteger(x.tier) && x.tier >= 0 && x.tier <= 3 &&
     typeof x.confidence === "string" && CONFIDENCE.has(x.confidence) &&
     typeof x.question === "string" &&
     typeof x.status === "string" && STATUS.has(x.status) &&

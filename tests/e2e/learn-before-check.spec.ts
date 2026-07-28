@@ -1,16 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { reachLookIntoStep as sharedReachLookIntoStep } from "./journey";
 import AxeBuilder from "@axe-core/playwright";
 
 // Learn Before Check Phase 1 — 신규 STEP 3 "먼저 알아보기" 검증.
 // 샘플 모드로 진행하므로 실제 Solar 호출·외부 API 호출·Supabase 접근이 전혀 없다.
-async function reachLookIntoStep(page) {
-  await page.goto("/demo?sample=1", { waitUntil: "networkidle" });
-  await page.locator(".check-row input").first().check();
-  await page.getByRole("button", { name: /내 경험에서 시작하기|샘플로 둘러보기/ }).click();
-  await page.getByRole("button", { name: /가능성 찾기/ }).click();
-  await expect(page.locator(".claim-card").first()).toBeVisible({ timeout: 10_000 });
-  await page.getByRole("button", { name: /맞아요/ }).first().click();
-  await page.getByRole("button", { name: /먼저 알아보기/ }).click();
+async function reachLookIntoStep(page: Page) {
+  await sharedReachLookIntoStep(page);
 }
 
 test.describe("Learn Before Check Phase 1 — 먼저 알아보기", () => {

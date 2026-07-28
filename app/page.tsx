@@ -87,7 +87,7 @@ export default function HomePage() {
       <section className="home-hero" aria-labelledby="home-hero-title">
         <div className="home-hero-inner">
           <p className="eyebrow">삶의 경험 → 확인된 증거 → 이번 주 한 걸음</p>
-          <h1 id="home-hero-title">경력이라고 생각하지 않았던 경험에서<br /><em>다음 가능성</em>을 발견하세요.</h1>
+          <h1 id="home-hero-title">경력이라고 생각하지 않았던 경험에서<br /><em>다음 가능성</em>을 찾습니다.</h1>
           <p className="lead">
             돌봄, 아르바이트, 게임, 취미, 독학, 쉬었던 시간까지. GapProof는 삶에서 실제로 한 행동을
             근거로 역량 후보를 찾고, 확인 질문과 작은 실험을 통해 다음 진로 탐색으로 연결합니다.
@@ -147,7 +147,7 @@ export default function HomePage() {
           <ol className="home-steps">
             <li><b>자유롭게 쓰기</b><span>정리되지 않은 그대로 적습니다.</span></li>
             <li><b>AI가 후보 제안</b><span>Solar가 실제 행동과 원문 근거를 함께 찾습니다.</span></li>
-            <li><b>사용자가 확인</b><span>맞아요·수정·거절 — 하나도 확인하지 않으면 진행되지 않습니다.</span></li>
+            <li><b>사용자가 확인</b><span>맞습니다·수정·거절 — 하나도 확인하지 않으면 진행되지 않습니다.</span></li>
             <li><b>격차와 한 걸음</b><span>목표 직무와의 거리, 이번 주 행동, 증거카드로 이어집니다.</span></li>
           </ol>
           <a className="home-more" href="/how-it-works">작동 원리 전체 보기 →</a>

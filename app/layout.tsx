@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { FeedbackWidget } from "./components/feedback-widget";
 
 const SITE_URL = "https://gapproof.forblune.com";
 const SITE_TITLE = "GapProof | 공백을 증거로";
@@ -48,7 +49,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* 로그인 사용자에게만 보이는 피드백 버튼(컴포넌트가 세션을 확인해 스스로 숨는다) */}
+        <FeedbackWidget />
+      </body>
     </html>
   );
 }
