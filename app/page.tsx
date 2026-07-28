@@ -2,7 +2,7 @@
 // 이해할 수 있게 하는 제품 스토리. 게이트 없음(데모 진입은 /demo에서 게이트 유지).
 // 사례는 전부 가상 인물이며 실존 개인정보를 사용하지 않는다.
 import type { Metadata } from "next";
-import BrandGlyph from "./components/brand-mark";
+import { BrandMotion } from "./components/brand-motion";
 import MobileDrawerNav from "./components/mobile-drawer-nav";
 import ThemeToggle from "./components/theme-toggle";
 import { NAV_ITEMS } from "./components/site-nav";
@@ -67,10 +67,14 @@ const CASES = [
 
 export default function HomePage() {
   return (
-    <main className="home">
+    <>
+      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
       <header className="topbar info-bar">
         <a className="brand" href="/" aria-label="GapProof 홈">
-          <span className="brand-mark"><BrandGlyph /></span>
+          {/* 첫 진입 화면에서만 1회 재생한다. 다른 페이지는 정적 심벌(BrandGlyph)을 쓴다 —
+              화면을 옮길 때마다 로고가 움직이면 브랜드가 아니라 로딩 표시로 읽힌다.
+              크기는 .brand-mark 와 같은 35px 로 고정해 레이아웃이 밀리지 않는다(CLS 0). */}
+          <BrandMotion size={35} />
           <span>GapProof</span>
         </a>
         <nav className="info-nav" aria-label="정보 페이지">
@@ -82,6 +86,8 @@ export default function HomePage() {
         </nav>
         <MobileDrawerNav />
       </header>
+
+      <main id="main" tabIndex={-1} className="home">
 
       {/* 1. Hero — 하이브리드 방향: 핵심 진입 구간은 다크 네이비로 무게감을 준다 */}
       <section className="home-hero" aria-labelledby="home-hero-title">
@@ -228,7 +234,7 @@ export default function HomePage() {
           <div className="home-card status-card status-live">
             <span className="status-badge"><IconCheck />지금 제공합니다</span>
             <ul className="home-list">
-              <li>코드 없는 샘플 체험 + 5단계 실분석(데모 코드)</li>
+              <li>코드 없는 샘플 체험 + 6단계 실분석(데모 코드)</li>
               <li>최대 10,000자 입력·TXT/MD 파일 가져오기</li>
               <li>AI 대화 정리 프롬프트로 기존 기록 옮겨오기</li>
               <li>Solar 모델 선택·실연결/샘플 구분</li>
@@ -259,6 +265,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      </main>
+
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
         <nav className="footer-nav" aria-label="정보 페이지">
@@ -271,6 +279,6 @@ export default function HomePage() {
         </nav>
         <p>취업 또는 적성 판정이 아닙니다</p>
       </footer>
-    </main>
+    </>
   );
 }

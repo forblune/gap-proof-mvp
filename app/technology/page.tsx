@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 const STACK = [
   { name: "Next.js App Router + vinext (Vite)", Icon: IconNextjs, reason: "파일 기반 라우팅과 서버 라우트를 Cloudflare Workers에서 실행하기 위해" },
-  { name: "React 19 · TypeScript(strict)", Icon: IconReact, reason: "5단계 상태 흐름을 타입 안전하게 관리하기 위해" },
+  { name: "React 19 · TypeScript(strict)", Icon: IconReact, reason: "6단계 상태 흐름을 타입 안전하게 관리하기 위해" },
   { name: "Cloudflare Workers", Icon: IconCloudflare, reason: "공개 배포와 엣지 실행, 환경변수(secret) 바인딩을 위해" },
   { name: "Upstage Solar API", Icon: IconSolar, reason: "한국어 경험 문장의 구조화(JSON 출력)에 적합하고, 국내 생태계 확장성을 고려" },
   { name: "node:test 통합 테스트", Icon: IconNode, reason: "빌드 산출물 Worker를 직접 호출해 실제 응답 계약을 검증하기 위해" },
@@ -93,9 +93,10 @@ export default function TechnologyPage() {
           ))}
         </ul>
         <p>
-          Supabase와 RLS(행 단위 보안)도 과정에서 학습했지만, 이번 데모는 <b>개인정보를 서버에
-          저장하지 않는 설계</b>를 선택했기 때문에 의도적으로 사용하지 않았습니다. 상담사·기관
-          계정과 이력 저장이 필요해지는 다음 단계(Phase 2)에서 도입을 검토합니다.
+          Supabase와 RLS(행 단위 보안)는 로그인·프로필 화면에 실제로 쓰고 있습니다. 다만 <b>경험 원문과
+          분석 결과를 저장하는 코드는 아직 없습니다</b> — 표와 접근 제한은 만들어 두었지만 기록하지
+          않습니다. 데모에서 만든 결과는 이 기기의 브라우저에만 남습니다. 이력 저장은 다음 단계에서
+          동의 절차와 함께 도입합니다.
         </p>
       </section>
 

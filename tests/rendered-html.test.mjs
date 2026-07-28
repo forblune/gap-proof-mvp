@@ -186,7 +186,9 @@ test("serves public information pages without the demo gate", async () => {
     ["/about", ["만든 계기", "하지 않는 판단", "취업 가능성이나 적성을 판정하지 않습니다"]],
     ["/guide", ["사용 순서", "입력하지 않아도 되는 정보", "오류가 나면 이렇게 대처합니다"]],
     ["/how-it-works", ["파이프라인", "증거등급 기준", "원문 인용 검증"]],
-    ["/technology", ["실제 기술 스택", "보안·개인정보 설계", "의도적으로 사용하지 않았습니다"]],
+    // "Supabase 를 의도적으로 사용하지 않았습니다" 를 고정하던 자리다. 같은 페이지가 Supabase 를
+    // 쓴다고 적고 /profile 도 실제로 쓰므로 거짓이었다. 지금 사실인 문장으로 바꾼다.
+    ["/technology", ["실제 기술 스택", "보안·개인정보 설계", "저장하는 코드는 아직 없습니다"]],
   ];
 
   for (const [path, phrases] of pages) {

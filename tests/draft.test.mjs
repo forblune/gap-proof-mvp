@@ -5,7 +5,7 @@ import { DRAFT_KEY, DRAFT_MAX_EXPERIENCE, serializeDraft, parseDraft, loadDraft,
 
 const claim = (over = {}) => ({
   id: 1, skill: "테스트 역량", quote: "원문 인용", source: "사용자 입력",
-  tier: 0, confidence: "높음", question: "질문?", status: "pending", ...over,
+  tier: 0, confidence: "확인 필요", question: "질문?", status: "pending", ...over,
 });
 
 const base = () => ({
@@ -48,6 +48,8 @@ test("범위·타입 위반은 null — step·experience 상한·claims 상태·
   assert.equal(parseDraft(JSON.stringify({ ...ok, experience: "가".repeat(DRAFT_MAX_EXPERIENCE + 1) })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, claims: [{ ...claim(), status: "weird" }] })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, claims: [{ ...claim(), confidence: "매우 높음" }] })), null);
+  // "높음" 을 만드는 코드가 없어졌다. 초안에 남아 있다면 손댄 값이므로 복원하지 않는다.
+  assert.equal(parseDraft(JSON.stringify({ ...ok, claims: [{ ...claim(), confidence: "높음" }] })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, passedChecks: { a: "yes" } })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, analysisSource: "loading" })), null);
   assert.equal(parseDraft(JSON.stringify({ ...ok, analysisModel: 3 })), null);

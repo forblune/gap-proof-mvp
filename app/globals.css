@@ -12,25 +12,60 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .brand { display: inline-flex; gap: 10px; align-items: center; min-height: 44px; color: var(--ink); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.04em; }
 /* 심벌은 그라데이션으로 그린다. 칩(배경 사각형) 없이 심벌만 두는 것이 기본이다 —
    칩을 두면 헤더에서 로고가 버튼처럼 보인다. 앱 아이콘 자리에서만 칩을 쓴다. */
+/* WCAG 2.4.1(레벨 A) — 페이지마다 반복되는 헤더·내비게이션을 건너뛸 수단.
+   평소에는 화면 밖에 있다가 탭으로 초점이 오면 나타난다(display:none 이면 초점을 받지 못한다). */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 100;
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
+  background: var(--color-primary); color: var(--color-primary-contrast);
+  border-radius: 0 0 10px 10px; font-weight: 800; text-decoration: none;
+  transition: top .15s ease;
+}
+.skip-link:focus-visible { top: 0; outline: 3px solid var(--color-focus-ring); outline-offset: 2px; }
+
 .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; }
 .brand-mark svg { width: 74%; height: 74%; display: block; }
 /* 어두운 배경 위에서는 단색 흰색으로 그린다(그라데이션의 인디고 끝이 네이비에 묻힌다). */
 .brand-mark.on-dark { --brand-stroke: var(--color-brand-fill-contrast); }
-/* 키네틱 워드마크 — 획이 ㄱ → ㅜ → 화살표 → 가로획으로 바뀐 뒤 링이 닫힌다.
-   d 속성은 보간되지 않으므로 단계마다 갈아 끼우고, 전환감은 위치·불투명도로만 준다.
-   레이아웃을 건드리지 않도록 크기는 고정한다(CLS 0). */
-.brand-motion { display: grid; place-items: center; background: var(--color-brand-fill); color: var(--color-brand-fill-contrast); border-radius: 9px 9px 16px 9px; }
+/* 키네틱 워드마크 — 가로획이 ㄱ자 지점에서 꺾여 화살표로 자란다.
+   d 속성은 CSS 로 바꿀 수 없어 4단계를 모두 그려 두고 여기서 보이는 것만 고른다.
+   **정적 기본값이 곧 최종 모양이다** — JS 가 없어도, 늦게 실행돼도, 애니메이션을 지원하지
+   않아도 화살표가 붙은 완성형이 남는다. 전환은 전적으로 아래 애니메이션이 맡는다.
+   레이아웃은 인라인 width/height 로 고정되어 있어 재생 중에도 움직이지 않는다(CLS 0). */
+.brand-motion { display: grid; place-items: center; }
 .brand-motion svg { width: 74%; height: 74%; display: block; }
-.brand-motion .brand-motion-bar { transition: opacity 140ms ease; }
-.brand-motion .brand-motion-bridge {
-  stroke: var(--color-brand-accent-on-dark);
-  opacity: 0; transform: rotate(-18deg); transform-origin: 50% 50%;
-  transition: opacity 240ms ease, transform 320ms cubic-bezier(.22, 1, .36, 1);
+
+.brand-motion .brand-motion-bar { opacity: 0; }
+.brand-motion .brand-motion-bar[data-bar="3"] { opacity: 1; }
+.brand-motion .brand-motion-head { opacity: 1; transform: none; transform-origin: 50% 50%; }
+
+/* 재생 — 1회, 총 1.2초. 마지막 키프레임이 정적 기본값과 같으므로 끝나도 모양이 튀지 않는다. */
+@keyframes gp-bar-1 { 0%, 24.9% { opacity: 1 } 25%, 100% { opacity: 0 } }
+@keyframes gp-bar-2 { 0%, 24.9% { opacity: 0 } 25%, 49.9% { opacity: 1 } 50%, 100% { opacity: 0 } }
+@keyframes gp-bar-3 { 0%, 49.9% { opacity: 0 } 50%, 74.9% { opacity: 1 } 75%, 100% { opacity: 0 } }
+@keyframes gp-bar-4 { 0%, 74.9% { opacity: 0 } 75%, 100% { opacity: 1 } }
+@keyframes gp-head {
+  0%, 74.9% { opacity: 0; transform: translate(-3px, 3px) }
+  100% { opacity: 1; transform: none }
 }
-.brand-motion .brand-motion-bridge.is-in { opacity: 1; transform: none; }
+.brand-motion .brand-motion-bar,
+.brand-motion .brand-motion-head { animation-duration: 1.2s; animation-fill-mode: both; }
+.brand-motion .brand-motion-bar[data-bar="0"] { animation-name: gp-bar-1 }
+.brand-motion .brand-motion-bar[data-bar="1"] { animation-name: gp-bar-2 }
+.brand-motion .brand-motion-bar[data-bar="2"] { animation-name: gp-bar-3 }
+.brand-motion .brand-motion-bar[data-bar="3"] { animation-name: gp-bar-4 }
+.brand-motion .brand-motion-head { animation-name: gp-head; animation-timing-function: cubic-bezier(.22, 1, .36, 1) }
+
+/* 모바일에서는 짧게 — 작은 화면에서 같은 길이면 지루하게 읽힌다. */
+@media (max-width: 720px) {
+  .brand-motion .brand-motion-bar,
+  .brand-motion .brand-motion-head { animation-duration: .84s }
+}
+
+/* 움직임을 원하지 않으면 재생 자체를 하지 않는다. 위 정적 기본값이 그대로 최종 모양이다. */
 @media (prefers-reduced-motion: reduce) {
   .brand-motion .brand-motion-bar,
-  .brand-motion .brand-motion-bridge { transition: none; transform: none; opacity: 1; }
+  .brand-motion .brand-motion-head { animation: none }
 }
 
 .brand-mark.small { width: 28px; height: 28px; }
@@ -66,9 +101,9 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .actions-panel .sample-badge { font-size: 13px; padding: 8px 12px; max-width: none; }
 .actions-panel .sample-badge-text { display: inline; }
 .sample-badge { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--color-warning-border); border-radius: 999px; background: var(--color-warning-soft); font-size: 13px; font-weight: 750; }
-.sample-badge i, .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 0 3px rgba(244, 200, 74, .25); }
+.sample-badge i, .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--color-brand-primary); box-shadow: 0 0 0 3px var(--ring-accent); }
 .sample-badge.live { border-color: var(--color-accent-soft-border); background: var(--green-soft); color: var(--green); }
-.sample-badge.live i { background: var(--green); box-shadow: 0 0 0 3px rgba(31, 112, 95, .16); }
+.sample-badge.live i { background: var(--green); box-shadow: 0 0 0 3px var(--ring-success); }
 .text-button { border: 0; padding: 12px 6px; min-height: 44px; display: inline-flex; align-items: center; background: transparent; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .model-select { min-height: 44px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 12px; font-weight: 750; cursor: pointer; }
 .model-select:disabled { opacity: .5; cursor: not-allowed; }
@@ -83,7 +118,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .progress li:last-child::after { display: none; }
 .progress li span { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); font-size: 12px; }
 .progress li.active, .progress li.done { color: var(--ink); }
-.progress li.active span { border-color: var(--yellow); background: var(--yellow); color: var(--color-highlight-contrast); font-weight: 900; } /* 노란 배지는 고정색 — 글자색도 고정 대비색으로 짝지어야 함 */
+.progress li.active span { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-on-fill); font-weight: 900; } /* 상태 채움 — 주 CTA 와 다른 색이어야 '현재 위치'로 읽힌다 */
 .progress li.done span { border-color: var(--green); background: var(--green); color: var(--color-fill-contrast); }
 .progress li.done::after { background: var(--green); }
 
@@ -104,12 +139,12 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
   background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
 }
 @media (max-width: 720px) { .hero h1 em::after { height: 3px; } }
-.hero-lead { max-width: 690px; margin: 0; color: var(--color-text-muted); font-size: 18px; line-height: 1.78; word-break: keep-all; }
+.hero-lead { max-width: 690px; margin: 0; color: var(--color-text-muted); font-size: 18px; line-height: 1.78; word-break: keep-all; overflow-wrap: break-word; }
 .principles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
 .principles span { padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--color-surface); color: var(--color-text-muted); font-size: 13px; }
 .consent-card, .paper-card, .proof-card { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
 .consent-card { padding: 34px; position: relative; overflow: hidden; }
-.consent-card::before { content: ""; position: absolute; width: 120px; height: 120px; border: 28px solid rgba(244, 200, 74, .55); border-radius: 50%; top: -58px; right: -48px; }
+.consent-card::before { content: ""; position: absolute; width: 120px; height: 120px; border: 28px solid var(--ring-accent); border-radius: 50%; top: -58px; right: -48px; }
 .consent-card h2 { margin: 10px 0 8px; font-size: 30px; font-weight: 650; letter-spacing: -.03em; }
 .consent-card > p { margin: 0 0 24px; color: var(--muted); line-height: 1.6; font-size: 14px; }
 .check-row { display: flex; gap: 12px; padding: 15px 0; border-top: 1px solid var(--line); cursor: pointer; }
@@ -123,9 +158,9 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .fine-print { display: block; margin-top: 14px; color: var(--color-text-muted); text-align: center; }
 
 .primary, .secondary { min-height: 48px; padding: 0 20px; border-radius: 11px; font-weight: 800; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease; }
-.primary { border: 1px solid var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); box-shadow: 0 8px 20px rgba(23, 36, 61, .16); } /* 다크에서 채움/글자가 함께 뒤집혀야 해서 --ink 별칭 대신 전용 토큰 사용 */
-.primary span { color: var(--color-primary-accent); margin-left: 8px; }
-.primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(23, 36, 61, .22); }
+.primary { border: 1px solid var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); box-shadow: var(--shadow-sm); } /* 다크에서 채움/글자가 함께 뒤집혀야 해서 --ink 별칭 대신 전용 토큰 사용 */
+.primary span { color: currentColor; margin-left: 8px; }
+.primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .primary:disabled { opacity: .38; cursor: not-allowed; }
 .primary.full { width: 100%; margin-top: 12px; }
 .secondary { border: 1px solid var(--line); background: var(--paper); }
@@ -138,7 +173,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 /* 기록 삭제 확인 바 (모달 라이브러리 없이 최소 구현, 취소가 기본 포커스) */
 /* 배경 클릭을 삼킨다. aria-modal="true" 를 선언한 이상 뒤쪽 버튼이 눌리면 안 된다. */
-.confirm-backdrop { position: fixed; inset: 0; z-index: 49; background: rgba(23, 32, 51, .32); }
+.confirm-backdrop { position: fixed; inset: 0; z-index: 49; background: var(--backdrop); }
 .confirm-bar { position: fixed; z-index: 50; top: 84px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(480px, calc(100vw - 32px)); padding: 14px 16px; border: 1px solid var(--color-danger-border); background: var(--paper); border-radius: 12px; box-shadow: var(--shadow); }
 .confirm-bar p { margin: 0 0 12px; font-size: 13px; font-weight: 750; line-height: 1.5; }
 .confirm-bar > div { display: flex; justify-content: flex-end; gap: 8px; }
@@ -176,7 +211,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .nav-toggle span + span { margin-top: 5px; }
 .drawer-root { position: fixed; inset: 0; z-index: 60; visibility: hidden; pointer-events: none; }
 .drawer-root.open { visibility: visible; pointer-events: auto; }
-.drawer-backdrop { position: absolute; inset: 0; background: rgba(23, 36, 61, .45); opacity: 0; transition: opacity .2s ease; }
+.drawer-backdrop { position: absolute; inset: 0; background: var(--backdrop); opacity: 0; transition: opacity .2s ease; }
 .drawer-root.open .drawer-backdrop { opacity: 1; }
 .drawer-panel {
   position: absolute; top: 0; left: 0; bottom: 0; width: min(82vw, 320px);
@@ -192,7 +227,6 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .drawer-nav a:hover, .drawer-nav a:focus-visible { background: var(--ivory); color: var(--ink); }
 .drawer-nav a[aria-current="page"] { background: var(--green-soft); color: var(--green); }
 .drawer-cta { margin: 10px 14px max(14px, env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; background: var(--color-primary); color: var(--color-primary-contrast); border-radius: 999px; font-weight: 800; text-decoration: none; }
-.drawer-cta:hover { color: var(--color-primary-accent); }
 body.drawer-open { overflow: hidden; }
 @media (min-width: 721px) {
   /* 데스크톱은 드로어를 open 상태와 무관하게 완전히 비활성화 — 리사이즈 중 열림 상태가 남아도 무해 */
@@ -200,7 +234,7 @@ body.drawer-open { overflow: hidden; }
 }
 .info-shell { max-width: 880px; padding-top: 40px; }
 .info-shell h1 { margin: 10px 0 14px; font-size: clamp(30px, 4.5vw, 44px); font-weight: 700; letter-spacing: -.04em; line-height: 1.18; }
-.info-lead { margin: 0 0 26px; color: var(--color-text-muted); font-size: 17px; line-height: 1.75; word-break: keep-all; }
+.info-lead { margin: 0 0 26px; color: var(--color-text-muted); font-size: 17px; line-height: 1.75; word-break: keep-all; overflow-wrap: break-word; }
 .info-section { margin: 22px 0; padding: 22px 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
 .info-section h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; font-size: 21px; font-weight: 650; }
 .info-section h2 svg { width: 19px; height: 19px; flex: 0 0 auto; color: var(--green); }
@@ -220,14 +254,14 @@ body.drawer-open { overflow: hidden; }
 .step-fields div:first-child { margin-top: 0; }
 .step-fields dt { display: inline; font-weight: 800; color: var(--green); margin-right: 6px; }
 .step-fields dd { display: inline; margin: 0; color: var(--color-text); }
-.info-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.info-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 10px; }
 .info-cards li { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--color-surface); font-size: 13px; }
 .info-cards li b { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--green); }
 .info-cards li b svg { width: 16px; height: 16px; flex: 0 0 auto; }
 .info-cards li p { margin: 0; color: var(--color-text-muted); line-height: 1.6; }
 .info-cta { margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .info-demo-link { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 11px; border: 1px solid var(--color-primary); background: var(--color-primary); color: var(--color-primary-contrast); font-weight: 800; text-decoration: none; }
-.info-demo-link span { color: var(--color-primary-accent); margin-left: 8px; }
+.info-demo-link span { color: currentColor; margin-left: 8px; }
 .info-cta small { color: var(--color-text-muted); }
 .info-repo { margin-top: 12px; color: var(--muted); font-size: 13px; }
 .footer-nav { display: flex; flex-wrap: wrap; gap: 2px 12px; }
@@ -245,7 +279,7 @@ body.drawer-open { overflow: hidden; }
 .source { border: 1px solid var(--line); padding: 8px 12px; border-radius: 999px; background: transparent; cursor: pointer; font-size: 12px; }
 .source.active { border-color: var(--green); background: var(--green-soft); color: var(--green); font-weight: 800; }
 .evidence-preview { padding: 28px; }
-.evidence-preview blockquote { margin: 13px 0 22px; padding: 0 0 0 15px; border-left: 3px solid var(--yellow); color: var(--color-text); font-family: Georgia, "Noto Serif KR", serif; font-size: 17px; line-height: 1.65; }
+.evidence-preview blockquote { margin: 13px 0 22px; padding: 0 0 0 15px; border-left: 3px solid var(--color-brand-primary); color: var(--color-text); font-family: Georgia, "Noto Serif KR", serif; font-size: 17px; line-height: 1.65; }
 .mini-evidence { display: flex; gap: 13px; align-items: center; padding: 13px 0; border-top: 1px solid var(--line); }
 .mini-evidence > span { color: var(--color-text-muted); font-family: Georgia, serif; }
 .mini-evidence p { margin: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -275,7 +309,7 @@ body.drawer-open { overflow: hidden; }
 .claim-editor > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .claim-editor button { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--color-surface); cursor: pointer; font-size: 12px; font-weight: 750; }
 .claim-editor button.save { border-color: var(--green); background: var(--green); color: var(--color-fill-contrast); }
-.claim-card blockquote { min-height: 112px; margin: 0; padding: 15px; border-left: 3px solid var(--yellow); background: var(--color-surface-muted); color: var(--color-text); font-family: Georgia, "Noto Serif KR", serif; font-size: 14px; line-height: 1.65; }
+.claim-card blockquote { min-height: 112px; margin: 0; padding: 15px; border-left: 3px solid var(--color-brand-primary); background: var(--color-surface-muted); color: var(--color-text); font-family: Georgia, "Noto Serif KR", serif; font-size: 14px; line-height: 1.65; }
 .claim-source { display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .claim-source span { color: var(--muted); }
 .follow-up { min-height: 62px; margin: 12px 0 15px; color: var(--color-text-muted); font-size: 13px; line-height: 1.55; }
@@ -340,7 +374,7 @@ body.drawer-open { overflow: hidden; }
 .proof-page { padding-bottom: 58px; }
 .complete-badge { background: var(--green-soft); }
 .proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.proof-card { overflow: hidden; box-shadow: 0 24px 60px rgba(43, 47, 43, .12); }
+.proof-card { overflow: hidden; box-shadow: var(--shadow-lg); }
 .proof-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .proof-header > div { display: flex; align-items: center; gap: 8px; }
 .proof-header > span { color: var(--muted); font-size: 12px; }
@@ -355,7 +389,7 @@ body.drawer-open { overflow: hidden; }
 .proof-skill b { min-width: 0; overflow-wrap: anywhere; }
 .strength-row p b, .strength-row small, .brief-columns li, .claim-card h2 { overflow-wrap: anywhere; }
 .quote-block { background: var(--color-surface-muted); }
-.quote-block blockquote { margin: 0; padding-left: 13px; border-left: 3px solid var(--yellow); color: var(--color-text); font-family: Georgia, serif; font-size: 14px; line-height: 1.6; }
+.quote-block blockquote { margin: 0; padding-left: 13px; border-left: 3px solid var(--color-brand-primary); color: var(--color-text); font-family: Georgia, serif; font-size: 14px; line-height: 1.6; }
 .chosen-action { margin: 18px 24px; padding: 16px; border-radius: 11px; background: var(--green-soft); }
 .chosen-action b, .chosen-action small { display: block; }
 .chosen-action small { margin-top: 5px; color: var(--color-accent); }
@@ -465,7 +499,7 @@ body.drawer-open { overflow: hidden; }
 .source { border-radius: 5px; font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; }
 
 /* 분석 로딩 스켈레톤 */
-.spinner { display: inline-block; width: 13px; height: 13px; margin-right: 2px; border: 2px solid rgba(127,127,127,.35); border-top-color: currentColor; border-radius: 50%; vertical-align: -1px; animation: spin .7s linear infinite; } /* .primary 버튼 안에 렌더되므로 흰색 고정 대신 currentColor — 다크에서 버튼이 크림색으로 뒤집혀도 보인다 */
+.spinner { display: inline-block; width: 13px; height: 13px; margin-right: 2px; border: 2px solid var(--track-neutral); border-top-color: currentColor; border-radius: 50%; vertical-align: -1px; animation: spin .7s linear infinite; } /* .primary 버튼 안에 렌더되므로 흰색 고정 대신 currentColor — 다크에서 버튼이 크림색으로 뒤집혀도 보인다 */
 @keyframes spin { to { transform: rotate(360deg); } }
 .skeleton-claims { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 .skeleton-card { min-height: 300px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
@@ -598,7 +632,7 @@ body.drawer-open { overflow: hidden; }
 .home-cases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
 .home-case { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
 .home-case .case-tag { display: inline-block; background: var(--green-soft); color: var(--green); font-size: 12px; font-weight: 850; border-radius: 999px; padding: 4px 10px; margin: 0 0 10px; }
-.home-case blockquote { margin: 0 0 12px; padding-left: 12px; border-left: 3px solid var(--yellow); color: var(--color-text); font-size: 14px; line-height: 1.65; }
+.home-case blockquote { margin: 0 0 12px; padding-left: 12px; border-left: 3px solid var(--color-brand-primary); color: var(--color-text); font-size: 14px; line-height: 1.65; }
 .home-case dl { margin: 0; font-size: 13px; line-height: 1.6; }
 .home-case .fact { margin-top: 12px; }
 .home-case .fact:first-child { margin-top: 0; }
@@ -610,7 +644,7 @@ body.drawer-open { overflow: hidden; }
 .home-case .fact-evidence dt, .home-case .fact-verify dt { color: var(--muted); }
 
 /* STEP 3 신규 — 먼저 알아보기 (검색 링크 카드, #Learn-Before-Check Phase 1) */
-.lookinto-intro { max-width: 720px; margin: -18px 0 26px; color: var(--color-text-muted); font-size: 14px; line-height: 1.6; word-break: keep-all; }
+.lookinto-intro { max-width: 720px; margin: -18px 0 26px; color: var(--color-text-muted); font-size: 14px; line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
 .lookinto-group { margin-bottom: 26px; }
 .lookinto-group > .card-kicker { display: block; margin-bottom: 12px; }
 .lookinto-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -660,10 +694,11 @@ body.drawer-open { overflow: hidden; }
   .home-audience { grid-template-columns: 1fr; }
 }
 
-/* Gate 2b(#37): 샘플 체험 표시 — 고정 브랜드 옐로(--yellow)는 "지금 샘플 모드" 신호를 테마와
-   무관하게 항상 눈에 띄게 유지하려는 의도적 선택(다크에서도 흐릿해지지 않아야 하는 상태 배너) */
-.sample-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; background: var(--yellow); color: var(--color-highlight-contrast); font-size: 13px; padding: 9px 16px; text-align: center; }
-.sample-strip .text-button { color: var(--color-highlight-contrast); font-weight: 800; text-decoration: underline; min-height: 32px; }
+/* Gate 2b(#37): 샘플 체험 표시 — "지금 샘플 모드"를 테마와 무관하게 눈에 띄게 유지한다.
+   예전에는 --yellow 라는 별칭을 썼지만 실제로는 인디고(--color-brand-primary)로 해석돼,
+   "노란색이니 어두운 글자를 얹어도 된다"는 오해로 대비 2.49:1 결함을 낳았다. 별칭을 없앴다. */
+.sample-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; background: var(--color-accent); color: var(--color-on-fill); font-size: 13px; padding: 9px 16px; text-align: center; }
+.sample-strip .text-button { color: var(--color-on-fill); font-weight: 800; text-decoration: underline; min-height: 32px; }
 .gate-actions { display: flex; flex-direction: column; gap: 10px; }
 
 /* Gate 2c(#38): /who 카드 · 공통 노트 */
@@ -715,7 +750,7 @@ body.drawer-open { overflow: hidden; }
 .model-summary-text b { font-size: 13px; }
 .model-change { min-height: 40px; padding: 0 14px; font-size: 13px; }
 .model-dialog { border: 1px solid var(--line); border-radius: 18px; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: min(80vh, 720px); background: var(--paper); }
-.model-dialog::backdrop { background: rgba(23, 36, 61, .45); }
+.model-dialog::backdrop { background: var(--backdrop); }
 .model-dialog-head { padding: 18px 20px 10px; }
 .model-dialog-head b { font-size: 17px; }
 .model-dialog-head p { margin: 6px 0 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.55; }
@@ -755,7 +790,7 @@ body.drawer-open { overflow: hidden; }
  * 색상 토큰 체계 (design-loop-10: 접근 가능한 테마 시스템)
  * ────────────────────────────────────────────────────────────
  * 1) 아래 17개 --color-* 가 유일한 "의미론적" 원천이다 — 라이트/다크 값만 다르고 이름은 동일하다.
- * 2) --color-brand-*, --color-highlight, --color-fill-contrast 는 의도적으로 두 테마에서
+ * 2) --color-brand-*, --color-fill-contrast 는 의도적으로 두 테마에서
  *    "고정"이다 — 로고·번호 배지·증거카드 헤더·히어로 내장 버튼처럼 항상 다크 네이비 배경 위에
  *    놓이는 요소(히어로 자체가 이미 상시 다크라 사이트 테마와 무관)를 위한 것.
  * 3) --ivory·--paper·--ink 등 기존 토큰 이름은 전부 별칭(alias)으로 남겨 ~200곳의 기존
@@ -810,7 +845,8 @@ body.drawer-open { overflow: hidden; }
   --color-accent-soft: #e7f6f3;
 
   /* 상태 */
-  --color-success: #15803d;
+  --color-success: #137236;  /* 기준 #15803D 는 success-soft 위에서 정확히 4.50:1(여유 0).
+                              색상 142°·채도 72% 를 그대로 두고 명도만 29%→26% 로 낮췄다 → 5.40:1 */
   --color-success-soft: #e8f6ed;
   --color-warning: #a85a00;
   --color-warning-soft: #fdf1e0;
@@ -822,6 +858,17 @@ body.drawer-open { overflow: hidden; }
   /* 상호작용 */
   --color-focus-ring: #4f63d8;
   --color-disabled: #a8b0bf;
+
+  /* 그림자·링·백드롭 — 지금까지 rgba() 리터럴로 흩어져 있던 값들이다.
+     새 색을 만들지 않고 위 역할 토큰에서 파생시킨다. 그래야 토큰을 바꿀 때 같이 따라온다. */
+  --shadow-color: 23 32 51;              /* text-primary 의 RGB 성분 */
+  --shadow-sm: 0 8px 20px rgb(var(--shadow-color) / .16);
+  --shadow-md: 0 12px 28px rgb(var(--shadow-color) / .22);
+  --shadow-lg: 0 24px 60px rgb(var(--shadow-color) / .12);
+  --backdrop: rgb(var(--shadow-color) / .45);
+  --ring-accent: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  --ring-success: color-mix(in srgb, var(--color-success) 20%, transparent);
+  --track-neutral: color-mix(in srgb, var(--color-text-muted) 35%, transparent);
 
   /* 채움 위 글자 — 위 채움색 모두에서 5:1 이상 */
   --color-on-fill: #ffffff;
@@ -836,8 +883,8 @@ body.drawer-open { overflow: hidden; }
   --color-brand-on-dark: #3fbfae;
 
   /* 그림자·틴트 */
-  --shadow: 0 18px 50px rgba(23, 32, 51, .08);
-  --shadow-soft: 0 2px 8px rgba(23, 32, 51, .07);
+  --shadow: 0 18px 50px rgb(var(--shadow-color) / .08);
+  --shadow-soft: 0 2px 8px rgb(var(--shadow-color) / .07);
   --topbar-tint: rgba(247, 249, 252, .94);
   --hero-gradient: linear-gradient(165deg, #172033 0%, #1b2740 55%, #141c2e 100%);
   /* 어두운 히어로 위 글자 */
@@ -865,16 +912,12 @@ body.drawer-open { overflow: hidden; }
   --color-brand-fill-contrast: var(--color-brand-ink-contrast);
   --color-brand-accent: var(--color-accent);
   --color-brand-accent-on-dark: var(--color-brand-on-dark);
-  --color-highlight: var(--color-brand-primary);
-  --color-highlight-contrast: var(--color-on-fill);
   --color-fill-contrast: var(--color-on-fill);
-  --color-primary-accent: #9fb0f5;
   --ivory: var(--color-background);
   --paper: var(--color-surface);
   --ink: var(--color-text-primary);
   --muted: var(--color-text-muted);
   --line: var(--color-border);
-  --yellow: var(--color-brand-primary);
   --green: var(--color-accent);
   --green-soft: var(--color-accent-soft);
   --coral: var(--color-error);
@@ -926,13 +969,15 @@ body.drawer-open { overflow: hidden; }
   /* 채움 위 글자 — 밝은 채움색 위이므로 어두운 잉크로 뒤집는다 */
   --color-on-fill: #141926;
 
-  --shadow: 0 18px 50px rgba(0, 0, 0, .38);
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, .3);
+  /* 다크에서는 네이비 그림자가 배경에 묻힌다. 파생 토큰(sm/md/lg·backdrop)이 함께 따라오도록
+     원천인 --shadow-color 를 바꾼다. 새 다크 모드를 만드는 게 아니라 기존 것의 일관성 유지다. */
+  --shadow-color: 0 0 0;
+  --shadow: 0 18px 50px rgb(var(--shadow-color) / .38);
+  --shadow-soft: 0 2px 8px rgb(var(--shadow-color) / .3);
   --topbar-tint: rgba(23, 27, 40, .94);
   --hero-gradient: linear-gradient(165deg, #1b2133 0%, #171d2c 55%, #131824 100%);
 
   /* 별칭 중 라이트에서 고정값이던 것만 다시 지정한다(나머지는 위 토큰을 따라간다) */
-  --color-primary-accent: var(--color-brand-on-dark);
 }
 
 
@@ -1153,7 +1198,7 @@ body.drawer-open { overflow: hidden; }
   display: inline-flex; align-items: center; gap: 7px;
   min-height: 46px; padding: 0 16px;
   border: 1px solid var(--color-brand-fill); border-radius: 999px;
-  background: var(--color-brand-fill); color: var(--yellow);
+  background: var(--color-brand-fill); color: var(--color-brand-accent-on-dark);
   font-size: 14px; font-weight: 750; cursor: pointer;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
 }
@@ -1167,7 +1212,7 @@ body.drawer-open { overflow: hidden; }
 }
 
 .feedback-dialog { width: min(560px, calc(100vw - 24px)); padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--ink); }
-.feedback-dialog::backdrop { background: rgba(10, 15, 26, .55); }
+.feedback-dialog::backdrop { background: var(--backdrop); }
 .feedback-panel { display: grid; gap: 15px; padding: 18px; max-height: min(84vh, 720px); overflow-y: auto; }
 .feedback-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .feedback-head h2 { margin: 0; font-size: 19px; font-weight: 800; }

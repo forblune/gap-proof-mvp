@@ -7,6 +7,7 @@ import {
   computeGapMap,
   recommendNextActions,
   tierFromLink,
+  isVerifiableLink,
   makeCheck,
   claimSupports,
   hasConfirmedEvidenceFor,
@@ -51,7 +52,9 @@ type Claim = {
   quote: string;
   source: string;
   tier: number;
-  confidence: "높음" | "확인 필요";
+  // "높음" 값을 만드는 코드가 없다. 실제로 route.ts·samples.ts 는 언제나 "확인 필요" 를 넣는다.
+  // 이 제품은 AI 결과를 스스로 높은 신뢰라고 말하지 않는다 — 확정은 사용자가 한다.
+  confidence: "확인 필요";
   question: string;
   status: ClaimStatus;
   link?: string;
@@ -112,6 +115,14 @@ const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동�
 // 숫자만 홀로 두면 실력 점수로 읽힌다 — 확인된 사실을 늘 함께 붙인다.
 // (벤치마킹: Open Badges 3.0 은 achievedLevel 을 발급기관 루브릭이 있을 때만 쓴다)
 const TIER_LABELS = ["자기기록", "근거 연결", "수행 확인", "기관 확인"];
+
+// AI 가 인용문을 읽고 내린 판단을 사용자에게 보여 줄 때 쓰는 말.
+// factStatus 값(확인됨·부분 확인·계획·관심)을 그대로 쓰면 "확인"이 사용자 행위와 겹친다.
+const AI_READ_LABEL: Record<string, string> = {
+  "확인됨": "원문에 결과까지 있음",
+  "부분 확인": "원문에 행동만 있음",
+  "계획·관심": "원문은 계획·관심 단계",
+};
 const TIER_MEANS = [
   "사용자가 원문에서 확인한 내용입니다.",
   "확인 가능한 링크가 연결됐습니다.",
@@ -185,7 +196,7 @@ export default function Home() {
   const [editingSkill, setEditingSkill] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [proofDate, setProofDate] = useState<string | null>(null);
-  // 전체 데모 진입 게이트: 인증 전에는 메인 5단계 흐름을 렌더하지 않는다.
+  // 전체 데모 진입 게이트: 인증 전에는 메인 6단계 흐름을 렌더하지 않는다.
   const [gateOpen, setGateOpen] = useState(false);
   // Gate 2b(#37): 코드 없는 샘플 체험 — 실제 Solar 호출 없이 전체 흐름을 보여준다.
   const [sampleMode, setSampleMode] = useState(false);
@@ -1037,7 +1048,8 @@ export default function Home() {
   };
 
   return (
-    <main>
+    <>
+      <a className="skip-link" href="#main">본문으로 건너뛰기</a>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="GapProof 처음으로">
           <span className="brand-mark"><BrandGlyph /></span>
@@ -1076,6 +1088,8 @@ export default function Home() {
         )}
         <ThemeToggle />
       </header>
+
+      <main id="main" tabIndex={-1}>
 
       {sampleMode && journeyOpen && (
         <div className="sample-strip">
@@ -1266,7 +1280,7 @@ export default function Home() {
       {journeyOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 1 · 경험함</span><h1>학적 밖에 있던 경험을 적어 주십시오.</h1></div>
+            <div><span className="eyebrow">2단계 · 경험함</span><h1>학적 밖에 있던 경험을 적어 주십시오.</h1></div>
             <span className="time-pill">약 2분</span>
           </div>
           {analysisSource === "loading" ? (
@@ -1285,10 +1299,15 @@ export default function Home() {
             <div className="paper-card input-card">
               <label htmlFor="experience"><b>경력이라고 생각하지 않았던 일까지 들려주십시오.</b></label>
               <p className="input-guide">학교, 일, 돌봄, 게임, 취미, SNS, 쉬었던 시기처럼 작아 보였던 경험도 괜찮습니다. 잘 정리하지 않아도 됩니다.</p>
-              <textarea id="experience" placeholder="여기에 자유롭게 적어 주십시오. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮습니다." value={experience} onChange={(event) => setExperience(event.target.value)} />
-              <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 됩니다.</span><b className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
+              <textarea id="experience" placeholder="여기에 자유롭게 적어 주십시오. 문장이 어색해도, 순서가 뒤죽박죽이어도 괜찮습니다."
+                value={experience} onChange={(event) => setExperience(event.target.value)}
+                aria-invalid={OVER_LIMIT || undefined}
+                aria-describedby={OVER_LIMIT ? "experience-count experience-over" : "experience-count"} />
+              <div className="input-meta"><span>개인·가족 실명, 연락처, 주민등록번호는 적지 않아도 됩니다.</span><b id="experience-count" className={OVER_LIMIT ? "count-over" : ""}>{experienceLength.toLocaleString()}자 / 최소 20자 · 최대 10,000자</b></div>
+              {/* 넘은 글자 수를 role="alert" 안에 넣으면 타자 한 글자마다 내용이 바뀌어 스크린리더가 계속 다시 읽는다.
+                  문구를 고정하면 초과 상태가 될 때 한 번만 읽힌다. 남은 글자 수는 바로 위 카운터(.input-meta)에 보인다. */}
               {OVER_LIMIT && (
-                <p className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있으니 {(experienceLength - 10000).toLocaleString()}자만 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
+                <p id="experience-over" className="length-hint over" role="alert">10,000자를 넘었습니다. 지금 내용은 그대로 남아 있습니다. 위 글자 수를 보고 10,000자 아래로 줄이면 분석할 수 있습니다. 자동으로 잘라내지 않습니다.</p>
               )}
               {experience.trim().length < 20 && (
                 <p className="length-hint">앞뒤 공백을 뺀 20자 이상 적으면 ‘내 경험에서 가능성 찾기’ 버튼이 켜집니다.</p>
@@ -1361,7 +1380,7 @@ export default function Home() {
       {journeyOpen && step === 2 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 2 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저입니다.</h1></div>
+            <div><span className="eyebrow">3단계 · 사용자 확인</span><h1>AI의 제안보다 당신의 확인이 먼저입니다.</h1></div>
             <div className="legend"><i /> 입력 문장을 근거로 인용합니다 · 개인정보가 감지되면 가려서 표시됩니다</div>
           </div>
           <div className="explain-strip">
@@ -1372,7 +1391,7 @@ export default function Home() {
             {claims.map((claim) => (
               <article key={claim.id} className={`claim-card ${claim.status}`}>
                 <div className="claim-top">
-                  <span className={`confidence ${claim.confidence === "높음" ? "high" : "low"}`}>{claim.confidence === "높음" ? "근거 일치 높음" : "근거 확인 필요"}</span>
+                  <span className="confidence low">근거 확인 필요</span>
                   <TierBadge tier={claim.tier} />
                 </div>
                 {editingClaimId === claim.id ? (
@@ -1388,7 +1407,16 @@ export default function Home() {
                 <div className="evidence-link">
                   <label htmlFor={`claim-link-${claim.id}`}>근거 링크 (선택)</label>
                   <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="https://... (GitHub·수료증·노트 주소)" onChange={(event) => attachLink(claim.id, event.target.value)} />
-                  <small>{claim.link ? "링크 연결됨 → 증거등급 Lv.1 근거 연결" : "링크가 없으면 Lv.0 자기기록으로 시작합니다"}</small>
+                  {/* 등급을 정하는 것은 tierFromLink(=isVerifiableLink)이지 "칸이 비었는가"가 아니다.
+                      link 유무로 문구를 고르면 "메모장에 정리함"을 적었을 때 배지는 Lv.0인데
+                      캡션만 Lv.1이라고 말한다 — 화면이 코드가 하지 않은 일을 주장하게 된다. */}
+                  <small>
+                    {!claim.link
+                      ? "링크가 없으면 Lv.0 자기기록으로 시작합니다"
+                      : isVerifiableLink(claim.link)
+                        ? "링크 연결됨 → 증거등급 Lv.1 근거 연결"
+                        : "이 주소로는 등급이 오르지 않아 Lv.0 자기기록에 머뭅니다. http:// 또는 https:// 로 시작하는 주소만 인정됩니다."}
+                  </small>
                 </div>
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
@@ -1396,13 +1424,18 @@ export default function Home() {
                     {/* 이 화면에서 사용자가 할 일은 인용문을 읽고 맞는지 판단하는 것이다.
                         AI 판단·근거 강도·신호를 각각 칩으로 띄우면 카드당 4~5개가 되어
                         정작 읽어야 할 원문과 확인 버튼을 가린다. 판단은 한 칩으로 합치고
-                        신호는 아래 설명 줄로 내린다. */}
+                        신호는 아래 설명 줄로 내린다.
+
+                        "확인"이라는 말은 사용자가 하는 일에만 쓴다. 예전에는 AI 판단도
+                        "원문에 확인됨"이라고 적어, 아래 "N개 내가 확인함"·"확인된 현재 역량"과
+                        같은 단어가 되어 누가 무엇을 확인한 것인지 흐려졌다. AI 쪽은 읽은
+                        결과를 그대로 서술한다. */}
                     <div className="v2-badges">
                       {claim.factStatus && (
                         <span
                           className={`v2-badge status-${claim.factStatus === "확인됨" ? "done" : claim.factStatus === "부분 확인" ? "partial" : "plan"}`}
                         >
-                          AI 판단: 원문에 {claim.factStatus}
+                          AI가 읽은 결과: {AI_READ_LABEL[claim.factStatus] ?? claim.factStatus}
                           {claim.evidenceStrength ? ` · 근거 ${claim.evidenceStrength}` : ""}
                         </span>
                       )}
@@ -1453,7 +1486,7 @@ export default function Home() {
       {journeyOpen && step === 3 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 3 · 먼저 알아보기</span><h1 ref={lookIntoHeadingRef} tabIndex={-1}>AI가 아니라 당신이 직접 확인하는 단계입니다.</h1></div>
+            <div><span className="eyebrow">4단계 · 먼저 알아보기</span><h1 ref={lookIntoHeadingRef} tabIndex={-1}>AI가 아니라 당신이 직접 확인하는 단계입니다.</h1></div>
             <span className="time-pill">건너뛰어도 됩니다</span>
           </div>
           <p className="lookinto-intro">여기 링크는 정답이 아니라 검색 출발점입니다. 실제로 있는지, 지금 나에게 맞는지는 직접 살펴보고 판단해 주십시오.</p>
@@ -1780,7 +1813,7 @@ export default function Home() {
       {journeyOpen && step === 4 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 4 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
+            <div><span className="eyebrow">5단계 · 목표직무 비교</span><h1>미래 전체가 아니라, 이번 주 한 걸음을 찾습니다.</h1></div>
             <div className="role-chip"><small>대표 목표직무</small><b>{role.label}</b></div>
           </div>
           <RoleSelect roleId={roleId} onSelect={(id) => { setRoleId(id); setQuiz(null); }} />
@@ -1888,7 +1921,7 @@ export default function Home() {
       {journeyOpen && step === 5 && (
         <section className="page-shell flow-page proof-page">
           <div className="section-head">
-            <div><span className="eyebrow">STEP 5 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼습니다.</h1></div>
+            <div><span className="eyebrow">6단계 · 증거에서 행동까지</span><h1 ref={proofHeadingRef} tabIndex={-1}>설명이 아니라, 바로 실행할 다음 걸음이 생겼습니다.</h1></div>
             <span className="complete-badge">{analysisSource === "solar" ? "✓ 분석 여정 완료" : "✓ 샘플 여정 완료"}</span>
           </div>
           <p className="selfserve-note">상담사 없이도 위 카드와 추천만으로 바로 시작할 수 있습니다. Gap Brief는 원할 때 상담사·기관의 검증과 K-MOOC·직업훈련 연계를 위한 <b>선택</b> 자료입니다.</p>
@@ -1986,6 +2019,8 @@ export default function Home() {
         </div>
       </dialog>
 
+      </main>
+
       <footer className="site-footer">
         <p><b>GapProof</b> · Solar 기반 AI 진로상담 지원 프로토타입</p>
         <nav className="footer-nav" aria-label="정보 페이지">
@@ -2001,6 +2036,6 @@ export default function Home() {
           <button className="text-button" onClick={sampleMode ? exitSample : lockDemo}>{sampleMode ? "체험 나가기" : "데모 나가기"}</button>
         )}
       </footer>
-    </main>
+    </>
   );
 }
