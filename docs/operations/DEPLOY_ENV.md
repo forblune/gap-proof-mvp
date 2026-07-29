@@ -101,6 +101,54 @@ npx wrangler secret put GEMINI_API_KEY
 # 이름 목록은 .dev.vars.example 참고
 ```
 
+### 4. 환경별 공급 경로
+
+| 환경 | 빌드 시점 공개 설정 | 런타임 비밀값 |
+|---|---|---|
+| local | 저장소 루트의 `.env.local` | `.dev.vars` |
+| preview | **전용 preview 환경이 없다.** workers.dev 서브도메인 미등록이라 preview URL 자체가 없고, 만들려면 대시보드 변경이 필요하다(사람 작업). 만들 경우에도 값은 `wrangler versions upload` 를 실행하는 그 디렉터리의 `.env.local` 에서 온다 | 운영과 같은 `wrangler secret` (워커가 하나뿐이다) |
+| production | **배포를 실행하는 디렉터리의 `.env.local`** | `wrangler secret` |
+
+**중요** — 공급 경로는 "저장소"가 아니라 "배포를 실행한 디렉터리"에 묶인다. 워크트리를 여러 개 쓰면
+`.env.local` 이 있는 워크트리에서 배포했는지가 결과를 가른다. 실제로 이 사고가 그렇게 났다.
+배포 전 `npm run preflight:env` 로 그 디렉터리에 값이 있는지부터 확인한다.
+
+### 5. 환경변수를 바꾸면 반드시 다시 빌드해야 하는 이유
+
+`NEXT_PUBLIC_*` 은 **런타임에 읽는 값이 아니라 빌드 때 번들에 박아 넣는 값**이다.
+vinext 가 `process.env.NEXT_PUBLIC_X` 를 Vite `define` 으로 치환해 문자열 리터럴로 바꾼다
+(`node_modules/vinext/dist/index.js`). 배포된 워커에는 그 문자열이 이미 들어 있고,
+브라우저는 그 문자열을 그대로 쓴다.
+
+따라서 값을 바꾸고 `wrangler deploy` 만 다시 하면 **아무것도 바뀌지 않는다.**
+`wrangler secret put NEXT_PUBLIC_...` 도 소용없다 — 그건 서버 런타임 바인딩이라
+이미 빌드된 클라이언트 번들에 닿지 않는다. 값이 바뀌었으면 `npm run deploy` 로
+빌드부터 다시 한다.
+
+### 6. 산출물 비밀값 검사만 따로 돌리기
+
+```bash
+npm run build          # 산출물 생성
+npm run verify:build   # dist/client 전체(.js/.map/.html/.css/.json) 검사
+```
+
+검사 항목: 공개 설정이 실제로 인라인됐는지, 그리고 `sb_secret_…`·`GOCSPX-…`·개인키 블록·
+AWS 액세스 키·`role` 이 `anon` 이 아닌 JWT 가 섞이지 않았는지. 값은 출력하지 않고 건수만 보고한다.
+
+### 7. 롤백
+
+배포는 원자 전환이라 되돌리기도 한 단계다.
+
+```bash
+npx wrangler deployments list | head   # 되돌아갈 버전 ID 확인(배포 前에 미리 기록해 둔다)
+npx wrangler rollback                  # 직전 버전으로 복귀
+```
+
+버전을 지정해 되돌리려면 Cloudflare 대시보드 → Workers & Pages → `gapproof-mvp` →
+Deployments 에서 해당 버전을 고른다. 롤백 후 `/signup` 을 열어 폼이 그려지는지 확인한다.
+**주의**: 롤백은 코드를 되돌릴 뿐이고, 되돌아간 그 버전이 공개 설정 없이 빌드된 것이었다면
+계정 기능은 다시 꺼진다. 롤백 목표 버전이 정상 버전인지 먼저 확인한다.
+
 ## 알려진 함정
 
 - **`wrangler deploy` 가 종료코드 1 로 끝나도 업로드는 성공한 경우가 있다.**

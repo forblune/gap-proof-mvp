@@ -18,7 +18,9 @@ function walk(dir) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) out.push(...walk(path));
-    else if (/\.(js|mjs|html|css|json)$/.test(name)) out.push(path);
+    // `.map` 도 본다. 소스맵은 원본을 그대로 담기 때문에, 번들에서 최소화돼 사라진 문자열이
+    // 소스맵에는 남아 있을 수 있다. 브라우저가 받아 갈 수 있는 파일은 전부 검사 대상이다.
+    else if (/\.(js|mjs|map|html|css|json)$/.test(name)) out.push(path);
   }
   return out;
 }
@@ -84,7 +86,7 @@ for (const file of files) {
 for (const hit of secretHits) problems.push(`${hit.file} 에 ${hit.label} 로 보이는 값이 있습니다.`);
 
 console.log("빌드 산출물 검사 (dist/client)");
-console.log(`  검사한 파일: ${files.length}개`);
+console.log(`  검사한 파일: ${files.length}개 (소스맵 ${files.filter((f) => f.endsWith(".map")).length}개 포함)`);
 console.log(`  Supabase 프로젝트 URL 이 인라인된 파일: ${urlFiles}개`);
 console.log(`  치환되지 않은 NEXT_PUBLIC_SUPABASE_* 참조가 남은 파일: ${unresolvedFiles}개`);
 console.log(`  비밀값으로 보이는 문자열: ${secretHits.length}건`);
