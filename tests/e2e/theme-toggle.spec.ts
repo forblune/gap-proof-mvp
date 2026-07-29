@@ -33,6 +33,25 @@ async function ensureToggleVisible(page: import("@playwright/test").Page) {
   return toggle;
 }
 
+/**
+ * 레이아웃이 실제로 멈출 때까지 기다린 뒤 잰다.
+ *
+ * 고정 대기(350ms)로는 부족했다. 드로어 패널은 `transform: translateX()` 로 0.25s 동안
+ * 미끄러지는데, 기계가 붐비면 그 시각이 밀린다. 실제로 375px 에서 형제 두 개가 **똑같이
+ * 0.88px** 밀린 채로 측정돼 실패한 적이 있다 — 패널이 최종 위치에 0.88px 못 미친 순간이었다.
+ * 값이 연속 두 번 같아질 때까지 기다리면 대기 시간을 늘리지 않고도 확실해진다.
+ */
+async function settledBoxes(page: import("@playwright/test").Page) {
+  let previous = await boxes(page);
+  for (let attempt = 0; attempt < 40; attempt++) {
+    await page.waitForTimeout(100);
+    const current = await boxes(page);
+    if (JSON.stringify(current) === JSON.stringify(previous)) return current;
+    previous = current;
+  }
+  throw new Error("레이아웃이 멈추지 않는다 — 전환이 끝나지 않았거나 계속 움직이고 있다");
+}
+
 async function boxes(page: import("@playwright/test").Page) {
   return page.evaluate(() => {
     const isShown = (el: Element) => {
@@ -92,10 +111,10 @@ test.describe("테마 토글", () => {
       await page.waitForTimeout(250);
 
       const toggle = await ensureToggleVisible(page);
-      const before = await boxes(page);
+      const before = await settledBoxes(page);
       await toggle.click();
-      await page.waitForTimeout(400); // 전환 애니메이션이 끝난 뒤 잰다
-      const after = await boxes(page);
+      await page.waitForTimeout(400); // 토글 자체의 전환이 끝나기를 기다린 뒤
+      const after = await settledBoxes(page); // 값이 멈춘 것까지 확인하고 잰다
 
       expect(after.theme).not.toBe(before.theme); // 실제로 바뀌었는지 먼저 확인
       expect(after.toggle).toEqual(before.toggle);
