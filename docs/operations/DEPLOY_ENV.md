@@ -110,3 +110,22 @@ npx wrangler secret put GEMINI_API_KEY
 - **소셜 로그인 버튼이 보인다고 동작하는 것은 아니다.** Google·Kakao 는 Supabase 대시보드
   → Authentication → Providers 에서 각각 활성화해야 한다. 미설정 상태에서는
   `/auth/v1/authorize?provider=google` 이 400 `provider is not enabled` 를 돌려준다.
+
+## 아직 남은 외부 설정 (사람이 해야 함)
+
+### 1. 커스텀 SMTP — 지금 상태로는 실사용자가 가입할 수 없다
+
+공개 설정을 넣은 뒤 실제로 가입을 시도해 본 결과, **두 번째 가입부터 429
+`over_email_send_rate_limit`** 이 떨어졌다. Supabase 기본 메일 서비스는 프로젝트당
+시간당 약 2통으로 제한되며, 원래 개발용이다. 앱은 이 오류를 "메일을 너무 자주
+보냈습니다" 로 정직하게 안내하지만, 사용자가 늘면 대부분이 가입 확인 메일을 받지 못한다.
+
+해결: Supabase 대시보드 → Project Settings → Authentication → SMTP Settings 에서
+자체 SMTP(예: Resend, SendGrid, Amazon SES)를 연결한다. 연결 전까지 "가입 가능"이라고
+판정하면 안 된다.
+
+### 2. 이메일 확인 흐름의 끝단은 받은 편지함이 필요하다
+
+가입 → 확인 메일 발송(`confirmation_sent_at` 기록)까지는 검증했다. 그 뒤
+메일 링크 → `/auth/callback` → 세션 생성 → 로그인 유지는 실제 받은 편지함에서
+링크를 눌러야 확인된다. 자동 검증으로 대신할 수 없다.
