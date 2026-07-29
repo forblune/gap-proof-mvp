@@ -73,8 +73,8 @@ export default function HomePage() {
         <a className="brand" href="/" aria-label="GapProof 홈">
           {/* 첫 진입 화면에서만 1회 재생한다. 다른 페이지는 정적 심벌(BrandGlyph)을 쓴다 —
               화면을 옮길 때마다 로고가 움직이면 브랜드가 아니라 로딩 표시로 읽힌다.
-              크기는 .brand-mark 와 같은 35px 로 고정해 레이아웃이 밀리지 않는다(CLS 0). */}
-          <BrandMotion size={35} />
+              크기는 .brand-mark 와 같은 40px 로 고정해 레이아웃이 밀리지 않는다(CLS 0). */}
+          <BrandMotion size={40} />
           <span>GapProof</span>
         </a>
         <nav className="info-nav" aria-label="정보 페이지">
