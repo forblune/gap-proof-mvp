@@ -69,15 +69,74 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 
 .brand-mark.small { width: 32px; height: 32px; }
 .top-actions { display: flex; align-items: center; gap: 18px; }
-/* design-loop-10: 헤더 테마 토글 — 아이콘+텍스트로 현재 상태를 알리고, 다른 버튼과 동일한 44px 터치 타깃 유지 */
-.theme-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 13px; font-weight: 750; cursor: pointer; flex: 0 0 auto; }
-.theme-toggle:hover:not(:disabled) { border-color: var(--color-border-strong); }
-.theme-toggle:disabled { opacity: .55; cursor: default; }
-.theme-toggle svg { width: 17px; height: 17px; flex: 0 0 auto; }
-.theme-toggle-label { white-space: nowrap; }
-@media (max-width: 720px) {
-  .theme-toggle-label { display: none; }
-  .theme-toggle { padding: 0; width: 44px; justify-content: center; }
+/* 헤더 테마 토글 — 상태가 바뀌어도 **주변을 밀지 않는다**.
+   예전에는 라벨이 "다크"(2자) ↔ "라이트"(3자)로 바뀌는데 폭이 고정돼 있지 않아,
+   1440px 에서 토글이 71.5→82.75px 로 늘고 내비 링크 6개가 전부 11.25px 씩 밀렸다(실측).
+   지금은 바깥 크기를 고정하고 transform·opacity·background-color 로만 상태를 표현한다.
+   보이는 상태는 :root[data-theme] 이 결정한다 — JS 상태가 아니라서 하이드레이션 전에도
+   이미 올바르고, 토글이 두 곳(헤더·모바일 드로어)에 있어도 항상 같은 모양이 된다. */
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 44px; padding: 0 14px 0 10px;   /* 고정 — 상태로 달라지지 않는다 */
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--paper); color: var(--ink);
+  font-size: 13px; font-weight: 750; line-height: 1;
+  cursor: pointer; flex: 0 0 auto;
+}
+.theme-toggle:hover { border-color: var(--color-border-strong); }
+.theme-toggle:focus-visible { outline: 3px solid var(--color-focus-ring); outline-offset: 2px; }
+
+/* 트랙 — 크기 고정, 색만 바뀐다 */
+.theme-toggle-track {
+  position: relative; flex: 0 0 auto;
+  width: 34px; height: 20px; border-radius: 999px;
+  background: var(--toggle-track-off);
+  transition: background-color .18s ease;
+}
+:root[data-theme="dark"] .theme-toggle-track { background: var(--toggle-track-on); }
+
+/* thumb — 이동은 transform 으로만. left/margin 을 쓰면 리플로가 생긴다. */
+.theme-toggle-thumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--toggle-thumb); color: var(--toggle-track-on);
+  display: grid; place-items: center;
+  transform: translateX(0);
+  transition: transform .18s ease;
+}
+:root[data-theme="dark"] .theme-toggle-thumb { transform: translateX(14px); }
+/* 해와 달을 같은 칸에 겹쳐 두고 투명도만 바꾼다(교체하면 크기가 흔들린다). */
+.theme-toggle-icon { grid-area: 1 / 1; width: 11px; height: 11px; transition: opacity .18s ease; }
+.theme-toggle-icon[data-icon="moon"] { opacity: 0; }
+:root[data-theme="dark"] .theme-toggle-icon[data-icon="sun"] { opacity: 0; }
+:root[data-theme="dark"] .theme-toggle-icon[data-icon="moon"] { opacity: 1; }
+
+/* 라벨 — 두 문구를 같은 그리드 칸에 겹쳐 폭을 넓은 쪽("라이트")으로 고정한다.
+   상태가 바뀌어도 컨테이너 폭이 변하지 않는 것이 핵심이다. */
+.theme-toggle-text { display: grid; justify-items: center; }
+.theme-toggle-text > span {
+  grid-area: 1 / 1; white-space: nowrap;
+  transition: opacity .18s ease;
+}
+.theme-toggle-text > [data-when="dark"] { opacity: 0; }
+:root[data-theme="dark"] .theme-toggle-text > [data-when="light"] { opacity: 0; }
+:root[data-theme="dark"] .theme-toggle-text > [data-when="dark"] { opacity: 1; }
+
+/* 문구를 접는 기준이 1024px 인 이유(실측):
+   트랙이 생기면서 토글이 71.5→101.8px 로 넓어졌는데, 768px 에서는 .info-bar 가 이미 줄바꿈
+   직전이라 헤더가 95→143px 로 한 줄 더 늘었다. 1024px 미만에서 문구를 접으면 토글이 44px 가
+   되어 예전(71.5px)보다도 좁아지고 헤더는 64px 로 내려간다. 1024px 이상에서는 여유가 있어
+   문구를 그대로 둔다(헤더 높이 변화 0 으로 확인). */
+@media (max-width: 1023px) {
+  .theme-toggle-text { display: none; }
+  .theme-toggle { width: 44px; padding: 0; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-track,
+  .theme-toggle-thumb,
+  .theme-toggle-icon,
+  .theme-toggle-text > span { transition: none; }
 }
 /* #69: 데모 헤더 모바일 액션 메뉴 — 모델 요약·연결 배지·새 분석 시작하기가 좁은 폭에 욱여넣어져
    텍스트가 단어 내에서 줄바꿈되던 문제("Solar Pro\n3" 등)를 "⋯" + 우상단 소형 팝오버로 대체 */
@@ -857,6 +916,16 @@ body.drawer-open { overflow: hidden; }
   /* 상호작용 */
   --color-focus-ring: #4f63d8;
   --color-disabled: #a8b0bf;
+
+  /* 테마 토글 — 새 색을 만들지 않고 역할 토큰에서 파생시킨다.
+     다크에서 아래 원천 토큰이 이미 뒤집히므로 여기 한 번만 정의하면 따라온다
+     (커스텀 속성은 쓰는 자리에서 해석되고, :root[data-theme="dark"] 가 같은 요소를 덮는다).
+     thumb 을 --color-on-fill 로 둔 것이 핵심이다 — 라이트에서는 흰색, 다크에서는 어두운 잉크라
+     꺼짐/켜짐 두 트랙 위에서 모두 비텍스트 대비 3:1(WCAG 1.4.11)을 넘는다.
+     흰색으로 고정하면 다크의 밝은 인디고 트랙 위에서 2.3:1 로 떨어진다. */
+  --toggle-track-off: var(--color-border-strong);
+  --toggle-track-on: var(--color-brand-primary);
+  --toggle-thumb: var(--color-on-fill);
 
   /* 그림자·링·백드롭 — 지금까지 rgba() 리터럴로 흩어져 있던 값들이다.
      새 색을 만들지 않고 위 역할 토큰에서 파생시킨다. 그래야 토큰을 바꿀 때 같이 따라온다. */
