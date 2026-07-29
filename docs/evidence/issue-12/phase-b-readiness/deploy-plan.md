@@ -41,6 +41,9 @@ npx wrangler secret put UPSTAGE_API_KEY        # 민감 secret — 누락 시 �
 
 ## 3. 배포
 
+> 📌 **아래 명령은 2026-07 당시 계획 기록이며 현재 배포 명령이 아니다.** 현행 명령은 `npm run deploy`
+> (`preflight-env` → `build` → `verify-build-output` → `wrangler deploy`). 원문은 증거 보존을 위해 그대로 둔다.
+
 ```
 npm run build                                  # dist/ 최신화 (test가 이미 빌드했어도 명시 실행)
 npx vinext deploy                              # = Workers 배포 (dist/server/wrangler.json 사용)

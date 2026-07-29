@@ -221,7 +221,7 @@ RLS 적용된 사용자 테이블. 아직 아닌 것: 소셜 로그인(대시보
 
 ## 15. 배포 구조 [구현됨]
 
-`npm run build` → `npx vinext deploy` → 버전 원자 전환(다운타임 0). 롤백: 사전 기록한 버전 ID로 대시보드/CLI 롤백. staging 없음(도입은 #32와 함께 검토). 시크릿은 wrangler secret으로만(저장소·문서에 값 없음)
+`npm run deploy`(= `preflight-env` → `build` → `verify-build-output` → `wrangler deploy`) → 버전 원자 전환(다운타임 0). 롤백: 사전 기록한 버전 ID로 대시보드/CLI 롤백. staging 없음(도입은 #32와 함께 검토). **런타임 시크릿은 wrangler secret으로만**(저장소·문서에 값 없음), **빌드 시점 공개 설정(`NEXT_PUBLIC_*`)은 배포 실행 디렉터리의 `.env.local`에서만** — 둘은 경로가 다르며 wrangler secret으로는 공급되지 않는다(`docs/operations/DEPLOY_ENV.md`). CI 없음 — 이 검사들은 사람이 `npm run deploy`를 실행할 때만 작동한다.
 
 ## 16. 로드맵
 
