@@ -33,6 +33,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 빌드타임 공개 설정의 "이름"만 담은 예시 파일은 커밋한다.
+# 이 변수들이 어디에도 적혀 있지 않아 운영 빌드에서 통째로 빠졌던 적이 있다.
+!.env.example
 
 # vercel
 .vercel
