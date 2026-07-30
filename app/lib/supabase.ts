@@ -19,9 +19,20 @@ export function isSupabaseConfigured(): boolean {
   return Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 }
 
+// 브라우저 클라이언트는 세션 쿠키를 document.cookie 로 직접 쓴다. 이 경로에는 서버의
+// shouldMarkSecure 가 닿지 않고, @supabase/ssr 기본 옵션에는 secure 가 없어서 운영 https 에서도
+// Secure 없이 저장됐다(운영 실측: 로그인 쿠키 secure=false). https 에서만 붙인다 —
+// 로컬 http 에서 Secure 를 붙이면 브라우저가 쓰기 자체를 버린다.
+export function browserCookieOptions(protocol?: string): { secure: boolean } {
+  const resolved = protocol ?? (typeof window === "undefined" ? "" : window.location.protocol);
+  return { secure: resolved === "https:" };
+}
+
 export function createClient() {
   if (!isSupabaseConfigured()) return null;
-  return createBrowserClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  return createBrowserClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    cookieOptions: browserCookieOptions(),
+  });
 }
 
 export type CookieStore = {

@@ -24,6 +24,7 @@ export type AuthCookieOptions = {
   domain?: string;
   sameSite?: boolean | "lax" | "strict" | "none" | "Lax" | "Strict" | "None";
   maxAge?: number;
+  expires?: Date | string | number;
   httpOnly?: boolean;
   secure?: boolean;
 };
@@ -37,6 +38,35 @@ function sameSiteAttribute(value: AuthCookieOptions["sameSite"]): string {
   if (normalized === "strict") return "Strict";
   if (normalized === "none") return "None";
   return "Lax";
+}
+
+// Expires 는 RFC 7231 IMF-fixdate 로만 내보낸다. 해석 불가능한 값이면 속성을 생략한다 —
+// 깨진 날짜 문자열을 내보내면 브라우저가 쿠키 전체를 버릴 수 있다.
+function expiresAttribute(value: AuthCookieOptions["expires"]): string {
+  if (value === undefined || value === null) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toUTCString();
+}
+
+/**
+ * @supabase/ssr 가 세션 쿠키에 쓰는 기본 수명(DEFAULT_COOKIE_OPTIONS.maxAge = 400일)과 같은 값.
+ * refresh token 은 고정 만료가 없고 회전으로 관리되므로, 우리가 수명을 지어내는 대신
+ * 라이브러리가 같은 쿠키에 주는 값을 그대로 쓴다.
+ */
+export const AUTH_COOKIE_FALLBACK_MAX_AGE = 400 * 24 * 60 * 60;
+
+/**
+ * 세션을 담는 쿠키가 만료 없이 나가면 브라우저 종료와 함께 로그인이 사라진다.
+ * 라이브러리가 Max-Age 나 Expires 를 줬다면 그대로 두고(maxAge=0 삭제 지시 포함),
+ * 둘 다 없을 때만 기본 수명을 채운다. 빈 값(삭제 쿠키)은 손대지 않는다.
+ */
+export function ensurePersistentAuthCookie(
+  value: string,
+  options: AuthCookieOptions | undefined,
+): AuthCookieOptions | undefined {
+  if (!value) return options;
+  if (options?.maxAge !== undefined || options?.expires !== undefined) return options;
+  return { ...options, maxAge: AUTH_COOKIE_FALLBACK_MAX_AGE };
 }
 
 /**
@@ -62,6 +92,11 @@ export function serializeAuthCookie(
 
   // maxAge=0 은 PKCE verifier 를 지우라는 지시다. falsy 로 버리면 검증자가 남는다.
   if (options?.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
+
+  // 라이브러리가 Expires 로 만료를 전달하는 경우도 보존한다. 이전에는 이 속성이 조용히
+  // 버려져, maxAge 없이 expires 만 오면 세션 쿠키가 됐다(브라우저 종료 = 로그아웃).
+  const expires = expiresAttribute(options?.expires);
+  if (expires) parts.push(`Expires=${expires}`);
 
   return parts.join("; ");
 }
