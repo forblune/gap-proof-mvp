@@ -11,7 +11,11 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs tests/draft.test.mjs tests/engine.test.mjs tests/engine-v2.test.mjs tests/recognition.test.mjs tests/youtube-lesson.test.mjs tests/auth-callback.test.mjs tests/image-validate.test.mjs tests/import-file.test.mjs tests/resources.test.mjs tests/component-a11y.test.mjs tests/delete-account.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern tests/e2e",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "preflight:env": "node scripts/preflight-env.mjs",
+    "verify:build": "node scripts/verify-build-output.mjs",
+    "predeploy": "node scripts/preflight-env.mjs",
+    "deploy": "npm run build && node scripts/verify-build-output.mjs && wrangler deploy"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

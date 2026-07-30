@@ -55,10 +55,15 @@ function serverSecretNamesLeakedIn(haystack: string): string[] {
     .map((entry) => entry.name); // 이름만 — 값은 절대 남기지 않는다.
 }
 
-// 인증 화면 검증.
-// 이 환경에는 Supabase 공개 설정이 없으므로 "설정되지 않음" 화면이 정직하게 뜨는 것이
-// 정상 동작이다 — 가짜 로그인 폼을 보여 주지 않는 것 자체가 계약이다.
-// 설정이 있으면 실제 폼이 뜨며, 두 경우 모두 아래 계약을 만족해야 한다.
+// 인증 화면 검증 — 여기서 보는 것은 **설정 여부와 무관한 계약**이다.
+// (오류 없이 열린다 / 데모로 돌아갈 길이 있다 / secret 이 새지 않는다 / 접근성 / 콜백 안전성)
+//
+// 주의: 예전 주석은 "설정이 없으면 미연결 화면이 뜨는 것도 정상"이라고 적어 두었다.
+// 그 계약 자체는 옳지만(가짜 폼을 보여 주지 않는 것), 그 때문에 **운영에 공개 설정이 통째로
+// 빠져 있어도 전 테스트가 통과했다** — /signup·/login 이 안내 문구만 띄우고 가입 계정이
+// 0건인 채로 배포돼 있었다. 실제 폼이 그려지는지는 tests/e2e/auth-configured.spec.ts 가 보고,
+// 운영 배포에 설정이 들어가는지는 scripts/preflight-env.mjs 와
+// scripts/verify-build-output.mjs 가 배포 파이프라인에서 강제한다.
 
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password", "/profile"];
 

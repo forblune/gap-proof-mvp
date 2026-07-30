@@ -7,6 +7,8 @@ Issue #3에서 작성. 이후 모든 이슈의 Before/After와 배포 판단의 
 - URL: https://gapproof.forblune.com (Cloudflare Workers)
 - 접근: 접근 코드 게이트 존재(코드 값은 이 문서에 기록하지 않음)
 - 배포 주체: `npx vinext deploy` (STATUS 문서 기준)
+  - 📌 **2026-07-24 시점 기록이며 현재 배포 명령이 아니다.** 현행 명령은 `npm run deploy`
+    (`preflight-env` → `build` → `verify-build-output` → `wrangler deploy`).
 
 ## 로컬 코드와 라이브의 확인된 격차 (2026-07-24 감사 확정)
 

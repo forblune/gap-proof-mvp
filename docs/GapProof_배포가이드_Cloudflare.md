@@ -26,9 +26,13 @@ npx wrangler login
 
 ## 3. 배포
 ```bash
-npx vinext deploy
+npm run deploy
 ```
-- `vinext deploy`가 빌드 후 `wrangler deploy`까지 수행합니다. (이미 빌드했다면 `npx vinext deploy --skip-build`)
+- 이 한 줄이 `preflight-env` → `npm run build` → `verify-build-output` → `wrangler deploy` 순으로 실행됩니다.
+- **`npx vinext deploy` 를 쓰지 마세요.** 배포 자체는 되지만 앞뒤 검사가 없습니다. 빌드 시점 공개
+  설정(`NEXT_PUBLIC_SUPABASE_*`)이 빠진 채로 배포돼 운영에서 계정 기능이 통째로 꺼진 적이 있고,
+  그때 쓴 명령이 이 명령입니다. 자세한 내용은 `docs/operations/DEPLOY_ENV.md` 를 보세요.
+- 검사에서 멈추면 배포하지 말고 원인을 고치세요. 값이 없다는 뜻이지 도구 오류가 아닙니다.
 - 성공하면 `https://gapproof-mvp.<서브도메인>.workers.dev` 주소가 나와요. 먼저 그 주소로 동작을 확인하세요.
 
 ## 4. 프로덕션 Solar 키(시크릿) 등록
@@ -41,7 +45,12 @@ npx wrangler secret put UPSTAGE_API_KEY
 ```bash
 npx wrangler secret put SOLAR_MODEL   # 값: solar-pro3
 ```
-등록 후 다시 `npx vinext deploy`.
+등록 후 다시 `npm run deploy`.
+
+> `wrangler secret` 은 **런타임** 값입니다. 브라우저가 쓰는 빌드 시점 공개 설정
+> (`NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)은 여기로 넣을 수 없고,
+> 배포를 실행하는 디렉터리의 `.env.local` 에서만 옵니다. 두 가지를 섞지 마세요 —
+> 구분은 `docs/operations/DEPLOY_ENV.md` 에 정리돼 있습니다.
 
 > ⚠️ 확인 포인트: 배포 주소에서 분석했을 때 배지가 계속 **"샘플 데모"**면, 프로덕션에서 `process.env`로 시크릿이 안 넘어온 것일 수 있어요.
 > 그 경우 알려주시면 분석 라우트(`app/api/analyze/route.ts`)가 Cloudflare `env` 바인딩에서 키를 읽도록 바꿔 확실히 연결해 드릴게요. (앱은 그동안에도 샘플로 안전 동작)

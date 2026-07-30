@@ -16,15 +16,24 @@ npm test                                          # 32/32 확인
 npx wrangler whoami                               # 계정 확인(rjsgml13486 계정)
 npx wrangler deployments list | head              # ★현재 활성 버전 ID를 기록 = 롤백 목표
 npx wrangler secret list                          # 3종 이름만 확인(GATE_ACCESS_CODE·GATE_SESSION_SECRET·UPSTAGE_API_KEY)
+npm run preflight:env                             # ★빌드 시점 공개 설정 확인(값은 출력하지 않는다)
 ```
+- `wrangler secret` 은 **런타임** 값이다. 여기에 `NEXT_PUBLIC_*` 을 넣어도 빌드에는 전달되지 않는다.
+  빌드 시점 값은 배포를 실행하는 그 디렉터리의 `.env.local` 에서 온다 — 워크트리를 옮겼다면 다시 확인한다.
 - 시크릿 추가·변경 **불필요**(RC는 동일 3종 사용). RATE_LIMIT_TEST_MODE 등록 금지 유지.
 - 현재 기록된 롤백 목표: `cece759c-90c0-4788-99d6-6a8412cf59e1`(1차 버전) — 배포 직전에 재확인.
 
 ### B-1. 배포
 ```
-npm run build
-npx vinext deploy
+npm run deploy
 ```
+- **`npx vinext deploy` 를 직접 쓰지 않는다.** 그 경로에는 빌드 시점 공개 설정 검사가 없다.
+  운영에서 계정 기능이 통째로 꺼진 채 배포된 사고가 정확히 이 경로에서 나왔다
+  (`docs/operations/DEPLOY_ENV.md`). `npm run deploy` 는 같은 일을 하되 앞뒤로 검사를 세운다:
+  `preflight-env` → `npm run build` → `verify-build-output` → `wrangler deploy`.
+- 두 명령의 배포 동작은 같다. `vinext deploy` 도 결국 저장소 루트에서 루트 `wrangler.jsonc` 로
+  `wrangler deploy` 를 실행한다(`node_modules/vinext/dist/deploy.js`). 차이는 검사 유무뿐이다.
+- 검사에서 멈추면 배포하지 말고 원인을 고친다. 값이 없다는 뜻이지 도구 오류가 아니다.
 - 출력 확인: `Uploaded gapproof-mvp`, 바인딩 4종(ASSETS·IMAGES·ANALYZE/GATE_RATE_LIMITER). workers.dev 경고는 무해(무시).
 - 다운타임 0(원자 전환). 프런트·API가 한 워커라 **버전 불일치 구간 없음**. 정적 자산은 해시 파일명이라 캐시 무효화 불필요(HTML은 무캐시).
 
