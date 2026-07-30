@@ -149,15 +149,63 @@ Deployments 에서 해당 버전을 고른다. 롤백 후 `/signup` 을 열어 �
 **주의**: 롤백은 코드를 되돌릴 뿐이고, 되돌아간 그 버전이 공개 설정 없이 빌드된 것이었다면
 계정 기능은 다시 꺼진다. 롤백 목표 버전이 정상 버전인지 먼저 확인한다.
 
+## 인증 콜백 쿠키 — HttpOnly 를 붙이면 로그인이 조용히 실패한다
+
+같은 조사에서 두 번째 결함이 나왔다. `/auth/callback` 이 세션 쿠키에 `HttpOnly` 를 강제로
+붙이고 있었다. 언뜻 더 안전해 보이지만, 이 앱에서는 **로그인 자체를 무효로 만든다.**
+
+이 앱은 세션을 브라우저에서 읽는다 — `/profile` 같은 화면은 클라이언트 컴포넌트이고
+`createBrowserClient` 로 세션을 조회한다. 브라우저 클라이언트는 `document.cookie` 만 볼 수 있고
+`HttpOnly` 쿠키는 거기에 나타나지 않는다. 그래서 메일 확인 링크·비밀번호 재설정 링크·소셜
+로그인으로 들어온 사용자는 **세션이 정상적으로 만들어져도 화면에서는 계속 로그아웃 상태**였다.
+오류도 로그도 남지 않는다.
+
+`@supabase/ssr` 자신도 같은 이유로 기본값을 `httpOnly: false` 로 정해 두었다
+(`utils/constants.js` 의 `DEFAULT_COOKIE_OPTIONS`). 지금은 그 규약을 따른다 —
+속성 조합은 `app/lib/auth-cookie.ts` 한 곳에서 정하고, `HttpOnly` 는 호출자가 명시적으로
+요구할 때만 붙인다. 회귀는 `tests/auth-callback.test.mjs` 가 막는다.
+
+보호 수준이 낮아진 것이 아니다. 비밀번호 로그인 경로는 이미 `createBrowserClient` 가
+`document.cookie` 로 같은 토큰을 non-HttpOnly 로 쓰고 있었다. 콜백만 홀로 달랐고 그 불일치가
+링크·소셜 경로를 망가뜨렸을 뿐이다. 실제 방어선은 그대로다 — RLS, 짧은 수명의 access token,
+`SameSite=Lax`, `Secure`.
+
+> 세션을 서버에서만 읽는 구조로 바꾸면 `HttpOnly` 를 되살릴 수 있다. 그것은 인증 화면 전체를
+> 서버 컴포넌트로 옮기는 별도 작업이고, 이 P0 의 범위가 아니다.
+
 ## 알려진 함정
 
 - **`wrangler deploy` 가 종료코드 1 로 끝나도 업로드는 성공한 경우가 있다.**
   workers.dev 서브도메인이 등록돼 있지 않아 배포 *이후* 확인 단계에서 실패하는 것이다.
   `Uploaded gapproof-mvp` 줄이 보였다면 업로드는 됐다. 실제 반영 여부는
   운영 주소를 직접 열어 확인한다.
-- **소셜 로그인 버튼이 보인다고 동작하는 것은 아니다.** Google·Kakao 는 Supabase 대시보드
-  → Authentication → Providers 에서 각각 활성화해야 한다. 미설정 상태에서는
-  `/auth/v1/authorize?provider=google` 이 400 `provider is not enabled` 를 돌려준다.
+- **메일 링크는 금방 만료된다.** 확인·재설정 링크를 몇 시간 뒤에 누르면 `otp_expired`
+  (`Email link is invalid or has expired`)로 실패한다. 검증할 때는 받은 즉시 누른다.
+- **화면이 뜨자마자 누른 첫 클릭은 먹지 않을 수 있다.** 인증 화면은 클라이언트 컴포넌트라
+  하이드레이션 전에는 제출이 그냥 새로고침으로 끝난다(입력에 `name` 이 없어 값이 URL 에
+  실리지는 않는다). 자동 검증 스크립트는 입력값이 유지되는지 확인한 뒤에 눌러야 한다.
+
+## 완료된 외부 설정 (기록)
+
+### Supabase Auth URL — 2026-07-30 설정 완료, 실검증 완료
+
+한때 Site URL 이 개발용 `http://localhost:3000` 으로 남아 있어, 발송되는 모든 메일 링크의
+`redirect_to` 가 운영 콜백 대신 사용자의 PC 로 향했다(운영에서 3회 확인). Supabase 는
+허용 목록에 없는 redirect 주소를 거부하고 Site URL 로 되돌리기 때문이다.
+
+현재 설정(대시보드 → Authentication → URL Configuration):
+
+- **Site URL**: `https://gapproof.forblune.com`
+- **Redirect URLs**: `https://gapproof.forblune.com/auth/callback` + 로컬 개발용
+  `http://localhost:3000/auth/callback`
+
+허용 목록은 **쿼리를 무시하고 경로로 매칭**하므로 `?next=/profile` 같은 쿼리가 붙어도
+경로 등록만으로 충분하다(무효 토큰으로 허용 목록만 확인해 실측). 미등록 외부 주소는
+Site URL 로 되돌아간다.
+
+설정 후 실제 받은 편지함으로 끝까지 검증했다 — 가입 확인 링크 → 운영 `/auth/callback` →
+세션 생성 → 새로고침 유지 → 로그아웃 재차단, 그리고 재설정 링크 → 새 비밀번호 로그인 성공·
+이전 비밀번호 400. Auth 로그에서 localhost redirect 0건. 세부는 PR #85·#88 기록 참고.
 
 ## 아직 남은 외부 설정 (사람이 해야 함)
 
@@ -172,8 +220,9 @@ Deployments 에서 해당 버전을 고른다. 롤백 후 `/signup` 을 열어 �
 자체 SMTP(예: Resend, SendGrid, Amazon SES)를 연결한다. 연결 전까지 "가입 가능"이라고
 판정하면 안 된다.
 
-### 2. 이메일 확인 흐름의 끝단은 받은 편지함이 필요하다
+### 2. 소셜 로그인 provider
 
-가입 → 확인 메일 발송(`confirmation_sent_at` 기록)까지는 검증했다. 그 뒤
-메일 링크 → `/auth/callback` → 세션 생성 → 로그인 유지는 실제 받은 편지함에서
-링크를 눌러야 확인된다. 자동 검증으로 대신할 수 없다.
+Google·Kakao 버튼은 화면에 있지만 Supabase 대시보드 → Authentication → Providers 에서
+각각 켜고 외부 콘솔(Google Cloud, Kakao Developers)에 콜백 주소를 등록해야 동작한다.
+미설정 상태에서는 `/auth/v1/authorize?provider=google` 이 400 `provider is not enabled` 를
+돌려준다. **버튼이 보인다는 이유로 사용 가능하다고 판정하지 않는다.**
