@@ -16,6 +16,8 @@
    - `npx wrangler secret put KAKAO_JS_KEY` (선택 — 없으면 카카오 버튼 미표시)
 5. [ ] rate-limit 바인딩: `wrangler.jsonc`의 `ratelimits`가 배포 산출물에 상속됨(#7 검증) — 별도 등록 불필요, 배포 후 실동작 확인만
 6. [ ] 배포 명령: `npx vinext deploy` (STATUS 문서 기준 — 실행 전 dry-run/출력 확인)
+   > 📌 **이 줄은 2026-07 당시 기록이며 현재 배포 명령이 아니다.** 현행 명령은 `npm run deploy`
+   > (`preflight-env` → `build` → `verify-build-output` → `wrangler deploy`). `docs/deployment/GAPPROOF_RELEASE_RUNBOOK.md` 참조.
 
 ## B. 배포 직후 확인 (10분 내)
 

@@ -36,7 +36,7 @@
 2. `main`에 위 기능 재구현 (내가 아는 내용 + 필요시 **라이브 번들/CSS에서 정확 문구 추출**). 우선순위: 게이트 → analyze 보안 → resources → engine → page STEP → 디자인 1번 → 새 GPT_PROMPT.
 3. `npx tsc --noEmit` + `npx eslint app` 검증(빌드는 사용자 Mac).
 4. **`git commit` + `git push origin main`** (다신 안 잃게 백업!).
-5. `npx vinext deploy` → 라이브 확인.
+5. `npm run deploy` → 라이브 확인. (검사가 붙은 정식 경로. `npx vinext deploy` 는 쓰지 않는다)
 6. 이후 작업은 **항상 `/Users/gh/gap-proof-mvp`에서** 하고 자주 커밋·푸시.
 
 ---
@@ -53,9 +53,14 @@ Solar(Upstage) 기반 AI 진로·역량 분석 플랫폼. "공백을 지우지 �
 ## 배포 방법
 ```
 cd ~/gap-proof-mvp   # ← 안정 위치(=GitHub 클론). 앞으로 여기서 작업.
-npx vinext deploy
+npm run deploy
 ```
-- API 키는 채팅에 붙이지 말 것. `npx wrangler secret put UPSTAGE_API_KEY` 로 등록.
+- `npm run deploy` = `preflight-env` → `build` → `verify-build-output` → `wrangler deploy`.
+  **`npx vinext deploy` 를 직접 쓰지 말 것** — 배포는 되지만 검사가 없어서, 빌드 시점 공개 설정이
+  빠진 채로 나가 운영 계정 기능이 꺼진 적이 있다. 자세한 내용은 `docs/operations/DEPLOY_ENV.md`.
+- 빌드 시점 공개 설정(`NEXT_PUBLIC_SUPABASE_*`)은 **배포를 실행하는 그 디렉터리의 `.env.local`** 에서 온다.
+  워크트리를 옮겼다면 `npm run preflight:env` 로 먼저 확인할 것.
+- API 키는 채팅에 붙이지 말 것. `npx wrangler secret put UPSTAGE_API_KEY` 로 등록(런타임 값).
 
 ## 핵심 코드 경로 (gap-proof-mvp/)
 - `app/page.tsx` — 5스텝 UI, 게이트, `GPT_PROMPT`, 퀴즈, 리소스 스트립
