@@ -9,6 +9,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, isSupabaseConfigured } from "../../lib/supabase";
 import { safeNext } from "../../lib/safe-redirect";
+import { serializeAuthCookie, shouldMarkSecure } from "../../lib/auth-cookie";
 
 
 function redirect(origin: string, path: string, cookies: string[]): Response {
@@ -48,14 +49,11 @@ export async function GET(request: Request) {
           });
       },
       setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
-        const isLocalHttp =
-          url.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+        // 속성 조합은 app/lib/auth-cookie.ts 가 정한다. 특히 HttpOnly 를 임의로 붙이면
+        // 브라우저가 세션을 못 읽어 로그인이 조용히 실패한다(그 주석에 경위가 적혀 있다).
+        const secure = shouldMarkSecure(url);
         for (const { name, value, options } of cookiesToSet) {
-          const parts = [`${name}=${encodeURIComponent(value)}`, "Path=/", "HttpOnly", "SameSite=Lax"];
-          if (!isLocalHttp) parts.push("Secure");
-          // maxAge=0은 PKCE verifier 삭제 지시이므로 falsy로 버리면 안 된다.
-          if (options?.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
-          setCookies.push(parts.join("; "));
+          setCookies.push(serializeAuthCookie(name, value, options, { secure }));
         }
       },
     },
