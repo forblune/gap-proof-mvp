@@ -198,9 +198,12 @@ Deployments 에서 해당 버전을 고른다. 롤백 후 `/signup` 을 열어 �
 - **Site URL**: `https://gapproof.forblune.com`
 - **Redirect URLs**: `https://gapproof.forblune.com/auth/callback` + 로컬 개발용
   `http://localhost:3000/auth/callback`
+  (운영 콜백의 `?next=/profile`·`?next=/reset-password` 쿼리 변형 2건도 등록돼 있으나,
+  아래 매칭 규칙 때문에 없어도 동작한다 — 지워도 무방한 잉여 항목이다)
 
-허용 목록은 **쿼리를 무시하고 경로로 매칭**하므로 `?next=/profile` 같은 쿼리가 붙어도
-경로 등록만으로 충분하다(무효 토큰으로 허용 목록만 확인해 실측). 미등록 외부 주소는
+허용 목록은 **쿼리를 무시하고 경로로 매칭**한다. 결정적 실측: 쿼리 변형이 등록되지 않은
+`http://localhost:3000/auth/callback` 에 대해 `?next=/profile` 를 붙인 요청도 통과했다
+(무효 토큰으로 허용 목록 판정만 확인 — 메일 0통·계정 0건). 미등록 외부 주소는
 Site URL 로 되돌아간다.
 
 설정 후 실제 받은 편지함으로 끝까지 검증했다 — 가입 확인 링크 → 운영 `/auth/callback` →
