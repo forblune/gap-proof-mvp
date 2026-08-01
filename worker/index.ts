@@ -4,7 +4,9 @@ import handler from "vinext/server/app-router-entry";
 
 interface Env {
   ASSETS: Fetcher;
-  DB: D1Database;
+  // 이 파일은 DB 바인딩을 handler 로 전달만 한다. 실제 질의는 db/index.ts 가 drizzle 로 수행하며
+  // 그쪽이 자신의 D1 타입을 쓴다 — 여기서 구조를 다시 정의하면 두 선언이 충돌한다.
+  DB: unknown;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
