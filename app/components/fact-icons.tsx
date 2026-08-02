@@ -125,3 +125,12 @@ export function IconClock() {
     </svg>
   );
 }
+
+// 파일 첨부 — 클립
+export function IconClip() {
+  return (
+    <svg {...base}>
+      <path d="M7.5 12.5 15 5a3.2 3.2 0 0 1 4.5 4.5l-8.4 8.4a5.2 5.2 0 0 1-7.3-7.3L11.8 3.6" />
+    </svg>
+  );
+}
