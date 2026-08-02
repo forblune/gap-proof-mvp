@@ -37,7 +37,7 @@ import {
   type LearningRecord,
 } from "../lib/recognition";
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
-import { LONG_EXAMPLES, SAMPLE_JOURNEY } from "../lib/samples";
+import { LONG_EXAMPLES } from "../lib/samples";
 import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
 import { IconCheck, IconQuestion, IconWarning, IconCompass, IconChecklist } from "../components/fact-icons";
 import BrandGlyph from "../components/brand-mark";
@@ -118,8 +118,8 @@ const ANALYSIS_STAGES = [
 ] as const;
 
 // 단계 전환 시각과 최소 표시 시간. 고정값이라 촬영을 몇 번 반복해도 같은 길이로 재현된다.
-// 최소 표시 시간이 필요한 이유: 샘플 체험은 네트워크 요청이 없어 70~400ms 만에 끝나 버려,
-// 진행 화면이 한 프레임도 보이지 않았다(실측). 실제 호출이 더 오래 걸리면 그만큼 더 기다린다.
+// 최소 표시 시간이 필요한 이유: Solar 응답이 빨리 오면 진행 화면이 한 프레임도 보이지 않을 수 있다
+// (실측). 실제 호출이 더 오래 걸리면 그만큼 더 기다린다.
 const ANALYSIS_STAGE_AT_MS = [800, 1600];
 const ANALYSIS_MIN_VISIBLE_MS = 2400;
 
@@ -216,7 +216,7 @@ export default function Home() {
   const [proofDate, setProofDate] = useState<string | null>(null);
   // 전체 데모 진입 게이트: 인증 전에는 메인 6단계 흐름을 렌더하지 않는다.
   const [gateOpen, setGateOpen] = useState(false);
-  // Gate 2b(#37): 코드 없는 샘플 체험 — 실제 Solar 호출 없이 전체 흐름을 보여준다.
+  // Gate 2b(#37): 코드 없는 샘플 체험 — 데모 코드 없이 전체 흐름을 보여주되, 경험 분석은 실제 Solar를 호출한다.
   const [sampleMode, setSampleMode] = useState(false);
   const [gateCode, setGateCode] = useState("");
   const [gateBusy, setGateBusy] = useState(false);
@@ -677,20 +677,12 @@ export default function Home() {
       });
 
     try {
-      if (sampleMode) {
-        // 샘플 체험: 네트워크 요청 없이 미리 준비된 예시 결과를 보여준다(비용 0·명시 표시)
-        await holdMinimumVisible();
-        setClaims(SAMPLE_JOURNEY.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
-        setAnalysisSource("sample");
-        setAnalysisModel(null);
-        setAnalysisNotice("샘플 체험 중입니다 — 실제 Solar 호출 없이 준비된 예시 결과입니다.");
-        moveTo(2);
-        return;
-      }
+      // 샘플 체험(sample:true)은 데모 코드 없이 접근하므로 서버가 인증을 건너뛰지만,
+      // 그 외에는 입력한 경험 원문을 그대로 실제 Solar 분석에 보낸다(캔에 담긴 예시로 대체하지 않는다).
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ experience: experience.trim(), model: modelId }),
+        body: JSON.stringify({ experience: experience.trim(), model: modelId, sample: sampleMode }),
       });
       const data = (await response.json()) as AnalysisResponse & { message?: string };
       if (response.status === 401) {
@@ -1150,8 +1142,8 @@ export default function Home() {
 
       {sampleMode && journeyOpen && (
         <div className="sample-strip">
-          <span><b>샘플 체험 중</b> — 실제 분석이 아닙니다. 미리 준비된 예시로 전체 흐름을 볼 수 있습니다.</span>
-          <button className="text-button" onClick={exitSample}>실제 분석으로 전환</button>
+          <span><b>샘플 체험 중</b> — 경험 분석은 실제 Solar로 진행됩니다. 데모 코드 없이 전체 흐름을 볼 수 있습니다.</span>
+          <button className="text-button" onClick={exitSample}>데모 코드로 전환</button>
         </div>
       )}
 
@@ -1248,7 +1240,7 @@ export default function Home() {
                 코드 없이 샘플 둘러보기
               </button>
             </div>
-            <small className="gate-hint">샘플 체험은 실제 Solar를 호출하지 않고, 예시 결과임을 화면에 항상 표시합니다.</small>
+            <small className="gate-hint">코드 없이 둘러봐도 경험 분석은 실제 Solar가 처리하며, 데모 코드 없이 접근한 흐름임을 화면에 항상 표시합니다.</small>
             <nav className="gate-links" aria-label="서비스 소개 페이지">
               <a href="/about">소개</a>
               <a href="/guide">이용 가이드</a>
@@ -1277,14 +1269,13 @@ export default function Home() {
           </div>
 
           <aside className="consent-card">
-            {/* 이 카드는 샘플 체험과 실제 분석 두 경우에 모두 뜬다. 예전에는 어느 쪽이든 같은 문구가
-                나와, 샘플 모드인데 "키가 연결되면 Solar를 호출한다"고 말하고 있었다 — 그 화면에서는
-                일어나지 않는 일이다. "키"는 운영자 용어이기도 해서 두 문구를 모드별로 나눈다. */}
+            {/* 이 카드는 샘플 체험과 실제 분석 두 경우에 모두 뜬다. 두 경로 모두 Solar가 실제로
+                호출된다 — 차이는 데모 코드 여부와 draft 저장 여부뿐이므로 문구도 그 차이만 말한다. */}
             <div className="card-kicker">{sampleMode ? "코드 없이 둘러보기" : "약 3분 체험"}</div>
             <h2>{sampleMode ? "샘플로 전체 흐름 보기" : "내 경험에서 시작하기"}</h2>
             <p>
               {sampleMode
-                ? "샘플 체험에서는 Solar를 호출하지 않습니다. 미리 준비한 예시 결과로 6단계 전체 흐름을 보여 드립니다."
+                ? "데모 코드 없이 둘러볼 수 있습니다. 입력한 경험은 실제 Solar가 분석하며, 연결이 어려우면 입력 원문 기반의 샘플 결과로 바꾸고 그 사실을 화면에 표시합니다."
                 : "Solar가 경험을 읽고 역량 후보를 제안합니다. 연결이 어려우면 입력 원문 기반의 샘플 결과로 바꾸고, 샘플이라는 사실을 화면에 표시합니다."}
             </p>
             <label className="check-row">
@@ -1352,14 +1343,10 @@ export default function Home() {
           </div>
           {analysisSource === "loading" ? (
             <>
-              {/* 진행 화면. 단계 문구는 /api/analyze 가 실제로 하는 일이며, 샘플 체험일 때는
-                  지금 계산이 일어나지 않는다는 사실을 제목에서 먼저 밝힌다. */}
+              {/* 진행 화면. 단계 문구는 /api/analyze 가 실제로 하는 일이다.
+                  샘플 체험도 같은 경로로 실제 Solar를 호출하므로 문구를 분기하지 않는다. */}
               <div className="analysis-progress" aria-busy="true">
-                <p className="analysis-progress-head">
-                  {sampleMode
-                    ? "준비된 샘플 결과를 불러옵니다. 실제 분석은 아래 세 단계를 거칩니다."
-                    : "경험을 분석하고 있습니다."}
-                </p>
+                <p className="analysis-progress-head">경험을 분석하고 있습니다.</p>
                 <ol className="analysis-stages">
                   {ANALYSIS_STAGES.map((stage, index) => {
                     const state = index < analysisStage ? "done" : index === analysisStage ? "active" : "waiting";
@@ -1482,15 +1469,9 @@ export default function Home() {
             <div className="legend"><i /> 입력 문장을 근거로 인용합니다 · 개인정보가 감지되면 가려서 표시됩니다</div>
           </div>
           <div className="explain-strip">
-            {/* 샘플 체험에서는 분석이 일어나지 않았으므로 "분석 완료"라고 쓰지 않는다.
-                서버 폴백(규칙 기반)과 준비된 샘플도 서로 다른 일이라 구분해서 적는다. */}
-            <b>
-              {analysisSource === "solar"
-                ? `Solar ${analysisModel} 분석 완료`
-                : sampleMode
-                  ? "준비된 예시 결과"
-                  : "규칙 기반 샘플 결과"}
-            </b>
+            {/* 샘플 체험도 실제 Solar를 호출하므로 analysisSource 만으로 문구를 정한다 —
+                sampleMode 분기를 두면 실제로 Solar가 응답했는데도 "예시 결과"라고 잘못 말하게 된다. */}
+            <b>{analysisSource === "solar" ? `Solar ${analysisModel} 분석 완료` : "규칙 기반 결과"}</b>
             <span>{analysisNotice} 과장되거나 맥락이 다른 후보는 거절하십시오. 거절한 항목은 카드와 추천에서 빠집니다.</span>
           </div>
           <div className="claims">

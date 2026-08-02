@@ -193,8 +193,18 @@ function parseSolarContent(content: string) {
 }
 
 export async function POST(request: Request) {
-  // 인증을 가장 먼저 검사한다: 비인증 요청은 본문 파싱·폴백 생성·Solar 호출(비용 경로)에 도달하지 않는다.
-  if (!(await verifyGateSession(request))) {
+  let body: { experience?: unknown; model?: unknown; sample?: unknown };
+  try {
+    body = (await request.json()) as { experience?: unknown; model?: unknown; sample?: unknown };
+  } catch {
+    return json({ error: "invalid_json", message: "요청 형식을 확인해 주십시오." }, 400);
+  }
+
+  // 샘플 체험(sample:true)은 데모 코드 없이 접근 가능한 흐름이므로 인증을 건너뛴다 —
+  // 대신 아래 IP 기준 요청 한도가 유일한 남용 방지선이다. 그 외 요청은 기존과 동일하게
+  // 데모 코드 세션을 요구한다(비인증 요청은 본문 파싱 이후에도 폴백 생성·Solar 호출에 도달하지 않는다).
+  const isSample = body.sample === true;
+  if (!isSample && !(await verifyGateSession(request))) {
     return json(
       { error: "unauthorized", message: "데모 코드 확인이 필요합니다. 시작 화면에서 코드를 입력해 주십시오." },
       401,
@@ -216,13 +226,6 @@ export async function POST(request: Request) {
       429,
       { "retry-after": String(RATE_LIMIT_WINDOW_SECONDS) },
     );
-  }
-
-  let body: { experience?: unknown; model?: unknown };
-  try {
-    body = (await request.json()) as { experience?: unknown; model?: unknown };
-  } catch {
-    return json({ error: "invalid_json", message: "요청 형식을 확인해 주십시오." }, 400);
   }
 
   // 모델 allowlist: 등록된 모델만 허용. 임의 문자열은 안전한 400으로 거부하며

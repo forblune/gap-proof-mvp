@@ -41,7 +41,7 @@ async function obtainGateCookie() {
   return setCookie.split(";")[0];
 }
 
-function analyzeRequest(experience, cookie, ip = testIp()) {
+function analyzeRequest(experience, cookie, ip = testIp(), extra = {}) {
   return new Request("http://localhost/api/analyze", {
     method: "POST",
     headers: {
@@ -49,7 +49,7 @@ function analyzeRequest(experience, cookie, ip = testIp()) {
       ...(ip ? { "cf-connecting-ip": ip } : {}),
       ...(cookie ? { cookie } : {}),
     },
-    body: JSON.stringify({ experience }),
+    body: JSON.stringify({ experience, ...extra }),
   });
 }
 
@@ -351,6 +351,35 @@ test("gate protects the analyze API with a signed HttpOnly session", async () =>
     process.env.GATE_ACCESS_CODE = savedCode;
     process.env.GATE_SESSION_SECRET = savedSecret;
   }
+});
+
+test("sample:true bypasses the gate session but still hits the same rate limit", async () => {
+  const validExperience =
+    "항공물류를 전공했습니다. 집에서 AI 수학을 독학했습니다. Solar API로 웹 프로젝트를 만들었습니다.";
+
+  // 코드 없이도(쿠키 없음) sample:true면 200 — 데모 코드 요구 없이 실제 분석 경로(테스트 환경은 키가
+  // 없어 규칙 기반 폴백)를 그대로 탄다. 캔에 담긴 고정 예시가 아니라 입력 원문 기반 결과여야 한다.
+  const ip = testIp();
+  const noCode = await fetchWorker(analyzeRequest(validExperience, undefined, ip, { sample: true }));
+  assert.equal(noCode.status, 200);
+  const body = await noCode.json();
+  assert.equal(body.source, "sample");
+  assert.ok(body.claims.some((claim) => claim.quote && validExperience.includes(claim.quote)));
+
+  // sample:true 없이 같은 요청이면 여전히 401 — 우회 플래그가 없으면 기존 게이트가 그대로 적용된다.
+  const stillGated = await fetchWorker(analyzeRequest(validExperience, undefined, testIp()));
+  assert.equal(stillGated.status, 401);
+
+  // 같은 IP로 반복하면 sample 요청도 다른 요청과 동일한 ANALYZE_RATE_LIMITER를 공유해 한도에 걸린다.
+  let limited = false;
+  for (let i = 0; i < 12; i += 1) {
+    const response = await fetchWorker(analyzeRequest(validExperience, undefined, ip, { sample: true }));
+    if (response.status === 429) {
+      limited = true;
+      break;
+    }
+  }
+  assert.ok(limited, "sample 요청도 IP 기준 한도 없이 무제한으로 허용되면 안 된다");
 });
 
 test("cookie policy: SameSite=Lax everywhere, Secure only outside local HTTP", async () => {
