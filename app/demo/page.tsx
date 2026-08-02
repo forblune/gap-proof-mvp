@@ -264,6 +264,16 @@ export default function Home() {
   };
   useEffect(() => clearAnalysisTimers, []); // 언마운트 시 남은 타이머 정리
 
+  // 분석 버튼은 긴 입력 페이지의 맨 아래에 있다. 스크롤을 그대로 두면 진행 단계가
+  // 헤더 뒤에서 시작해 촬영 구도가 매번 달라진다.
+  // 클릭 핸들러 안에서 바로 스크롤하면 곧이어 일어나는 리렌더가 부드러운 스크롤을
+  // 취소해 화면이 그 자리에 남는다(1440px 실측: 274px 에서 움직이지 않음).
+  // 그래서 진행 화면이 커밋된 뒤에 옮긴다. behavior 는 CSS(html { scroll-behavior: smooth })를
+  // 따르며 실측 약 300ms 에 0 에 도달한다 — 첫 단계 전환(800ms)보다 충분히 앞선다.
+  useEffect(() => {
+    if (analysisSource === "loading") window.scrollTo({ top: 0, behavior: "auto" });
+  }, [analysisSource]);
+
   // Gate 5(#41): 모델 다이얼로그 — 열 때 history state를 쌓아 모바일 뒤로가기가 닫기로 동작
   const openModelDialog = () => {
     setPendingModelId(modelId);
@@ -649,9 +659,6 @@ export default function Home() {
     setAnalysisSource("loading");
     setAnalysisNotice("");
     setNotice(null);
-    // 분석 버튼은 긴 페이지의 맨 아래에 있다. 진행 화면은 그보다 훨씬 짧아서, 스크롤을
-    // 그대로 두면 진행 단계가 화면 밖이나 헤더 뒤에서 시작한다 — 녹화 구도가 촬영마다 달라진다.
-    scrollToTop();
     clearAnalysisTimers();
     setAnalysisStage(0);
     analysisTimers.current = ANALYSIS_STAGE_AT_MS.map((at, index) =>
