@@ -107,6 +107,22 @@ type AnalysisResponse = {
 
 const steps = ["시작", "경험", "역량 확인", "먼저 알아보기", "격차·행동", "GapProof"];
 
+// 분석 진행 표시 — 여기 적힌 세 단계는 /api/analyze 가 실제로 수행하는 순서 그대로다.
+// (1) maskPII(app/lib/pii.ts) → (2) Solar 호출 → (3) sanitizeClaimsV2(app/lib/engine-v2.ts)의 인용 정합 검증.
+// 하지 않는 일을 단계로 적지 않는다 — 특히 "보안 검사" 같은 표현은 쓰지 않는다.
+// 퍼센트를 쓰지 않는 이유: 서버 진행률을 측정할 수단이 없어 어떤 숫자를 적어도 지어낸 값이 된다.
+const ANALYSIS_STAGES = [
+  { id: "mask", title: "개인정보로 보이는 표현을 가립니다", detail: "이메일·전화번호·주민등록번호 형식을 분석 전에 가립니다." },
+  { id: "find", title: "경험에서 역량 후보와 근거 문장을 찾습니다", detail: "원문 인용을 함께 붙여 최대 3개까지 만듭니다." },
+  { id: "verify", title: "인용이 원문에 실제로 있는지 확인합니다", detail: "원문에서 찾을 수 없는 문장은 근거로 쓰지 않고 버립니다." },
+] as const;
+
+// 단계 전환 시각과 최소 표시 시간. 고정값이라 촬영을 몇 번 반복해도 같은 길이로 재현된다.
+// 최소 표시 시간이 필요한 이유: 샘플 체험은 네트워크 요청이 없어 70~400ms 만에 끝나 버려,
+// 진행 화면이 한 프레임도 보이지 않았다(실측). 실제 호출이 더 오래 걸리면 그만큼 더 기다린다.
+const ANALYSIS_STAGE_AT_MS = [800, 1600];
+const ANALYSIS_MIN_VISIBLE_MS = 2400;
+
 // 개인화할 결과가 없을 때의 대체 공유 문구 — buildResultShareText()도 프리셋 값(목표직무명·개수·행동명)만
 // 사용하며, 사용자의 경험 원문·역량 설명·근거·인용문은 절대 포함하지 않는다.
 const SHARE_TEXT = "공백·전환 경험을 역량 증거와 이번 주 행동으로 — GapProof 데모";
@@ -187,6 +203,8 @@ export default function Home() {
   const [passedChecks, setPassedChecks] = useState<Record<string, boolean>>({});
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [analysisSource, setAnalysisSource] = useState<AnalysisSource>("idle");
+  // 진행 화면에서 지금 강조할 단계. draft 에 저장하지 않는다(로딩은 복원 대상이 아니다).
+  const [analysisStage, setAnalysisStage] = useState(0);
   const [analysisModel, setAnalysisModel] = useState<string | null>(null);
   const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
   const [analysisNotice, setAnalysisNotice] = useState("");
@@ -234,8 +252,17 @@ export default function Home() {
   const draftSaveArmed = useRef(false);
   // localStorage를 쓸 수 없을 때만 사용하는 이 탭 한정 발급 대상 식별자.
   const sessionOwnerKey = useRef<string | null>(null);
+  // 진행 단계 타이머. 화면을 벗어나거나 분석이 끝나면 반드시 비운다 —
+  // 남아 있으면 언마운트 뒤 setState 가 불려 개발 콘솔에 경고가 찍힌다(촬영 중 노출 금지).
+  const analysisTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+
+  const clearAnalysisTimers = () => {
+    analysisTimers.current.forEach((id) => clearTimeout(id));
+    analysisTimers.current = [];
+  };
+  useEffect(() => clearAnalysisTimers, []); // 언마운트 시 남은 타이머 정리
 
   // Gate 5(#41): 모델 다이얼로그 — 열 때 history state를 쌓아 모바일 뒤로가기가 닫기로 동작
   const openModelDialog = () => {
@@ -619,20 +646,41 @@ export default function Home() {
 
   const analyzeExperience = async () => {
     if (experience.trim().length < 20 || experience.length > 10000 || analysisSource === "loading") return;
-    if (sampleMode) {
-      // 샘플 체험: 네트워크 요청 없이 미리 준비된 예시 결과를 보여준다(비용 0·명시 표시)
-      setClaims(SAMPLE_JOURNEY.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
-      setAnalysisSource("sample");
-      setAnalysisModel(null);
-      setAnalysisNotice("샘플 체험 중입니다 — 실제 Solar 호출 없이 준비된 예시 결과입니다.");
-      moveTo(2);
-      return;
-    }
     setAnalysisSource("loading");
     setAnalysisNotice("");
     setNotice(null);
+    // 분석 버튼은 긴 페이지의 맨 아래에 있다. 진행 화면은 그보다 훨씬 짧아서, 스크롤을
+    // 그대로 두면 진행 단계가 화면 밖이나 헤더 뒤에서 시작한다 — 녹화 구도가 촬영마다 달라진다.
+    scrollToTop();
+    clearAnalysisTimers();
+    setAnalysisStage(0);
+    analysisTimers.current = ANALYSIS_STAGE_AT_MS.map((at, index) =>
+      setTimeout(() => setAnalysisStage(index + 1), at),
+    );
+    const startedAt = Date.now();
+    // 결과가 먼저 도착해도 최소 표시 시간까지는 진행 화면을 유지한다 — 한 프레임만 번쩍이는
+    // 전환은 녹화에서 오류처럼 보인다. 오류 경로에서는 기다리지 않고 즉시 알린다.
+    const holdMinimumVisible = () =>
+      new Promise<void>((resolve) => {
+        const remaining = ANALYSIS_MIN_VISIBLE_MS - (Date.now() - startedAt);
+        if (remaining <= 0) {
+          resolve();
+          return;
+        }
+        analysisTimers.current.push(setTimeout(resolve, remaining));
+      });
 
     try {
+      if (sampleMode) {
+        // 샘플 체험: 네트워크 요청 없이 미리 준비된 예시 결과를 보여준다(비용 0·명시 표시)
+        await holdMinimumVisible();
+        setClaims(SAMPLE_JOURNEY.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
+        setAnalysisSource("sample");
+        setAnalysisModel(null);
+        setAnalysisNotice("샘플 체험 중입니다 — 실제 Solar 호출 없이 준비된 예시 결과입니다.");
+        moveTo(2);
+        return;
+      }
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -658,6 +706,7 @@ export default function Home() {
       if (!Array.isArray(data.claims) || !data.claims.length) {
         throw new Error("empty_claims");
       }
+      await holdMinimumVisible();
       setClaims(data.claims.map((claim) => ({ ...claim, status: "pending", link: "" })));
       setAnalysisSource(data.source);
       setAnalysisModel(data.model);
@@ -668,6 +717,8 @@ export default function Home() {
       // 사용자 입력과 무관한 정적 샘플로 대체하지 않는다(샘플 폴백은 서버가 원문 기반으로 제공).
       setAnalysisSource("idle");
       showNotice("연결 오류로 분석하지 못했습니다. 입력은 그대로 남아 있으니 잠시 후 같은 버튼으로 다시 시도해 주십시오.", "error");
+    } finally {
+      clearAnalysisTimers();
     }
   };
 
@@ -1210,7 +1261,7 @@ export default function Home() {
             <p className="hero-lead">
               흩어진 공부와 프로젝트를 Solar가 역량 후보와 근거 문장으로 정리합니다.
               당신이 확인한 증거만 목표직무의 격차와 이번 주 행동으로 이어집니다.
-              상담사 없이 바로 추천을 받고, 원하면 상담사·기관이 검토와 K-MOOC·직업훈련 연계로 도와줍니다.
+              상담사 없이 바로 다음 행동까지 갈 수 있고, 원하면 상담사·기관에 보여 줄 1쪽 요약을 인쇄해 갈 수 있습니다.
             </p>
             <div className="principles" aria-label="서비스 원칙">
               <span>AI가 진로를 단정하지 않습니다</span>
@@ -1220,9 +1271,16 @@ export default function Home() {
           </div>
 
           <aside className="consent-card">
-            <div className="card-kicker">샘플로 3분 체험</div>
-            <h2>내 경험에서 시작하기</h2>
-            <p>키가 연결되면 실제 Solar를 호출하고, 없으면 원문 기반 샘플로 안전하게 전환합니다.</p>
+            {/* 이 카드는 샘플 체험과 실제 분석 두 경우에 모두 뜬다. 예전에는 어느 쪽이든 같은 문구가
+                나와, 샘플 모드인데 "키가 연결되면 Solar를 호출한다"고 말하고 있었다 — 그 화면에서는
+                일어나지 않는 일이다. "키"는 운영자 용어이기도 해서 두 문구를 모드별로 나눈다. */}
+            <div className="card-kicker">{sampleMode ? "코드 없이 둘러보기" : "약 3분 체험"}</div>
+            <h2>{sampleMode ? "샘플로 전체 흐름 보기" : "내 경험에서 시작하기"}</h2>
+            <p>
+              {sampleMode
+                ? "샘플 체험에서는 Solar를 호출하지 않습니다. 미리 준비한 예시 결과로 6단계 전체 흐름을 보여 드립니다."
+                : "Solar가 경험을 읽고 역량 후보를 제안합니다. 연결이 어려우면 입력 원문 기반의 샘플 결과로 바꾸고, 샘플이라는 사실을 화면에 표시합니다."}
+            </p>
             <label className="check-row">
               <input
                 ref={resetFocusRef}
@@ -1280,20 +1338,54 @@ export default function Home() {
       {journeyOpen && step === 1 && (
         <section className="page-shell flow-page">
           <div className="section-head">
-            <div><span className="eyebrow">2단계 · 경험함</span><h1>학적 밖에 있던 경험을 적어 주십시오.</h1></div>
+            {/* "학적 밖에 있던" 은 docs/content/GAPPROOF_COPY_INVENTORY.md 에서 이미 교체 승인된 문구인데
+                아래 입력 라벨에만 반영되고 이 대제목에는 남아 있었다. eyebrow 도 "경험함" 하나만
+                다른 단계와 달리 명사구가 아니었다(진행바 라벨은 "경험"). 둘 다 맞춘다. */}
+            <div><span className="eyebrow">2단계 · 경험</span><h1>이력서에 적지 못했던 경험을 적어 주십시오.</h1></div>
             <span className="time-pill">약 2분</span>
           </div>
           {analysisSource === "loading" ? (
-            <div className="skeleton-claims" aria-busy="true" aria-live="polite">
-              {[0, 1, 2].map((n) => (
-                <div className="skeleton-card" key={n}>
-                  <div className="skeleton-line short" />
-                  <div className="skeleton-line tall" />
-                  <div className="skeleton-line" />
-                  <div className="skeleton-line short" />
-                </div>
-              ))}
-            </div>
+            <>
+              {/* 진행 화면. 단계 문구는 /api/analyze 가 실제로 하는 일이며, 샘플 체험일 때는
+                  지금 계산이 일어나지 않는다는 사실을 제목에서 먼저 밝힌다. */}
+              <div className="analysis-progress" aria-busy="true">
+                <p className="analysis-progress-head">
+                  {sampleMode
+                    ? "준비된 샘플 결과를 불러옵니다. 실제 분석은 아래 세 단계를 거칩니다."
+                    : "경험을 분석하고 있습니다."}
+                </p>
+                <ol className="analysis-stages">
+                  {ANALYSIS_STAGES.map((stage, index) => {
+                    const state = index < analysisStage ? "done" : index === analysisStage ? "active" : "waiting";
+                    return (
+                      <li className={`analysis-stage ${state}`} key={stage.id}>
+                        <span className="analysis-stage-mark" aria-hidden="true">
+                          {state === "done" ? "✓" : state === "active" ? <span className="spinner" /> : index + 1}
+                        </span>
+                        <span className="analysis-stage-text">
+                          <b>{stage.title}</b>
+                          <small>{stage.detail}</small>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {/* 단계가 바뀔 때 한 줄만 읽히게 한다 — 목록 전체에 live 를 걸면 매번 세 항목을 다시 읽는다. */}
+                <p className="sr-only" role="status">
+                  {ANALYSIS_STAGES[Math.min(analysisStage, ANALYSIS_STAGES.length - 1)].title}
+                </p>
+              </div>
+              <div className="skeleton-claims" aria-hidden="true">
+                {[0, 1, 2].map((n) => (
+                  <div className="skeleton-card" key={n}>
+                    <div className="skeleton-line short" />
+                    <div className="skeleton-line tall" />
+                    <div className="skeleton-line" />
+                    <div className="skeleton-line short" />
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
           <div className="experience-layout">
             <div className="paper-card input-card">
@@ -1384,7 +1476,15 @@ export default function Home() {
             <div className="legend"><i /> 입력 문장을 근거로 인용합니다 · 개인정보가 감지되면 가려서 표시됩니다</div>
           </div>
           <div className="explain-strip">
-            <b>{analysisSource === "solar" ? `Solar ${analysisModel} 분석 완료` : "안전한 샘플 분석 완료"}</b>
+            {/* 샘플 체험에서는 분석이 일어나지 않았으므로 "분석 완료"라고 쓰지 않는다.
+                서버 폴백(규칙 기반)과 준비된 샘플도 서로 다른 일이라 구분해서 적는다. */}
+            <b>
+              {analysisSource === "solar"
+                ? `Solar ${analysisModel} 분석 완료`
+                : sampleMode
+                  ? "준비된 예시 결과"
+                  : "규칙 기반 샘플 결과"}
+            </b>
             <span>{analysisNotice} 과장되거나 맥락이 다른 후보는 거절하십시오. 거절한 항목은 카드와 추천에서 빠집니다.</span>
           </div>
           <div className="claims">
@@ -1401,7 +1501,12 @@ export default function Home() {
                     <small>원문 인용은 증거이므로 수정하지 않습니다.</small>
                     <div><button onClick={() => { setEditingClaimId(null); setEditingSkill(""); }}>취소</button><button className="save" onClick={() => saveClaimSkill(claim.id)}>저장</button></div>
                   </div>
-                ) : <h2>{claim.skill}</h2>}
+                ) : (
+                  /* 카드에서 가장 큰 글자는 AI가 지은 역량 이름이고 바로 아래는 사용자 원문 인용인데,
+                     정작 그 둘의 출처 표시가 인용문 쪽에만 있었다. 제목에도 출처를 붙여
+                     "내 말"과 "AI 해석"의 경계가 카드 안에서 끊기지 않게 한다. */
+                  <><span className="claim-kicker">AI가 제안한 표현</span><h2>{claim.skill}</h2></>
+                )}
                 <blockquote>“{claim.quote}”</blockquote>
                 <div className="claim-source"><span>출처</span><b>{claim.source}</b></div>
                 <div className="evidence-link">
@@ -1553,7 +1658,8 @@ export default function Home() {
 
           <div className="lookinto-group lesson-group">
             <div className="card-kicker">영상으로 학습하기 (선택)</div>
-            <h3 className="lesson-title">본 영상을 학습 기록으로 남깁니다.</h3>
+            {/* "본 영상"은 이 화면에 영상이 없어 무엇을 가리키는지 알 수 없었다(관형사/과거형 중의성). */}
+            <h3 className="lesson-title">직접 본 영상을 학습 기록으로 남길 수 있습니다.</h3>
             <p className="length-hint">
               공개 YouTube 주소를 넣으면 요약·핵심 개념·질문을 정리해 드립니다. 정리된 내용은 직접 고칠 수 있습니다.
               영상 학습과 질문은 <b>학습 완료·이해 확인</b>까지만 인정되며 <b>Lv.0 자기기록</b>을 넘지 않습니다 — 증거등급은 실제로 해 보고 결과물을 남겨야 오릅니다.
@@ -1969,8 +2075,10 @@ export default function Home() {
             {kakaoReady && (
               <button className="secondary kakao-share" onClick={shareViaKakao}>카카오톡 공유</button>
             )}
-            <button className="secondary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
-            <button className="primary" onClick={sampleMode ? restartSample : requestDelete}>{sampleMode ? "체험 처음부터 시작하기" : "새 분석 시작하기"} <span>↻</span></button>
+            {/* 결과 화면에서 가장 강조된 버튼이 "처음부터 시작하기"였다 — 방금 만든 결과를 버리는
+                동작이 화면의 기본 행동처럼 보였다. 이 화면의 기본 행동은 결과를 남기는 쪽이다. */}
+            <button className="primary" onClick={() => window.print()}>PDF로 저장 · 인쇄</button>
+            <button className="secondary" onClick={sampleMode ? restartSample : requestDelete}>{sampleMode ? "체험 처음부터 시작하기" : "새 분석 시작하기"} <span>↻</span></button>
           </div>
           <p className="share-note">공유하기·카카오톡 공유에는 목표 직무, 확인한 역량 개수, 이번 주 행동만 담깁니다 — 경험 원문이나 역량 설명·근거는 포함되지 않습니다. (링크 복사는 주소만 복사합니다.)</p>
         </section>
