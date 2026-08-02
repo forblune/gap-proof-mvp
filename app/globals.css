@@ -589,8 +589,12 @@ body.drawer-open { overflow: hidden; }
 .analysis-stage-text { display: grid; gap: 3px; }
 .analysis-stage-text b { font-size: 15px; font-weight: 750; line-height: 1.45; }
 .analysis-stage-text small { color: var(--color-text-muted); font-size: 12.5px; line-height: 1.55; }
-/* 아직 오지 않은 단계는 흐리게 두되 대비는 유지한다(읽을 수 있어야 다음에 무엇이 오는지 안다). */
-.analysis-stage.waiting { opacity: .62; }
+/* 아직 오지 않은 단계는 물러나 보이되 글자는 그대로 읽혀야 한다.
+   여기에 opacity 를 걸면 안 된다 — .62 로 흐리면 설명 글(--color-text-muted)이 흰 배경 위에서
+   2.45:1 까지 떨어져 WCAG AA(4.5:1) 아래로 내려간다(계산 확인). 이 화면은 2.4초만 떠 있어
+   axe 스캔이 닿지 않으므로 테스트도 잡아 주지 않는다.
+   물러난 느낌은 배경·테두리가 없다는 것(활성 단계만 채움+테두리)과 제목 색으로 낸다. */
+.analysis-stage.waiting .analysis-stage-text b { color: var(--color-text-secondary); font-weight: 650; }
 .analysis-stage.active { border-color: var(--color-accent-soft-border); background: var(--color-accent-soft); }
 .analysis-stage.active .analysis-stage-mark { background: transparent; color: var(--color-accent); }
 .analysis-stage.active .analysis-stage-text b { color: var(--color-accent); }
