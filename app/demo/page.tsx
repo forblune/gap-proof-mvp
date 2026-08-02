@@ -321,7 +321,6 @@ export default function Home() {
     /* eslint-disable react-hooks/set-state-in-effect -- 마운트 1회성 진입 판정·복원(연쇄 렌더 없음) */
     if (new URLSearchParams(window.location.search).get("sample") === "1") {
       setSampleMode(true); // 샘플 체험은 draft를 읽지도 쓰지도 않는다
-      setExperience(SAMPLE_JOURNEY.experience); // Gate 3: 기본값 제거 이후에도 샘플은 원문이 채워진 상태로 시작
       return;
     }
     const draft = loadDraft(window.localStorage);
@@ -910,13 +909,13 @@ export default function Home() {
 
   // 샘플 체험 진입·초기화·종료 — 사용자의 실제 draft는 건드리지 않는다
   const enterSample = () => {
-    resetJourneyState(SAMPLE_JOURNEY.experience, [], { keepStoredDraft: true });
+    resetJourneyState("", [], { keepStoredDraft: true });
     setSampleMode(true);
     setNotice(null);
     scrollToTop();
   };
   const restartSample = () => {
-    resetJourneyState(SAMPLE_JOURNEY.experience, [], { keepStoredDraft: true });
+    resetJourneyState("", [], { keepStoredDraft: true });
     showNotice("체험을 처음부터 다시 시작합니다.", "info");
     scrollToTop();
   };
