@@ -358,7 +358,9 @@ body.drawer-open { overflow: hidden; }
 .tier { display: inline-flex; align-items: center; gap: 4px; color: var(--color-text-muted); font-size: 12px; white-space: nowrap; }
 .tier b { padding: 3px 5px; border-radius: 4px; background: var(--blue-soft); color: var(--color-info); }
 .tier-0 b { background: var(--color-surface-muted); color: var(--color-text-muted); }
-.claim-card h2 { min-height: 55px; margin: 20px 0 12px; font-size: 19px; line-height: 1.45; letter-spacing: -.02em; }
+/* 제목 위 출처 라벨. 기존 h2 의 위쪽 여백(20px)을 라벨이 이어받아 카드 높이가 그대로 유지된다. */
+.claim-kicker { display: block; margin-top: 18px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .04em; font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; }
+.claim-card h2 { min-height: 55px; margin: 4px 0 12px; font-size: 19px; line-height: 1.45; letter-spacing: -.02em; }
 .claim-editor { min-height: 96px; margin: 14px 0 12px; padding: 12px; border: 1px solid var(--color-accent-soft-border); border-radius: 10px; background: var(--color-accent-soft); }
 .claim-editor label, .claim-editor small { display: block; }
 .claim-editor label { margin-bottom: 7px; color: var(--green); font-size: 12px; font-weight: 850; }
@@ -375,7 +377,9 @@ body.drawer-open { overflow: hidden; }
 .follow-up b svg, .v2-line b svg, .v2-hypo summary svg { width: 13px; height: 13px; flex: 0 0 auto; }
 .claim-actions { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 8px; margin-top: auto; }
 .claim-actions button { min-height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--color-surface); cursor: pointer; font-size: 12px; font-weight: 700; }
-.claim-actions .confirm { border-color: var(--green); color: var(--green); }
+/* 세 버튼이 시각적으로 동급이라, 이 화면에서 기대되는 행동(확인)이 거절과 같은 무게로 보였다.
+   옅은 채움으로 기본 행동임을 알리되, 확정 상태(.selected.confirm 의 진한 채움)와는 계속 구별된다. */
+.claim-actions .confirm { border-color: var(--green); background: var(--green-soft); color: var(--green); font-weight: 800; }
 .claim-actions .selected.confirm { background: var(--green); color: var(--color-fill-contrast); }
 .claim-actions .selected.reject { border-color: var(--coral); background: var(--coral-soft); color: var(--coral); }
 .sticky-actions { align-items: center; padding: 16px 0; }
@@ -432,7 +436,11 @@ body.drawer-open { overflow: hidden; }
 .proof-page { padding-bottom: 58px; }
 .complete-badge { background: var(--green-soft); }
 .proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.proof-card { overflow: hidden; box-shadow: var(--shadow-lg); }
+/* 두 카드는 그리드에서 같은 높이로 늘어나는데, 내용이 짧은 쪽은 footer 까지 그린 뒤 남는 높이가
+   카드 바닥에 흰 여백으로 남았다(1440px 에서 Gap Brief 아래 약 166px). 잘린 카드처럼 보인다.
+   flex 로 바꿔 footer 를 바닥에 붙이면 남는 높이가 본문과 footer 사이로 들어가 문서처럼 읽힌다. */
+.proof-card { overflow: hidden; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; }
+.proof-card > footer { margin-top: auto; }
 .proof-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
 .proof-header > div { display: flex; align-items: center; gap: 8px; }
 .proof-header > span { color: var(--muted); font-size: 12px; }
@@ -565,10 +573,36 @@ body.drawer-open { overflow: hidden; }
 .skeleton-line.tall { height: 84px; }
 .skeleton-line.short { width: 55%; }
 @keyframes shimmer { 0% { background-position: -450px 0; } 100% { background-position: 450px 0; } }
+
+/* 분석 진행 단계 — 스켈레톤 위에 놓여 "지금 무엇을 하는 중인지"를 말한다.
+   퍼센트 막대를 쓰지 않는다: 서버 진행률을 알 수 없어 어떤 숫자든 지어낸 값이 된다. */
+.analysis-progress { margin: 0 0 18px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); box-shadow: var(--shadow); }
+.analysis-progress-head { margin: 0 0 14px; color: var(--color-text-secondary); font-size: 14px; font-weight: 700; }
+.analysis-stages { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.analysis-stage { display: flex; align-items: flex-start; gap: 12px; padding: 11px 13px; border: 1px solid transparent; border-radius: 11px; }
+.analysis-stage-mark { flex: none; display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: var(--color-surface-muted); color: var(--color-text-muted); font-size: 12.5px; font-weight: 850; }
+.analysis-stage-text { display: grid; gap: 3px; }
+.analysis-stage-text b { font-size: 15px; font-weight: 750; line-height: 1.45; }
+.analysis-stage-text small { color: var(--color-text-muted); font-size: 12.5px; line-height: 1.55; }
+/* 아직 오지 않은 단계는 흐리게 두되 대비는 유지한다(읽을 수 있어야 다음에 무엇이 오는지 안다). */
+.analysis-stage.waiting { opacity: .62; }
+.analysis-stage.active { border-color: var(--color-accent-soft-border); background: var(--color-accent-soft); }
+.analysis-stage.active .analysis-stage-mark { background: transparent; color: var(--color-accent); }
+.analysis-stage.active .analysis-stage-text b { color: var(--color-accent); }
+.analysis-stage.done .analysis-stage-mark { background: var(--color-success-soft); color: var(--color-success); }
+/* 움직임을 줄이도록 설정한 사용자에게는 회전을 멈춘다 — 단계 상태는 색과 기호로도 구분된다. */
+@media (prefers-reduced-motion: reduce) {
+  .analysis-stage .spinner { animation: none; }
+}
+
 /* 스켈레톤 반응형: 기본 정의보다 뒤에 두어야 override가 적용됨 */
 @media (max-width: 1050px) {
   .skeleton-claims { grid-template-columns: 1fr; }
   .skeleton-card { min-height: 200px; }
+}
+@media (max-width: 720px) {
+  .analysis-progress { padding: 16px; }
+  .analysis-stage { padding: 9px 10px; gap: 10px; }
 }
 
 /* 학습확인(퀴즈) + 수행확인 등급 */
@@ -627,8 +661,11 @@ body.drawer-open { overflow: hidden; }
 .home { min-height: 100vh; background: var(--ivory); counter-reset: home-sec; }
 /* 첫 화면에 채움 버튼이 둘이면 어느 쪽이 주요 행동인지 알 수 없다.
    히어로의 "내 경험에서 가능성 찾기" 하나만 채움으로 두고, 헤더는 외곽선으로 낮춘다. */
-.home .info-nav .nav-cta { border: 1px solid var(--color-brand-primary); background: transparent; color: var(--color-brand-primary); font-weight: 750; margin-left: 4px; }
-.home .info-nav .nav-cta:hover { background: var(--color-brand-soft); color: var(--color-brand-hover); }
+/* `.home` 은 <main> 에 붙고 헤더는 그 형제라, `.home .info-nav` 는 어떤 요소와도 맞지 않았다.
+   그래서 유일한 상시 진입 버튼인 "데모 열기 →" 가 다른 내비 링크와 똑같은 회색 글자로만 나왔고,
+   헤더에서 가장 눈에 띄는 것이 테마 토글이 되어 있었다. `.home` 한정을 걷어낸다. */
+.info-nav .nav-cta { border: 1px solid var(--color-brand-primary); background: transparent; color: var(--color-brand-primary); font-weight: 750; margin-left: 4px; }
+.info-nav .nav-cta:hover { background: var(--color-brand-soft); color: var(--color-brand-hover); }
 /* 히어로 — 전체 다크가 아니라 핵심 진입 구간만 다크 네이비(하이브리드). 실제 폭은 -inner에서 제한.
    다크 테마에서는 --hero-gradient 자체가 전용 그라데이션으로 바뀌어 다크 페이지 배경과 구분된다. */
 .home-hero { background: var(--hero-gradient); }
@@ -675,8 +712,16 @@ body.drawer-open { overflow: hidden; }
 .home-card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
 .home-card b { display: block; margin-bottom: 6px; }
 .home-card p { color: var(--color-text); font-size: 14px; line-height: 1.6; margin: 0; }
-.home-list { margin: 8px 0 0; padding-left: 18px; color: var(--color-text); font-size: 14px; line-height: 1.7; }
-.home-audience { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 18px; padding-left: 18px; color: var(--color-text); line-height: 1.7; }
+/* Tailwind preflight 가 모든 ul/ol 의 list-style 을 none 으로 지운다. 여기 두 목록은 들여쓰기만
+   남고 글머리 기호가 사라져, 이유 없이 오른쪽으로 밀린 문단처럼 보였다(홈의 '누구를 위한가'·
+   '지금 제공합니다'). 들여쓰기를 쓰는 목록에는 기호를 되살린다. */
+.home-list { margin: 8px 0 0; padding-left: 18px; color: var(--color-text); font-size: 14px; line-height: 1.7; list-style: disc; }
+.home-list > li::marker { color: var(--green); }
+/* .home-audience 는 그리드라 li 가 그리드 아이템이 되어 ::marker 가 그려지지 않는다.
+   기호를 직접 그리고, 그만큼 들여쓰기를 li 로 옮긴다. */
+.home-audience { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 18px; padding-left: 0; color: var(--color-text); line-height: 1.7; }
+.home-audience > li { padding-left: 18px; position: relative; }
+.home-audience > li::before { content: "•"; position: absolute; left: 4px; color: var(--green); font-weight: 800; }
 .home-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .home-chips span { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 700; color: var(--color-text); }
 .home-note { margin-top: 12px; color: var(--color-text-muted); font-size: 13px; }
@@ -750,6 +795,10 @@ body.drawer-open { overflow: hidden; }
   .home-grid.two, .home-grid.three, .home-grid.four { grid-template-columns: 1fr; }
   .home-steps { grid-template-columns: 1fr; }
   .home-audience { grid-template-columns: 1fr; }
+  /* 두 CTA 가 각자 글자 길이만큼만 넓어 왼쪽만 맞은 들쭉날쭉한 계단으로 쌓였다.
+     모바일 첫 화면에서 가장 먼저 보이는 요소라 폭을 맞춘다. */
+  .home-cta-row { flex-direction: column; align-items: stretch; }
+  .home-cta-row a { width: 100%; }
 }
 
 /* Gate 2b(#37): 샘플 체험 표시 — "지금 샘플 모드"를 테마와 무관하게 눈에 띄게 유지한다.
