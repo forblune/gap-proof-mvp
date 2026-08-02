@@ -325,7 +325,12 @@ body.drawer-open { overflow: hidden; }
 .footer-nav { display: flex; flex-wrap: wrap; gap: 2px 12px; }
 .footer-nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-text-muted); text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px; }
 .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 32px; }
-.section-head h1 { margin: 8px 0 0; font-size: clamp(34px, 3.5vw, 52px); }
+/* 한국어는 어절 안에서 줄이 바뀌면 눈에 띄게 어색하다 — 768px 에서 결과 화면 제목이
+   "생겼습 / 니다" 로 끊겼다. 홈 제목(.home-hero h1·.home-section h2)에는 이미 같은 규칙이
+   있는데 데모 여정 제목만 빠져 있었다. overflow-wrap 은 예외적으로 긴 낱말이 넘칠 때의 안전장치다. */
+.section-head h1 { margin: 8px 0 0; font-size: clamp(34px, 3.5vw, 52px); word-break: keep-all; overflow-wrap: break-word; }
+/* 같은 이유 — 버튼 라벨과 푸터가 "링크 복 / 사", "체험 나 / 가기" 로 끊겼다. */
+.footer-actions button, .site-footer { word-break: keep-all; }
 .time-pill, .complete-badge { flex: 0 0 auto; padding: 9px 13px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 12px; font-weight: 800; }
 .experience-layout { display: grid; grid-template-columns: 1.35fr .65fr; gap: 20px; }
 .input-card { padding: 28px; }
