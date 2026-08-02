@@ -6,8 +6,6 @@ import {
   findRole,
   computeGapMap,
   recommendNextActions,
-  tierFromLink,
-  isVerifiableLink,
   makeCheck,
   claimSupports,
   hasConfirmedEvidenceFor,
@@ -39,7 +37,7 @@ import {
 import { clearDraft, loadDraft, saveDraft, type DraftClaim } from "../lib/draft";
 import { LONG_EXAMPLES } from "../lib/samples";
 import { AI_ORGANIZE_PROMPT, previewText, validateImportFile } from "../lib/import-file";
-import { IconCheck, IconQuestion, IconWarning, IconCompass, IconChecklist } from "../components/fact-icons";
+import { IconCheck, IconQuestion, IconWarning, IconCompass, IconChecklist, IconClip } from "../components/fact-icons";
 import BrandGlyph from "../components/brand-mark";
 import MobileActionsMenu from "../components/mobile-actions-menu";
 import ThemeToggle from "../components/theme-toggle";
@@ -58,6 +56,8 @@ type Claim = {
   question: string;
   status: ClaimStatus;
   link?: string;
+  // 첨부 파일명(표시 전용) — 서버에 업로드하지 않으므로 등급 판정에는 쓰지 않는다(link만 본다).
+  fileName?: string;
   // Gate 4(#40) V2 — 전부 선택: 없으면 렌더하지 않는다(샘플·구버전 호환)
   factStatus?: "확인됨" | "부분 확인" | "계획·관심";
   context?: string;
@@ -210,6 +210,7 @@ export default function Home() {
   const [analysisNotice, setAnalysisNotice] = useState("");
   const [selectedAction, setSelectedAction] = useState("project");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [noticeLeaving, setNoticeLeaving] = useState(false);
   const [editingClaimId, setEditingClaimId] = useState<number | null>(null);
   const [editingSkill, setEditingSkill] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -257,6 +258,21 @@ export default function Home() {
   const analysisTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const showNotice = (text: string, kind: NoticeKind = "info") => setNotice({ text, kind });
+
+  // 안내 배너는 계속 화면에 남아 있었다(닫는 방법이 없어 다음 안내가 뜨거나 새로고침해야 사라졌다).
+  // 3초 후 서서히 사라지게 하고, 전환(300ms)이 끝난 뒤에만 실제로 걷어낸다(중간에 잘리지 않도록).
+  useEffect(() => {
+    if (!notice) return;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- 새 안내가 뜰 때마다 이전 안내의
+       사라지는 중 상태를 즉시 되돌려야 한다(외부 타이머와의 동기화이지 렌더에서 유도 가능한 값이 아니다). */
+    setNoticeLeaving(false);
+    const fadeTimer = setTimeout(() => setNoticeLeaving(true), 3000);
+    const removeTimer = setTimeout(() => setNotice(null), 3300);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, [notice]);
 
   const clearAnalysisTimers = () => {
     analysisTimers.current.forEach((id) => clearTimeout(id));
@@ -566,11 +582,10 @@ export default function Home() {
     );
   };
 
-  const attachLink = (id: number, link: string) => {
+  // 파일 선택창에서 고른 파일명만 표시한다 — 서버 업로드가 없으므로 link·tier는 바꾸지 않는다.
+  const attachFile = (id: number, file: File | null) => {
     setClaims((current) =>
-      current.map((claim) =>
-        claim.id === id ? { ...claim, link, tier: tierFromLink(link) } : claim,
-      ),
+      current.map((claim) => (claim.id === id ? { ...claim, fileName: file?.name } : claim)),
     );
   };
 
@@ -1163,7 +1178,10 @@ export default function Home() {
       )}
 
       {notice && (
-        <div className={`notice ${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
+        <div
+          className={`notice ${notice.kind}${noticeLeaving ? " leaving" : ""}`}
+          role={notice.kind === "error" ? "alert" : "status"}
+        >
           {notice.kind === "error" && <strong>오류</strong>}
           {notice.text}
         </div>
@@ -1497,18 +1515,20 @@ export default function Home() {
                 <blockquote>“{claim.quote}”</blockquote>
                 <div className="claim-source"><span>출처</span><b>{claim.source}</b></div>
                 <div className="evidence-link">
-                  <label htmlFor={`claim-link-${claim.id}`}>근거 링크 (선택)</label>
-                  <input id={`claim-link-${claim.id}`} value={claim.link ?? ""} placeholder="https://... (GitHub·수료증·노트 주소)" onChange={(event) => attachLink(claim.id, event.target.value)} />
-                  {/* 등급을 정하는 것은 tierFromLink(=isVerifiableLink)이지 "칸이 비었는가"가 아니다.
-                      link 유무로 문구를 고르면 "메모장에 정리함"을 적었을 때 배지는 Lv.0인데
-                      캡션만 Lv.1이라고 말한다 — 화면이 코드가 하지 않은 일을 주장하게 된다. */}
-                  <small>
-                    {!claim.link
-                      ? "링크가 없으면 Lv.0 자기기록으로 시작합니다"
-                      : isVerifiableLink(claim.link)
-                        ? "링크 연결됨 → 증거등급 Lv.1 근거 연결"
-                        : "이 주소로는 등급이 오르지 않아 Lv.0 자기기록에 머뭅니다. http:// 또는 https:// 로 시작하는 주소만 인정됩니다."}
-                  </small>
+                  <span className="evidence-link-caption">근거 파일 첨부 (선택)</span>
+                  <input
+                    id={`claim-file-${claim.id}`}
+                    type="file"
+                    className="sr-only"
+                    onChange={(event) => attachFile(claim.id, event.target.files?.[0] ?? null)}
+                  />
+                  <label htmlFor={`claim-file-${claim.id}`} className="file-attach-button">
+                    <IconClip />
+                    {claim.fileName ?? "파일 첨부"}
+                  </label>
+                  {/* 서버에 업로드하지 않으므로 첨부는 화면 표시용일 뿐, tierFromLink(=isVerifiableLink)가
+                      보는 값은 그대로 link다 — 파일을 붙였다고 등급이 오른다고 말하지 않는다. */}
+                  <small>첨부한 파일은 이 화면에만 표시되며 저장되지 않습니다. 증거등급에는 반영되지 않습니다.</small>
                 </div>
                 <p className="follow-up"><b><IconQuestion />더 확인하면 좋은 것</b>{claim.question}</p>
                 {(claim.factStatus || claim.behaviors?.length || claim.jobHypotheses?.length || claim.smallStep) && (
