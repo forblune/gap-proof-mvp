@@ -94,7 +94,7 @@ test("serves the public homepage without any gate", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   for (const phrase of [
-    "경력이라고 생각하지 않았던 경험",   // Hero
+    "근거가 남는 경력 문장",              // Hero
     "왜 필요한가",                        // 문제
     "누구를 위한가",                      // 대상
     "어떤 경험이 가능한가",               // 입력 범위

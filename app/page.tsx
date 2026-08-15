@@ -91,18 +91,32 @@ export default function HomePage() {
 
       {/* 1. Hero — 하이브리드 방향: 핵심 진입 구간은 다크 네이비로 무게감을 준다 */}
       <section className="home-hero" aria-labelledby="home-hero-title">
-        <div className="home-hero-inner">
-          <p className="eyebrow">삶의 경험 → 확인된 증거 → 이번 주 한 걸음</p>
-          <h1 id="home-hero-title">경력이라고 생각하지 않았던 경험에서<br /><em>다음 가능성</em>을 찾습니다.</h1>
-          <p className="lead">
-            돌봄, 아르바이트, 게임, 취미, 독학, 쉬었던 시간까지. GapProof는 삶에서 실제로 한 행동을
-            근거로 역량 후보를 찾고, 확인 질문과 작은 실험을 통해 다음 진로 탐색으로 연결합니다.
-          </p>
-          <div className="home-cta-row">
-            <a className="primary" href="/demo">내 경험에서 가능성 찾기 →</a>
-            <a className="secondary" href="/demo?sample=1">샘플로 둘러보기</a>
+        <div className="home-hero-inner home-hero-grid">
+          <div className="home-hero-copy">
+            <p className="eyebrow">돌봄·아르바이트·게임·독학을 경력 문장으로 정리</p>
+            <h1 id="home-hero-title">했던 일을 적으면,<br /><em>근거가 남는 경력 문장</em>으로 정리합니다.</h1>
+            <p className="lead">
+              GapProof는 사용자가 적은 경험에서 실제 행동을 찾고, 원문 인용과 확인 질문을 붙입니다.
+              사용자가 확인한 내용만 증거 카드와 이번 주 행동에 반영합니다.
+            </p>
+            <div className="home-cta-row">
+              <a className="primary" href="/demo?sample=1">가상 사례로 흐름 보기 →</a>
+              <a className="secondary" href="/how-it-works">작동 방식 확인</a>
+            </div>
+            <p className="fine-print">가상 데이터로 먼저 볼 수 있습니다. 취업 가능성이나 적성을 점수로 판정하지 않습니다.</p>
           </div>
-          <p className="fine-print">샘플은 코드 없이 볼 수 있습니다 · 실제 분석은 심사·멘토링용 데모 코드로 입장합니다 · 취업 가능성이나 적성을 판정하지 않습니다.</p>
+          <figure className="home-product-proof">
+            {/* 공개 홈은 정적 자산을 그대로 보여준다. 데모 서버 이미지 변환 경로에 의존하지 않는다. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/press/03-demo-step1.jpg"
+              alt="GapProof 샘플 데모에서 경험 입력과 공유 범위를 선택하는 실제 화면"
+              width={1600}
+              height={955}
+              fetchPriority="high"
+            />
+            <figcaption><span>실제 데모 화면</span><strong>입력 → 근거 확인 → 다음 행동</strong></figcaption>
+          </figure>
         </div>
       </section>
 

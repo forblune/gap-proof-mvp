@@ -810,6 +810,139 @@ body.drawer-open { overflow: hidden; }
   .home-cta-row a { width: 100%; }
 }
 
+/* 2026-08 public-home editorial pass
+   반복되는 다크 SaaS 히어로·둥근 카드·칩·그림자 대신 실제 데모 화면과 문서형 위계를 앞세운다.
+   데모 내부의 기능 UI는 그대로 두고 공개 홈의 첫인상만 정리한다. */
+.home-hero { background: var(--color-surface); border-bottom: 1px solid var(--line); }
+.home-hero-grid {
+  max-width: 1180px;
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr);
+  gap: clamp(36px, 6vw, 84px);
+  align-items: center;
+  padding-block: 72px;
+}
+.home-hero-copy { min-width: 0; }
+.home-hero .eyebrow {
+  display: block;
+  width: fit-content;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  font: 750 12px/1.45 "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  letter-spacing: .02em;
+}
+.home-hero h1 {
+  max-width: 680px;
+  margin: 20px 0 22px;
+  color: var(--ink);
+  font-size: clamp(39px, 4.4vw, 64px);
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -.055em;
+}
+.home-hero h1 em { color: var(--ink); text-decoration: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: .08em; text-underline-offset: .16em; }
+.home-hero .lead { max-width: 650px; color: var(--color-text-secondary); font-size: 16px; line-height: 1.8; }
+.home-hero .fine-print { max-width: 620px; margin-top: 18px; color: var(--color-text-muted); font-size: 12px; line-height: 1.65; }
+.home-hero .primary,
+.home-hero .secondary {
+  min-height: 48px;
+  border-radius: 2px;
+  box-shadow: none;
+  font-weight: 750;
+}
+.home-hero .primary { border-color: var(--color-brand-fill); background: var(--color-brand-fill); color: var(--color-brand-fill-contrast); }
+.home-hero .secondary { border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); padding-inline: 4px; }
+.home-hero .primary:hover:not(:disabled),
+.home-hero .secondary:hover { box-shadow: none; transform: none; }
+.home-product-proof { margin: 0; min-width: 0; }
+.home-product-proof img { display: block; width: 100%; height: auto; border: 1px solid var(--color-border-strong); background: var(--paper); }
+.home-product-proof figcaption { display: flex; justify-content: space-between; gap: 18px; padding: 12px 0 0; border-top: 0; color: var(--color-text-muted); font-size: 12px; }
+.home-product-proof figcaption strong { color: var(--ink); font-weight: 650; text-align: right; }
+
+.home-section,
+.home-band-inner { max-width: 1180px; padding-block: 54px; }
+.home-band-b { background: var(--color-surface); border-block: 1px solid var(--line); }
+.home-band-b .home-card,
+.home-band-b .home-case { box-shadow: none; }
+.home-grid { gap: 0; border-top: 1px solid var(--line); }
+.home-card {
+  min-width: 0;
+  padding: 20px 18px 22px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.home-grid.three .home-card:not(:nth-child(3n)),
+.home-grid.four .home-card:not(:nth-child(4n)),
+.home-grid.two .home-card:nth-child(odd) { border-right: 1px solid var(--line); padding-right: 22px; }
+.home-grid.three .home-card:not(:nth-child(3n)),
+.home-grid.four .home-card:not(:nth-child(4n)) { padding-left: 18px; }
+.home-grid.three .home-card:first-child,
+.home-grid.four .home-card:first-child { padding-left: 0; }
+.home-card b { font-size: 15px; }
+
+.home-chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; border-top: 1px solid var(--line); }
+.home-chips span { padding: 13px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; font-weight: 600; }
+.home-chips span:nth-child(odd) { border-right: 1px solid var(--line); padding-right: 18px; }
+.home-chips span:nth-child(even) { padding-left: 18px; }
+
+.home-steps { gap: 0; border-block: 1px solid var(--line); }
+.home-steps li { min-width: 0; padding: 20px 18px; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: transparent; }
+.home-steps li:first-child { padding-left: 0; }
+.home-steps li:last-child { border-right: 0; }
+.home-steps li::before { width: auto; height: auto; margin-bottom: 24px; border-radius: 0; background: transparent; color: var(--color-accent); font: 750 12px/1 "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; }
+
+.home-cases { display: block; margin-top: 24px; border-top: 1px solid var(--line); }
+.home-case {
+  display: grid;
+  grid-template-columns: 150px minmax(220px, .8fr) minmax(0, 1.35fr);
+  gap: 24px;
+  align-items: start;
+  padding: 28px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.home-case .case-tag { margin: 0; padding: 0; border-radius: 0; background: transparent; color: var(--color-accent); font: 750 12px/1.5 "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; }
+.home-case blockquote { margin: 0; font-size: 15px; }
+.home-case dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.home-case .fact { margin: 0; }
+
+.status-card { border-top-width: 1px; }
+.status-badge { padding: 0; border-radius: 0; background: transparent !important; }
+.home-final { background: var(--color-brand-fill); }
+
+@media (max-width: 920px) {
+  .home-hero-grid { grid-template-columns: 1fr; }
+  .home-product-proof { max-width: 760px; }
+  .home-case { grid-template-columns: 120px 1fr; }
+  .home-case dl { grid-column: 2; }
+  .home-steps li:nth-child(2) { border-right: 0; }
+  .home-steps li:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+}
+@media (max-width: 640px) {
+  .home-hero-grid { padding-block: 44px; }
+  .home-hero h1 { font-size: clamp(36px, 11vw, 48px); }
+  .home-product-proof figcaption { display: block; }
+  .home-product-proof figcaption strong { display: block; margin-top: 3px; text-align: left; }
+  .home-card,
+  .home-grid.three .home-card:not(:nth-child(3n)),
+  .home-grid.four .home-card:not(:nth-child(4n)),
+  .home-grid.two .home-card:nth-child(odd) { padding-inline: 0; border-right: 0; }
+  .home-chips { grid-template-columns: 1fr; }
+  .home-chips span:nth-child(odd),
+  .home-chips span:nth-child(even) { padding-inline: 0; border-right: 0; }
+  .home-steps li { padding-inline: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .home-steps li:last-child { border-bottom: 0; }
+  .home-case { display: block; }
+  .home-case blockquote { margin: 12px 0 18px; }
+  .home-case dl { display: block; }
+  .home-case .fact { margin-top: 14px; }
+}
+
 /* Gate 2b(#37): 샘플 체험 표시 — "지금 샘플 모드"를 테마와 무관하게 눈에 띄게 유지한다.
    예전에는 --yellow 라는 별칭을 썼지만 실제로는 인디고(--color-brand-primary)로 해석돼,
    "노란색이니 어두운 글자를 얹어도 된다"는 오해로 대비 2.49:1 결함을 낳았다. 별칭을 없앴다. */
