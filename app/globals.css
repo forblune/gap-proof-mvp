@@ -2,7 +2,7 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* iOS Safari 텍스트 자동 확대가 내비를 부풀려 랩·겹침을 유발(#67) */
-body { margin: 0; background: var(--ivory); color: var(--ink); font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+body { margin: 0; background: var(--ivory); color: var(--ink); font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; word-break: keep-all; overflow-wrap: break-word; }
 h1, h2, h3 { color: var(--color-heading); } /* 헤딩·본문 명도 대비 강화 — 더 구체적인 선택자(예: .identity h2, .home-hero h1)가 우선한다 */
 button, textarea, input { font: inherit; }
 button { color: inherit; }
