@@ -4,7 +4,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parse as parseCookie } from "cookie";
 import { safeNext } from "../app/lib/safe-redirect.ts";
-import { serializeAuthCookie, shouldMarkSecure } from "../app/lib/auth-cookie.ts";
+import {
+  AUTH_COOKIE_FALLBACK_MAX_AGE,
+  ensurePersistentAuthCookie,
+  serializeAuthCookie,
+  shouldMarkSecure,
+} from "../app/lib/auth-cookie.ts";
+import { browserCookieOptions } from "../app/lib/supabase.ts";
 
 const ORIGIN = "https://gapproof.example.com";
 
@@ -104,4 +110,59 @@ test("브라우저 클라이언트가 쓰는 파서로 값이 그대로 복원�
   const header = serializeAuthCookie(AUTH_COOKIE, value, SSR_DEFAULTS, { secure: true });
   const [pair] = header.split("; ");
   assert.equal(parseCookie(pair)[AUTH_COOKIE], value);
+});
+
+// ── 만료 보존과 영속성 보증 ──────────────────────────────────────────────────
+// 세션 쿠키(만료 없음)는 브라우저 종료와 함께 사라진다. 라이브러리가 주는 만료를
+// 어느 형태로 오든(Max-Age / Expires) 보존하고, 둘 다 없을 때만 기본 수명을 채운다.
+
+test("Expires 로 온 만료를 버리지 않는다 — 이전에는 조용히 사라졌다", () => {
+  const expires = new Date("2027-01-01T00:00:00Z");
+  const header = serializeAuthCookie(AUTH_COOKIE, "v", { path: "/", sameSite: "lax", expires }, { secure: true });
+  assert.match(header, new RegExp(`(^|; )Expires=${expires.toUTCString().replace(/[,]/g, "\\,")}(;|$)`));
+});
+
+test("Max-Age 와 Expires 가 함께 오면 둘 다 내보낸다 — 브라우저는 Max-Age 를 우선한다", () => {
+  const expires = new Date("2027-01-01T00:00:00Z");
+  const header = serializeAuthCookie(AUTH_COOKIE, "v", { ...SSR_DEFAULTS, expires }, { secure: true });
+  assert.match(header, /(^|; )Max-Age=34560000(;|$)/);
+  assert.match(header, /(^|; )Expires=/);
+});
+
+test("해석 불가능한 Expires 는 속성을 생략한다 — 깨진 날짜는 쿠키 전체를 죽일 수 있다", () => {
+  const header = serializeAuthCookie(AUTH_COOKIE, "v", { ...SSR_DEFAULTS, expires: "not-a-date" }, { secure: true });
+  assert.ok(!/Expires=/.test(header), header);
+  assert.match(header, /(^|; )Max-Age=34560000(;|$)/); // maxAge 는 그대로 산다
+});
+
+test("만료가 전혀 없으면 기본 수명을 채운다 — 콜백 세션이 브라우저 종료를 견뎌야 한다", () => {
+  const patched = ensurePersistentAuthCookie("token-value", { path: "/", sameSite: "lax", httpOnly: false });
+  assert.equal(patched.maxAge, AUTH_COOKIE_FALLBACK_MAX_AGE);
+  const header = serializeAuthCookie(AUTH_COOKIE, "token-value", patched, { secure: true });
+  assert.match(header, new RegExp(`(^|; )Max-Age=${AUTH_COOKIE_FALLBACK_MAX_AGE}(;|$)`));
+});
+
+test("라이브러리가 준 만료는 덮어쓰지 않는다 — Max-Age 든 Expires 든 그대로", () => {
+  assert.equal(ensurePersistentAuthCookie("v", SSR_DEFAULTS), SSR_DEFAULTS);
+  const withExpires = { path: "/", expires: new Date("2027-01-01T00:00:00Z") };
+  assert.equal(ensurePersistentAuthCookie("v", withExpires), withExpires);
+});
+
+test("삭제 지시는 보존한다 — maxAge=0 과 빈 값에는 수명을 채우지 않는다", () => {
+  const deletion = { ...SSR_DEFAULTS, maxAge: 0 };
+  assert.equal(ensurePersistentAuthCookie("", deletion), deletion);
+  assert.equal(ensurePersistentAuthCookie("v", deletion).maxAge, 0);
+  // 빈 값인데 옵션도 없는 경우 — 만료를 지어내지 않는다.
+  assert.equal(ensurePersistentAuthCookie("", undefined), undefined);
+});
+
+// ── 브라우저 클라이언트 쿠키의 Secure ───────────────────────────────────────
+// document.cookie 로 쓰는 경로에는 서버의 shouldMarkSecure 가 닿지 않는다.
+// 운영 실측에서 로그인 쿠키가 secure=false 로 저장돼 있었다.
+
+test("https 에서는 브라우저 쿠키에 Secure 를 붙이고, 로컬 http 에서는 붙이지 않는다", () => {
+  assert.deepEqual(browserCookieOptions("https:"), { secure: true });
+  assert.deepEqual(browserCookieOptions("http:"), { secure: false });
+  // window 가 없는 환경(SSR)에서는 안전하게 false — 그 환경은 document.cookie 를 쓰지 못한다.
+  assert.deepEqual(browserCookieOptions(), { secure: false });
 });
